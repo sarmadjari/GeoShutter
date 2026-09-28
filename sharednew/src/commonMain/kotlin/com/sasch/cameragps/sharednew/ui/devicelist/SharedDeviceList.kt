@@ -440,7 +440,7 @@ private fun DeviceCard(
             }
             val statusText = when {
                 // Remote-active needs no extra text: the shutter button says it all.
-                device.isConnected && isRemoteFeatureActive ->
+                device.isConnected && (isRemoteFeatureActive || item?.remoteSupported == false) ->
                     stringResource(Res.string.connected)
 
                 device.isConnected -> stringResource(Res.string.remote_feature_inactive)

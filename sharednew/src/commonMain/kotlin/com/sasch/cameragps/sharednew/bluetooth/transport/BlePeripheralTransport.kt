@@ -115,11 +115,28 @@ interface BlePeripheralTransport {
     // Returning false means the operation could not even be started
     // (no connection, unknown characteristic, platform refusal).
 
-    fun initiateWrite(identifier: String, characteristicUuid: String, value: ByteArray): Boolean
+    // A non-null serviceUuid limits the characteristic lookup to that service.
 
-    fun initiateRead(identifier: String, characteristicUuid: String): Boolean
+    fun initiateWrite(
+        identifier: String,
+        characteristicUuid: String,
+        value: ByteArray,
+        serviceUuid: String? = null,
+    ): Boolean
 
-    fun initiateSubscribe(identifier: String, characteristicUuid: String, enable: Boolean): Boolean
+    fun initiateRead(identifier: String, characteristicUuid: String, serviceUuid: String? = null): Boolean
+
+    /**
+     * Enable or disable notifications, or indications when [indication] is set or
+     * the characteristic only supports indications.
+     */
+    fun initiateSubscribe(
+        identifier: String,
+        characteristicUuid: String,
+        enable: Boolean,
+        indication: Boolean = false,
+        serviceUuid: String? = null,
+    ): Boolean
 
     /**
      * Android: `gatt.discoverServices()`.

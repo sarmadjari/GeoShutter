@@ -6,6 +6,9 @@ import com.sasch.cameragps.sharednew.bluetooth.coordinator.BleGattPort
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.LocationDataConfig
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.LocationPacketBuilder
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.PlatformTimeZoneInfo
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmPacketBuilder
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -32,6 +35,9 @@ sealed interface LocationEvent {
  * send-to-ready-sessions. Unifies the former Android
  * `LocationTransmissionCoordinator` and iOS `IosLocationTransmissionManager`.
  *
+ * Sony cameras get the location pushed every [SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS];
+ * Fujifilm cameras ask for it ([onLocationRequested]) and only get answers.
+ *
  * All packet sends go through [port] (the queue-backed [BleGattPort]) so they
  * are serialized with every other BLE operation.
  */
@@ -43,6 +49,7 @@ class LocationTransmissionManager(
     private val scope: CoroutineScope,
     /** iOS: app-level transmission toggle. Android: always allowed. */
     private val isTransmissionAllowed: () -> Boolean = { true },
+    private val protocolFor: (String) -> CameraProtocol = { CameraProtocol.Sony },
 ) {
     private val log = logging()
 
@@ -64,13 +71,38 @@ class LocationTransmissionManager(
     private var collectJob: Job? = null
     private var periodicJob: Job? = null
 
+    /** Cameras that asked for a location before one could be sent. */
+    private val pendingRequests = mutableSetOf<String>()
+
     /**
      * A device finished its handshake: make sure tracking runs and give the
-     * camera a cached fix immediately instead of waiting for the next tick.
+     * camera a cached fix immediately instead of waiting for the next tick
+     * (Sony), or answer a request that arrived early (Fujifilm).
      */
     fun onDeviceReady(identifier: String) {
+        val id = identifier.uppercase()
         startIfNeeded()
-        sendImmediateIfCached(identifier.uppercase())
+        if (isPushBased(id)) sendImmediateIfCached(id) else answerPendingRequests()
+    }
+
+    /**
+     * A camera asked for the current location (Fujifilm geotag request). Answered
+     * right away with the latest fix, or as soon as the camera is ready and a fix
+     * is available.
+     */
+    fun onLocationRequested(identifier: String) {
+        val id = identifier.uppercase()
+        if (!isTransmissionAllowed()) return
+        pendingRequests += id
+        answerPendingRequests()
+        if (id in pendingRequests) {
+            log.d { "Location request from $id queued until a fix is available" }
+        }
+    }
+
+    /** Drop state kept for [identifier] (it disconnected). */
+    fun forgetDevice(identifier: String) {
+        pendingRequests -= identifier.uppercase()
     }
 
     /**
@@ -115,7 +147,7 @@ class LocationTransmissionManager(
                 val current = latest
                 if (current != null) {
                     log.d { "Periodic timer – sending location to ready sessions" }
-                    runCatching { sendToReadySessions(current) }
+                    runCatching { sendToPushSessions(current) }
                         .onFailure { log.e(it, msg = { "Error sending location" }) }
                 } else {
                     log.w { "Periodic timer – no location available to send" }
@@ -137,6 +169,7 @@ class LocationTransmissionManager(
         periodicJob = null
         _isActive.value = false
         hasSessionLocation = false
+        pendingRequests.clear()
     }
 
     private fun onNewLocation(location: GeoLocation) {
@@ -150,10 +183,11 @@ class LocationTransmissionManager(
         // Send right away when there was no usable fix yet; otherwise the
         // periodic loop picks the new fix up on its next tick.
         if (current == null || !isFreshFix(current)) {
-            runCatching { sendToReadySessions(location) }
+            runCatching { sendToPushSessions(location) }
                 .onFailure { log.e(it, msg = { "Error sending location" }) }
         }
         latest = location
+        answerPendingRequests()
 
         if (!hadLocationBefore) {
             _events.trySend(LocationEvent.FirstFixAcquired)
@@ -170,20 +204,52 @@ class LocationTransmissionManager(
         }
     }
 
-    private fun sendToReadySessions(location: GeoLocation) {
-        readySessions().forEach { sendToDevice(it, location) }
+    private fun isPushBased(identifier: String) = protocolFor(identifier) == CameraProtocol.Sony
+
+    private fun sendToPushSessions(location: GeoLocation) {
+        readySessions().filter(::isPushBased).forEach { sendToDevice(it, location) }
+    }
+
+    /** Answer requests of ready cameras once a fix exists; others keep waiting. */
+    private fun answerPendingRequests() {
+        if (!isTransmissionAllowed()) return
+        val location = latest ?: return
+        val ready = readySessions()
+        pendingRequests.filter { it in ready }.forEach { id ->
+            pendingRequests -= id
+            sendToDevice(id, location)
+        }
     }
 
     private fun sendToDevice(identifier: String, location: GeoLocation) {
-        val config = configFor(identifier) ?: LocationDataConfig(shouldSendTimeZoneAndDst = false)
-        val packet = LocationPacketBuilder.buildLocationDataPacket(
-            config,
-            location.latitude,
-            location.longitude,
-            PlatformTimeZoneInfo(),
-        )
-        val queued =
-            port.writeCharacteristic(identifier, SonyBluetoothConstants.CHARACTERISTIC_UUID, packet)
+        val queued = when (protocolFor(identifier)) {
+            CameraProtocol.Sony -> {
+                val config =
+                    configFor(identifier) ?: LocationDataConfig(shouldSendTimeZoneAndDst = false)
+                val packet = LocationPacketBuilder.buildLocationDataPacket(
+                    config,
+                    location.latitude,
+                    location.longitude,
+                    PlatformTimeZoneInfo(),
+                )
+                port.writeCharacteristic(identifier, SonyBluetoothConstants.CHARACTERISTIC_UUID, packet)
+            }
+
+            CameraProtocol.FujifilmSecure -> {
+                val packet = FujifilmPacketBuilder.buildGeotagPacket(
+                    location.latitude,
+                    location.longitude,
+                    location.altitudeMeters,
+                )
+                log.d { "Answering the geotag request of $identifier (${packet.size} bytes)" }
+                port.writeCharacteristic(
+                    identifier,
+                    FujifilmBluetoothConstants.GEOTAG_CHARACTERISTIC_UUID,
+                    packet,
+                    FujifilmBluetoothConstants.GEOTAG_SERVICE_UUID,
+                )
+            }
+        }
         if (queued && _isActive.value) _isTransmitting.value = true
     }
 

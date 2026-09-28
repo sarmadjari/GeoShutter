@@ -66,6 +66,8 @@ internal class IosLocationSource : LocationSource {
                     longitude = lng,
                     horizontalAccuracyMeters = location.horizontalAccuracy,
                     timestampMillis = (location.timestamp.timeIntervalSince1970 * 1000.0).toLong(),
+                    // Above mean sea level; a negative vertical accuracy marks it invalid.
+                    altitudeMeters = location.altitude.takeIf { location.verticalAccuracy >= 0 },
                 )
             )
         }

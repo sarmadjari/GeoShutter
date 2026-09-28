@@ -24,6 +24,17 @@ interface BleGattPort {
     ): Boolean
 
     /**
+     * Like [writeCharacteristic], but looks the characteristic up in [serviceUuid]
+     * only, where the implementation supports it.
+     */
+    fun writeCharacteristic(
+        identifier: String,
+        characteristicUuid: String,
+        value: ByteArray,
+        serviceUuid: String?,
+    ): Boolean = writeCharacteristic(identifier, characteristicUuid, value)
+
+    /**
      * Subscribe to notifications for [characteristicUuid] on device [identifier].
      * On Android this also writes the CCCD descriptor. Returns `true` on success.
      */

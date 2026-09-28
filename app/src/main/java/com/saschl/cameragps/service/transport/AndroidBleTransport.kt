@@ -176,19 +176,26 @@ class AndroidBleTransport(
         identifier: String,
         characteristicUuid: String,
         value: ByteArray,
+        serviceUuid: String?,
     ): Boolean {
         val connection = connections[identifier.uppercase()] ?: return false
         // The GATT handle survives disconnects for autoConnect; it is not proof of a live link.
         if (!connection.isActive) return false
-        val characteristic = findCharacteristic(connection.gatt, characteristicUuid) ?: return false
+        val characteristic =
+            findCharacteristic(connection.gatt, characteristicUuid, serviceUuid) ?: return false
         return writeCharacteristicCompat(connection.gatt, characteristic, value)
     }
 
     @SuppressLint("MissingPermission")
-    override fun initiateRead(identifier: String, characteristicUuid: String): Boolean {
+    override fun initiateRead(
+        identifier: String,
+        characteristicUuid: String,
+        serviceUuid: String?,
+    ): Boolean {
         val connection = connections[identifier.uppercase()] ?: return false
         if (!connection.isActive) return false
-        val characteristic = findCharacteristic(connection.gatt, characteristicUuid) ?: return false
+        val characteristic =
+            findCharacteristic(connection.gatt, characteristicUuid, serviceUuid) ?: return false
         // The read forces link re-encryption on a fresh reconnect: a long gap
         // until the read response is the stack encrypting, not the queue
         Timber.d("Issuing read of %s to the stack", characteristicUuid)
@@ -200,11 +207,14 @@ class AndroidBleTransport(
         identifier: String,
         characteristicUuid: String,
         enable: Boolean,
+        indication: Boolean,
+        serviceUuid: String?,
     ): Boolean {
         val address = identifier.uppercase()
         val connection = connections[address] ?: return false
         if (!connection.isActive) return false
-        val characteristic = findCharacteristic(connection.gatt, characteristicUuid) ?: return false
+        val characteristic =
+            findCharacteristic(connection.gatt, characteristicUuid, serviceUuid) ?: return false
         val descriptor =
             characteristic.getDescriptor(UUID.fromString(SonyBluetoothConstants.CCCD_UUID))
                 ?: return false
@@ -212,10 +222,16 @@ class AndroidBleTransport(
         if (!connection.gatt.setCharacteristicNotification(characteristic, enable)) return false
 
         pendingSubscribeEnable["$address:${characteristicUuid.lowercase()}"] = enable
-        val descriptorValue = if (enable) {
-            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-        } else {
-            BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+        val properties = characteristic.properties
+        val canNotify = properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0
+        val canIndicate = properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0
+        val descriptorValue = when {
+            !enable -> BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+            // Indication-only characteristics ignore the notification bit (Fujifilm).
+            canIndicate && (indication || !canNotify) ->
+                BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+
+            else -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
         }
         return writeDescriptorCompat(connection.gatt, descriptor, descriptorValue)
     }
@@ -421,8 +437,12 @@ class AndroidBleTransport(
     private fun findCharacteristic(
         gatt: BluetoothGatt,
         uuid: String,
+        serviceUuid: String? = null,
     ): BluetoothGattCharacteristic? {
         val target = UUID.fromString(uuid)
+        if (serviceUuid != null) {
+            return gatt.getService(UUID.fromString(serviceUuid))?.getCharacteristic(target)
+        }
         return gatt.services?.flatMap { it.characteristics }?.find { it.uuid == target }
     }
 

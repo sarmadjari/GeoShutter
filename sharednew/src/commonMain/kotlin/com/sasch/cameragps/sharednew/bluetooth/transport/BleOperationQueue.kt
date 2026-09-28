@@ -11,11 +11,27 @@ import kotlinx.coroutines.withTimeout
 
 /**
  * A single BLE operation to be executed sequentially on one device.
+ *
+ * [serviceUuid] limits the characteristic lookup to one service, for protocols
+ * that reuse a characteristic UUID in several services (Fujifilm); null searches
+ * all services. [Subscribe.indication] asks for indications where the
+ * characteristic supports both kinds.
  */
 sealed interface BleOperation {
-    data class Write(val characteristicUuid: String, val value: ByteArray) : BleOperation
-    data class Read(val characteristicUuid: String) : BleOperation
-    data class Subscribe(val characteristicUuid: String, val enable: Boolean) : BleOperation
+    data class Write(
+        val characteristicUuid: String,
+        val value: ByteArray,
+        val serviceUuid: String? = null,
+    ) : BleOperation
+
+    data class Read(val characteristicUuid: String, val serviceUuid: String? = null) : BleOperation
+    data class Subscribe(
+        val characteristicUuid: String,
+        val enable: Boolean,
+        val indication: Boolean = false,
+        val serviceUuid: String? = null,
+    ) : BleOperation
+
     data object DiscoverServices : BleOperation
 }
 
@@ -162,13 +178,19 @@ class BleOperationQueue(
 
     private fun initiate(identifier: String, op: BleOperation): Boolean = when (op) {
         is BleOperation.Write ->
-            transport.initiateWrite(identifier, op.characteristicUuid, op.value)
+            transport.initiateWrite(identifier, op.characteristicUuid, op.value, op.serviceUuid)
 
         is BleOperation.Read ->
-            transport.initiateRead(identifier, op.characteristicUuid)
+            transport.initiateRead(identifier, op.characteristicUuid, op.serviceUuid)
 
         is BleOperation.Subscribe ->
-            transport.initiateSubscribe(identifier, op.characteristicUuid, op.enable)
+            transport.initiateSubscribe(
+                identifier,
+                op.characteristicUuid,
+                op.enable,
+                op.indication,
+                op.serviceUuid,
+            )
 
         is BleOperation.DiscoverServices ->
             transport.initiateDiscoverServices(identifier)
@@ -217,7 +239,8 @@ class BleOperationQueue(
     private fun BleOperation.describe(): String = when (this) {
         is BleOperation.Write -> "Write($characteristicUuid)"
         is BleOperation.Read -> "Read($characteristicUuid)"
-        is BleOperation.Subscribe -> "Subscribe($characteristicUuid, enable=$enable)"
+        is BleOperation.Subscribe ->
+            "Subscribe($characteristicUuid, enable=$enable${if (indication) ", indication" else ""})"
         is BleOperation.DiscoverServices -> "DiscoverServices"
     }
 

@@ -59,6 +59,7 @@ import cameragps.sharednew.generated.resources.rename_camera_title
 import cameragps.sharednew.generated.resources.setting_info
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraAutoCorrectionSetting
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
 import com.sasch.cameragps.sharednew.util.KotlinPlatform
@@ -86,6 +87,8 @@ fun DeviceDetailContent(
     val sessions by viewModel.sessions.collectAsState()
     val session = sessions[deviceId.uppercase()]
     val cameraReady = session?.phase == BleSessionPhase.Transmitting
+    // Remote control and camera settings are Sony features.
+    val sonyFeatures = session?.protocol != CameraProtocol.FujifilmSecure
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshCameraSettings(deviceId)
@@ -145,16 +148,18 @@ fun DeviceDetailContent(
             }
         }
 
-        item {
-            DeviceToggleRow(
-                title = stringResource(Res.string.enable_remote_control),
-                checked = state.isRemoteControlEnabled,
-                enabled = state.isDeviceEnabled && state.buttonEnabled,
-                onCheckedChange = { enabled ->
-                    viewModel.setRemoteControlStatus(enabled, deviceId)
-                },
-                infoText = stringResource(Res.string.remote_control_hint),
-            )
+        if (sonyFeatures) {
+            item {
+                DeviceToggleRow(
+                    title = stringResource(Res.string.enable_remote_control),
+                    checked = state.isRemoteControlEnabled,
+                    enabled = state.isDeviceEnabled && state.buttonEnabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setRemoteControlStatus(enabled, deviceId)
+                    },
+                    infoText = stringResource(Res.string.remote_control_hint),
+                )
+            }
         }
 
         item {
@@ -168,7 +173,7 @@ fun DeviceDetailContent(
             )
         }
 
-        for (setting in CameraAutoCorrectionSetting.entries) {
+        for (setting in CameraAutoCorrectionSetting.entries.takeIf { sonyFeatures }.orEmpty()) {
             val settingState = session?.autoCorrectionSetting(setting) ?: CameraSettingState()
             item(key = setting.name) {
                 val isTime = setting == CameraAutoCorrectionSetting.Time

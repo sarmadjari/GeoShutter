@@ -732,7 +732,11 @@ class CameraLocationLinkingTest {
             return true
         }
 
-        override fun initiateRead(identifier: String, characteristicUuid: String): Boolean {
+        override fun initiateRead(
+            identifier: String,
+            characteristicUuid: String,
+            serviceUuid: String?,
+        ): Boolean {
             operations += identifier to BleOperation.Read(characteristicUuid)
             if (CameraAutoCorrectionSetting.fromUuid(characteristicUuid) != null) {
                 if (holdSettingReads) return true
@@ -759,7 +763,8 @@ class CameraLocationLinkingTest {
         override fun initiateWrite(
             identifier: String,
             characteristicUuid: String,
-            value: ByteArray
+            value: ByteArray,
+            serviceUuid: String?,
         ): Boolean {
             operations += identifier to BleOperation.Write(characteristicUuid, value)
             if (rejectSettingWrites && CameraAutoCorrectionSetting.fromUuid(characteristicUuid) != null) return false
@@ -784,7 +789,9 @@ class CameraLocationLinkingTest {
         override fun initiateSubscribe(
             identifier: String,
             characteristicUuid: String,
-            enable: Boolean
+            enable: Boolean,
+            indication: Boolean,
+            serviceUuid: String?,
         ): Boolean {
             operations += identifier to BleOperation.Subscribe(characteristicUuid, enable)
             emit(

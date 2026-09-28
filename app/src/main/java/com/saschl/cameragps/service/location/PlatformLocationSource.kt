@@ -70,6 +70,7 @@ class PlatformLocationSource(
                 longitude = location.longitude,
                 horizontalAccuracyMeters = location.accuracy.toDouble(),
                 timestampMillis = location.time,
+                altitudeMeters = location.altitudeMetersOrNull(),
             )
         )
     }
@@ -160,6 +161,13 @@ internal fun hasAnyLocationProviderEnabled(context: Context): Boolean {
     val gpsEnabled = manager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true
     val networkEnabled = manager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
     return gpsEnabled || networkEnabled
+}
+
+/** Mean-sea-level altitude where Android provides it (API 34+), else the WGS84 altitude. */
+internal fun Location.altitudeMetersOrNull(): Double? = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && hasMslAltitude() -> mslAltitudeMeters
+    hasAltitude() -> altitude
+    else -> null
 }
 
 internal fun isLocationTooOld(location: Location): Boolean {

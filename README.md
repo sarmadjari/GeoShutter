@@ -1,8 +1,8 @@
 # GeoShutter
 
 Open-source geotagging and Bluetooth remote shutter for Sony cameras, on Android and
-iPhone. Your phone sends its GPS position to the camera over Bluetooth Low Energy, so
-every photo records where it was taken.
+iPhone, with experimental Fujifilm support on Android. Your phone sends its GPS position
+to the camera over Bluetooth Low Energy, so every photo records where it was taken.
 
 GeoShutter is a fork of [Alpha GPS](https://alphagps.app) by
 [Saschl](https://github.com/Saschl) ([Saschl/alpha-gps](https://github.com/Saschl/alpha-gps)),
@@ -30,6 +30,10 @@ licensed under the [GPL-3.0](LICENSE).
   delay for slow-starting cameras, and the camera's own *Automatic time correction* and
   *Automatic area adjustment* settings.
 - **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
+- **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
+  the X100VI, using Fujifilm's own Bluetooth geotagging protocol (the camera asks for the
+  location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble) and
+  not yet verified on a real camera; see [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
 - **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
   exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
   flavor, intended for F-Droid) has no crash reporter at all. See the
@@ -47,7 +51,7 @@ that use Sony's Creators' App instead of Imaging Edge.
 | System | Android 8.0 (API 26) or later with Bluetooth LE | iOS 18.0 or later (iPhone app) |
 | Automatic background reconnect | Android 12 or later. On Android 8–11, turn on **Always On** for the camera. | yes |
 | Permissions | precise location with "Allow all the time", Nearby devices (Bluetooth), notifications (Android 13+) | location **Always** with **Precise Location**; cameras are added through the iOS accessory picker |
-| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth | same |
+| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth; experimentally a Fujifilm camera with current (secure) Bluetooth firmware | Sony only |
 
 Upstream has tested Android 10, 12, 13, 15 and 16. Some manufacturers customize
 Android's background handling, so behavior can differ between phones.
@@ -76,8 +80,8 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    and notifications, then background location ("Allow all the time").
 2. **Put the camera into Bluetooth pairing mode** (menu names vary by model, for example
    MENU → Network → Bluetooth → Pairing).
-3. Tap **Add camera**. Android's companion-device chooser lists nearby Sony cameras; pick
-   yours. If the phone is not paired with it yet, the app starts Bluetooth pairing:
+3. Tap **Add camera**. Android's companion-device chooser lists nearby Sony (and
+   Fujifilm) cameras; pick yours. If the phone is not paired with it yet, the app starts Bluetooth pairing:
    confirm on the phone and on the camera.
 4. The camera now appears under **My Cameras**. On Android 12 and later, Android starts
    the app's foreground service whenever the camera shows up, even when the app is
@@ -188,6 +192,14 @@ or not, are welcome in the [issue tracker](https://github.com/sarmadjari/GeoShut
 
 <!-- Keep in sync with confirmedCameras in website/src/pages/index.astro. -->
 
+**Fujifilm (experimental, Android only):** cameras that geotag through FUJIFILM XApp,
+starting with the X100VI, on firmware with Fujifilm's secured Bluetooth connection (from
+about July 2025). Older firmware with the legacy protocol is detected but not supported.
+Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera asks for
+the location itself; remote control and the camera time/area settings are Sony features.
+Nothing has been verified on a real Fujifilm camera yet: reports are very welcome, and
+[docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) lists what to check.
+
 ## Build from source
 
 Requirements: a JDK 17 or newer to launch Gradle (Gradle then provisions its daemon JVM,
@@ -278,6 +290,8 @@ cd website && npm ci && npm run dev    # local preview; npm run build writes web
   and AI coding assistants. Keep it up to date when things change.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): architecture, Sony Bluetooth protocol and
   platform details.
+- [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md): the Fujifilm protocol, its
+  sources, verification status and research plan.
 - [privacy.md](privacy.md): privacy policy of the published Alpha GPS app.
 - Tool guides: [App Store screenshots](tools/app_store/README.md),
   [iOS localization](tools/ios_localization/README.md),
@@ -299,6 +313,9 @@ To pick up upstream changes, add Alpha GPS as a remote once
 `git fetch upstream && git merge upstream/main`.
 
 ## Credits and support
+
+The Fujifilm protocol comes from [furble](https://github.com/gkoh/furble) by Guo-Rong Koh
+(MIT License).
 
 GeoShutter builds on Alpha GPS by Saschl and its contributors. If the app helps your
 photography, consider supporting the original author:

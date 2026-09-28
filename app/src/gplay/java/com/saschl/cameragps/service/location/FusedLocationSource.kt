@@ -90,6 +90,7 @@ class FusedLocationSource(
                 longitude = location.longitude,
                 horizontalAccuracyMeters = location.accuracy.toDouble(),
                 timestampMillis = location.time,
+                altitudeMeters = location.altitudeMetersOrNull(),
             )
         )
     }

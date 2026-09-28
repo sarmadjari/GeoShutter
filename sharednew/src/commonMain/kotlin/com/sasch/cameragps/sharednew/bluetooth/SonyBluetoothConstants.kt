@@ -1,6 +1,9 @@
 package com.sasch.cameragps.sharednew.bluetooth
 
 object SonyBluetoothConstants {
+    /** Bluetooth SIG company ID in the advertised manufacturer data. */
+    const val COMPANY_ID = 0x012D
+
     // Service UUID of the sony cameras
     val SERVICE_UUID = "8000dd00-dd00-ffff-ffff-ffffffffffff"
 

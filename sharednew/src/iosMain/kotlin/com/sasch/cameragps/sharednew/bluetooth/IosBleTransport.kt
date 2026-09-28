@@ -143,10 +143,13 @@ internal class IosBleTransport(
         handles[identifier.uppercase()]?.pendingReads?.remove(characteristicUuid.lowercase())
     }
 
+    // serviceUuid and indication are not needed here: the iOS app only talks to
+    // Sony cameras, and CoreBluetooth picks notifications or indications itself.
     override fun initiateWrite(
         identifier: String,
         characteristicUuid: String,
         value: ByteArray,
+        serviceUuid: String?,
     ): Boolean {
         val handle = handles[identifier.uppercase()] ?: return false
         val characteristic =
@@ -159,7 +162,7 @@ internal class IosBleTransport(
         return true
     }
 
-    override fun initiateRead(identifier: String, characteristicUuid: String): Boolean {
+    override fun initiateRead(identifier: String, characteristicUuid: String, serviceUuid: String?): Boolean {
         val handle = handles[identifier.uppercase()] ?: return false
         val characteristic =
             handle.characteristicsByUuid[characteristicUuid.lowercase()] ?: return false
@@ -172,6 +175,8 @@ internal class IosBleTransport(
         identifier: String,
         characteristicUuid: String,
         enable: Boolean,
+        indication: Boolean,
+        serviceUuid: String?,
     ): Boolean {
         val id = identifier.uppercase()
         val handle = handles[id] ?: return false

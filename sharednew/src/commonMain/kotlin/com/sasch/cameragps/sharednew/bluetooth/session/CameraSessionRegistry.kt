@@ -4,6 +4,15 @@ import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/** The Bluetooth protocol a camera speaks, detected after service discovery. */
+enum class CameraProtocol {
+    /** Sony: location is pushed every few seconds. Also used for unknown cameras. */
+    Sony,
+
+    /** Fujifilm, secure protocol: location is sent when the camera asks for it. */
+    FujifilmSecure,
+}
+
 /**
  * State of one camera session. Replaces the Android `CameraConnectionConfig`
  * state fields and the iOS `PeripheralSession`/`PeripheralPhase` pair.
@@ -12,6 +21,7 @@ data class CameraSession(
     /** Uppercased MAC address (Android) / peripheral UUID string (iOS). */
     val identifier: String,
     val phase: BleSessionPhase = BleSessionPhase.Connecting,
+    val protocol: CameraProtocol = CameraProtocol.Sony,
     val remoteFeatureActive: Boolean = false,
     /** A shutter sequence is currently running (UI feedback on the shutter button). */
     val shutterSequenceActive: Boolean = false,

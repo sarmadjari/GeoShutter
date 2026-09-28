@@ -27,7 +27,11 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
   listing, lost settings/pairings).
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
-- The fork's GitHub description mentions Fujifilm, but the code supports **Sony only**.
+- Cameras: **Sony** (Android and iOS) and, experimentally on Android, **Fujifilm** with the
+  secure Bluetooth protocol (X100VI and other XApp cameras). The Fujifilm code is ported
+  from furble and not yet verified on hardware; `docs/fujifilm-protocol.md` holds the
+  protocol, its evidence and the research plan. It was developed on the branch
+  `feature/fujifilm-support`.
 
 ## 2. Repository map
 
@@ -37,6 +41,7 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 | `sharednew/` | KMP module (`com.sasch.cameragps.sharednew`, note `sasch`). `commonMain`: BLE protocol + session orchestration, location transmission, Room DB, shared Compose UI, strings. `iosMain`: the whole iOS app logic. `androidMain`: small platform bits. Tests in `commonTest`, `iosTest`, `androidHostTest`, `androidDeviceTest`. |
 | `iosApp/` | Xcode project `alphagps.xcodeproj` (target/scheme `alphagps`): thin SwiftUI shell, `Info.plist`, `InfoPlist.xcstrings`; `Config/GeoShutter.xcconfig` (base configuration) + untracked `Config/Local.xcconfig`. |
 | `docs/ARCHITECTURE.md` | Deep technical reference (protocol, flows, platform shells, persistence, CI). |
+| `docs/fujifilm-protocol.md` | Fujifilm protocol with furble evidence, verification status, research plan, furble MIT license. |
 | `website/` | Astro landing page (upstream deploys it to alphagps.app). |
 | `fastlane/metadata/android/en-US/` | F-Droid listing for the `foss` build. |
 | `localization/ios/` | XLIFF for Weblate (iOS permission texts), see `tools/ios_localization`. |
@@ -95,6 +100,10 @@ python3 -m unittest discover -s tools/ios_localization -v
 
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+- After service discovery `FujifilmSessionController.detect` picks the protocol: Sony
+  (`DD11` present, checked first), Fujifilm secure (status characteristic present; runs
+  its own handshake and gets locations only on request), legacy Fujifilm (error), or Sony
+  for anything else. See `docs/fujifilm-protocol.md`.
 - `CameraSessionOrchestrator` (shared) owns per-device sessions
   (`CameraSessionRegistry` StateFlow observed by both UIs), a sequential
   `BleOperationQueue` per device, the handshake (`BleSessionCoordinator`: DD01 subscribe →
@@ -126,6 +135,12 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Every GATT operation goes through `BleOperationQueue` (one in-flight operation per
   device); never write to a characteristic directly from coordinators or UI.
 - `DD01` "location disabled" is advisory only; it must never gate the handshake or sending.
+- Sony behavior must not change when adding other brands: detection checks Sony first,
+  and Fujifilm sessions (`CameraSession.protocol`) are kept out of the Sony handlers.
+- Fujifilm protocol changes need evidence (capture, furble source or observed camera
+  response) recorded in `docs/fujifilm-protocol.md`; files porting furble logic credit it
+  (MIT) in their header, new files name "Sarmad Jari" as author. Geotag packets contain
+  coordinates: log their size, never their bytes.
 - `foss` must stay free of Google Play services and Sentry: Google/Sentry dependencies only
   via `gplayImplementation` or `iosMain`; the Sentry KMP plugin keeps `autoInstall`
   disabled. Flavor-specific code goes in `app/src/gplay` + a no-op in `app/src/foss`.
@@ -217,6 +232,8 @@ fork's site. GitHub Pages is not enabled on the fork.
   (`app-*-release.apk`) doesn't match. `deploy-pages.yml` fails while Pages is disabled.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
+- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md` (nothing verified on a camera,
+  iOS unsupported, legacy firmware unsupported, remote/camera settings Sony-only).
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
@@ -232,8 +249,8 @@ fork's site. GitHub Pages is not enabled on the fork.
   push protection enabled; `main` unprotected. Upstream updates dependencies with
   Renovate, which is not installed on the fork, so dependency updates only arrive by
   merging upstream.
-- Repository metadata: description says "Sony and FijiFilm cameras" (typo, and Fujifilm is
-  not supported); homepage is upstream's https://alphagps.app; no topics;
+- Repository metadata: description says "Sony and FijiFilm cameras" (typo; Fujifilm support
+  is experimental); homepage is upstream's https://alphagps.app; no topics;
   `.github/FUNDING.yml` shows Saschl's Buy Me a Coffee.
 - Upstream identity baked into the code (matters as soon as the fork publishes its own
   app): application/bundle ID `com.saschl.cameragps`; iOS team `6T589MK27K`; StoreKit tip
@@ -280,3 +297,13 @@ fork's site. GitHub Pages is not enabled on the fork.
   templates with org/project IDs were created locally, the user pastes the public keys.
   DSNs are validated (`CrashReportPolicy.isValidDsn`) so placeholders never enable
   Sentry. GitHub variables `SENTRY_ORG`/`SENTRY_PROJECT` set.
+- 2026-09-28: Committed the day's work on `main` (3 commits, not pushed) and added
+  experimental Fujifilm support on `feature/fujifilm-support`, re-implemented from furble
+  (the earlier patch mentioned in the user's design note was not available): constants,
+  packet builder, handshake controller, detection, pull-based delivery, service-scoped
+  operations and indications on Android, CDM filter, altitude in `GeoLocation`, 17 tests,
+  `docs/fujifilm-protocol.md`. All 23 UUIDs cross-checked against furble; packets checked
+  against Python `struct.pack`. Detection sets the protocol on every connect, and remote
+  monitoring is never started for Fujifilm sessions. Verified: JVM and iOS simulator
+  tests, app tests and lint, all four APK variants, iOS simulator app build. Nothing is
+  verified on a real Fujifilm camera yet.

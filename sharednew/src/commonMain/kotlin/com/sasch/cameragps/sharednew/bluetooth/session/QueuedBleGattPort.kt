@@ -41,6 +41,16 @@ internal class QueuedBleGattPort(
     ): Boolean =
         queue.enqueue(identifier.uppercase(), BleOperation.Write(characteristicUuid, value))
 
+    override fun writeCharacteristic(
+        identifier: String,
+        characteristicUuid: String,
+        value: ByteArray,
+        serviceUuid: String?,
+    ): Boolean = queue.enqueue(
+        identifier.uppercase(),
+        BleOperation.Write(characteristicUuid, value, serviceUuid),
+    )
+
     override fun readCharacteristic(identifier: String, characteristicUuid: String): Boolean =
         queue.enqueue(identifier.uppercase(), BleOperation.Read(characteristicUuid))
 

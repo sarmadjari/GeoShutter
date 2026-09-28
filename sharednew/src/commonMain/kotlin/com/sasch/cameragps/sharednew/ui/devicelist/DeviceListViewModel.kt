@@ -2,6 +2,7 @@ package com.sasch.cameragps.sharednew.ui.devicelist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSession
 import com.sasch.cameragps.sharednew.database.devices.CameraDevice
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,8 @@ data class DeviceListItem(
     val isRemoteFeatureActive: Boolean,
     val isShutterActive: Boolean,
     val locationDisabledByCamera: Boolean = false,
+    /** False for cameras without Bluetooth remote support in the app (Fujifilm). */
+    val remoteSupported: Boolean = true,
 )
 
 /**
@@ -67,6 +70,7 @@ class DeviceListViewModel(dataSource: DeviceListDataSource) : ViewModel() {
                 isRemoteFeatureActive = session?.remoteFeatureActive == true,
                 isShutterActive = session?.shutterSequenceActive == true,
                 locationDisabledByCamera = session?.locationDisabledByCamera == true,
+                remoteSupported = session?.protocol != CameraProtocol.FujifilmSecure,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())

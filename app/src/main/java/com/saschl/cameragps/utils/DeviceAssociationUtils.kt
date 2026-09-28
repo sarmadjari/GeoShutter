@@ -12,6 +12,8 @@ import android.companion.CompanionDeviceManager
 import android.content.Intent
 import android.content.IntentSender
 import android.os.Build
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.saschl.cameragps.service.AssociatedDeviceCompat
 import com.saschl.cameragps.service.nameOrNull
 import com.saschl.cameragps.service.toAssociatedDevice
@@ -69,12 +71,15 @@ object DeviceAssociationUtils {
     suspend fun requestDeviceAssociation(
         deviceManager: CompanionDeviceManager
     ): IntentSender {
-        val deviceFilter = BluetoothLeDeviceFilter.Builder()
-            .setScanFilter(ScanFilter.Builder().setManufacturerData(0x012D, byteArrayOf()).build())
+        // Cameras are recognized by the Bluetooth company ID in their advertised
+        // manufacturer data: Sony and Fujifilm. The chooser lists devices matching either.
+        fun manufacturerFilter(companyId: Int) = BluetoothLeDeviceFilter.Builder()
+            .setScanFilter(ScanFilter.Builder().setManufacturerData(companyId, byteArrayOf()).build())
             .build()
 
         val pairingRequest: AssociationRequest = AssociationRequest.Builder()
-            .addDeviceFilter(deviceFilter)
+            .addDeviceFilter(manufacturerFilter(SonyBluetoothConstants.COMPANY_ID))
+            .addDeviceFilter(manufacturerFilter(FujifilmBluetoothConstants.COMPANY_ID))
             .build()
 
         val result = CompletableDeferred<IntentSender>()

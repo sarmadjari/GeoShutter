@@ -7,6 +7,11 @@ import com.sasch.cameragps.sharednew.bluetooth.coordinator.BleSessionCoordinator
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.BleSessionEvent
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.RemoteCommand
 import com.sasch.cameragps.sharednew.bluetooth.coordinator.RemoteControlCoordinator
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.CameraDetection
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmHandshakeResult
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmNotification
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmSessionController
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationEvent
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationTransmissionManager
@@ -68,6 +73,9 @@ class CameraSessionOrchestrator(
                 operation.characteristicUuid.equals(
                     SonyBluetoothConstants.CHARACTERISTIC_UUID,
                     true
+                ) || operation.characteristicUuid.equals(
+                    FujifilmBluetoothConstants.GEOTAG_CHARACTERISTIC_UUID,
+                    true
                 ) ->
                 registry.get(id)?.isLocationReady == true
 
@@ -78,6 +86,7 @@ class CameraSessionOrchestrator(
     private val autoCorrection = CameraAutoCorrectionController(port, registry, scope)
     private val remoteControl: RemoteControlCoordinator = RemoteControlCoordinator(port, scope)
     private val sessionCoordinator = BleSessionCoordinator(port, remoteControl)
+    private val fujifilm = FujifilmSessionController(port, pairingPolicy)
 
     val locationManager = LocationTransmissionManager(
         source = locationSource,
@@ -86,6 +95,7 @@ class CameraSessionOrchestrator(
         port = port,
         scope = scope,
         isTransmissionAllowed = isTransmissionAllowed,
+        protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
     )
 
     /**
@@ -176,6 +186,8 @@ class CameraSessionOrchestrator(
     fun setRemoteMonitoring(identifier: String, enabled: Boolean) {
         val id = identifier.uppercase()
         if (enabled) {
+            // The remote is a Sony feature.
+            if (isFujifilm(id)) return
             remoteControl.startRemoteStatusMonitoring(id)
         } else {
             remoteControl.cancelProbe(id)
@@ -188,6 +200,7 @@ class CameraSessionOrchestrator(
         autoCorrection.clear(id)
         queue.cancelOperations(id, "session cleared")
         sessionCoordinator.clearSession(id)
+        locationManager.forgetDevice(id)
         registry.remove(id)
         locationManager.updateTracking()
     }
@@ -203,6 +216,21 @@ class CameraSessionOrchestrator(
     // ---- Transport event routing ----
 
     private fun handleTransportEvent(event: BleTransportEvent, completedOperation: BleOperation?) {
+        // The Fujifilm handshake awaits its own results through the queue; the
+        // Sony handlers below must not react to them (or restart a Sony handshake).
+        if (isFujifilm(event.identifier)) {
+            when (event) {
+                is BleTransportEvent.Connected,
+                is BleTransportEvent.Disconnected -> Unit
+
+                is BleTransportEvent.CharacteristicChanged -> {
+                    handleFujifilmNotification(event)
+                    return
+                }
+
+                else -> return
+            }
+        }
         when (event) {
             is BleTransportEvent.Connected -> handleConnected(event.identifier)
 
@@ -282,7 +310,21 @@ class CameraSessionOrchestrator(
     private suspend fun runDiscoveryAndHandshake(id: String) {
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.DiscoveringServices) }
         when (queue.execute(id, BleOperation.DiscoverServices)) {
-            is BleOperationResult.Success -> sessionCoordinator.beginHandshake(id)
+            is BleOperationResult.Success -> when (fujifilm.detect(id)) {
+                CameraDetection.Sony -> {
+                    // Detection decides the protocol on every connect, so a session
+                    // reconnected without a disconnect event can't keep a stale one.
+                    registry.updateIfPresent(id) { it.copy(protocol = CameraProtocol.Sony) }
+                    sessionCoordinator.beginHandshake(id)
+                }
+
+                CameraDetection.FujifilmSecure -> runFujifilmHandshake(id)
+                CameraDetection.FujifilmLegacy -> {
+                    log.w { "Camera $id uses the legacy Fujifilm protocol, which is not supported" }
+                    registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Error) }
+                }
+            }
+
             is BleOperationResult.Cancelled -> Unit // disconnected meanwhile
             else -> {
                 log.e { "Service discovery failed for $id" }
@@ -406,13 +448,53 @@ class CameraSessionOrchestrator(
         log.i { "Handshake complete for $id" }
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting) }
         locationManager.onDeviceReady(id)
-        autoCorrection.refresh(id)
 
-        val remoteEnabled = runCatching { deviceDao.isRemoteControlEnabled(id) }
-            .getOrDefault(false)
-        if (remoteEnabled) {
-            remoteControl.startRemoteStatusMonitoring(id)
+        // Camera settings and the remote are Sony features.
+        if (!isFujifilm(id)) {
+            autoCorrection.refresh(id)
+
+            val remoteEnabled = runCatching { deviceDao.isRemoteControlEnabled(id) }
+                .getOrDefault(false)
+            if (remoteEnabled) {
+                remoteControl.startRemoteStatusMonitoring(id)
+            }
         }
         _events.tryEmit(OrchestratorEvent.HandshakeCompleted(id))
+    }
+
+    // ---- Fujifilm ----
+
+    private fun isFujifilm(identifier: String) =
+        registry.get(identifier)?.protocol == CameraProtocol.FujifilmSecure
+
+    private suspend fun runFujifilmHandshake(id: String) {
+        log.i { "Camera $id speaks the Fujifilm secure protocol" }
+        registry.updateIfPresent(id) {
+            it.copy(protocol = CameraProtocol.FujifilmSecure, phase = BleSessionPhase.EnablingGps)
+        }
+        when (val result = fujifilm.runHandshake(id)) {
+            FujifilmHandshakeResult.Success -> handleHandshakeComplete(id)
+            FujifilmHandshakeResult.PairingRejected -> {
+                log.e { "Pairing retries exhausted for $id" }
+                registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Error) }
+                _events.tryEmit(OrchestratorEvent.PairingFailed(id))
+            }
+
+            is FujifilmHandshakeResult.Failed -> {
+                // Nothing to do if the camera disconnected meanwhile.
+                if (registry.get(id) == null) return
+                log.e { "Fujifilm handshake failed for $id at ${result.step}" }
+                registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Error) }
+            }
+        }
+    }
+
+    private fun handleFujifilmNotification(event: BleTransportEvent.CharacteristicChanged) {
+        val id = event.identifier.uppercase()
+        when (fujifilm.onCharacteristicChanged(id, event.characteristicUuid, event.value)) {
+            FujifilmNotification.GeotagRequested -> locationManager.onLocationRequested(id)
+            FujifilmNotification.Configured -> log.i { "Fujifilm camera $id reports it is configured" }
+            FujifilmNotification.Other -> Unit
+        }
     }
 }

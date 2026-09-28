@@ -12,6 +12,11 @@ data class GeoLocation(
     val horizontalAccuracyMeters: Double,
     /** Epoch millis of the fix. */
     val timestampMillis: Long,
+    /**
+     * Altitude in metres when known: above mean sea level where the platform
+     * provides it, otherwise above the WGS84 ellipsoid.
+     */
+    val altitudeMeters: Double? = null,
 )
 
 /**
