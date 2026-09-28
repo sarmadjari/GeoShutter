@@ -65,8 +65,9 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun AppContent() {
         val context = LocalContext.current
-        val cameraDeviceDAO =
+        val cameraDeviceDAO = remember(context) {
             LogDatabase.getRoomDatabase(getDatabaseBuilder(context)).cameraDeviceDao()
+        }
         val logRepository = remember(context) { LogRepository(getDatabaseBuilder(context)) }
         val lifecycleState by ProcessLifecycleOwner.get().lifecycle.currentStateFlow.collectAsState()
 

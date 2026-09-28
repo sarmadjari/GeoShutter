@@ -249,6 +249,15 @@ kotlin {
 
 }
 
+// The Android lint model of the host tests reads KSP's generated sources without
+// declaring the dependency, which fails Gradle's task validation whenever tests
+// and lint run in one build (for example `./gradlew check`).
+tasks.configureEach {
+    if (name == "generateAndroidHostTestLintModel" || name == "lintAnalyzeAndroidHostTest") {
+        dependsOn("kspAndroidHostTest")
+    }
+}
+
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)

@@ -25,20 +25,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.getSystemService
 import com.saschl.cameragps.service.AssociatedDeviceCompat
+import com.saschl.cameragps.service.bondedAddressesOrNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.Locale
 
-@RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
 fun isDevicePaired(adapter: BluetoothAdapter?, deviceAddress: String): Boolean {
-    
     // To avoid weird state if bluetooth is disabled
     if (adapter?.isEnabled != true) return true
 
-    return adapter.bondedDevices?.any {
-        it.address == deviceAddress.uppercase(Locale.getDefault())
-    } ?: false
-
+    // Unreadable bonds (Nearby devices permission missing) count as paired:
+    // starting a pairing would fail without that permission anyway.
+    val bonded = adapter.bondedAddressesOrNull() ?: return true
+    return deviceAddress.uppercase() in bonded
 }
 
 @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT])

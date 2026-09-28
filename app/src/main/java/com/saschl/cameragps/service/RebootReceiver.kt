@@ -17,20 +17,27 @@ class RebootReceiver : BroadcastReceiver() {
                 PreferencesManager.getAutoStartAfterBootEnabled(context)
             }"
         )
+        if (!PreferencesManager.isAppEnabled(context)) {
+            Timber.i("App is disabled, not starting LocationSenderService")
+            return
+        }
         if (!LocationSenderService.hasLocationPermission(context)) {
             Timber.e("Location permission missing, not starting LocationSenderService")
             return
         }
 
-        if(Intent.ACTION_MY_PACKAGE_REPLACED == intent.action) {
-            ContextCompat.startForegroundService(context, serviceIntent)
+        val shouldStart = when (intent.action) {
+            Intent.ACTION_MY_PACKAGE_REPLACED -> true
+            Intent.ACTION_BOOT_COMPLETED -> PreferencesManager.getAutoStartAfterBootEnabled(context)
+            else -> false
         }
+        if (!shouldStart) return
 
-        if (Intent.ACTION_BOOT_COMPLETED == intent.action && PreferencesManager.getAutoStartAfterBootEnabled(
-                context
-            )
-        ) {
+        try {
             ContextCompat.startForegroundService(context, serviceIntent)
+        } catch (e: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException: never crash at boot or update.
+            Timber.e(e, "Could not start LocationSenderService after ${intent.action}")
         }
     }
 }

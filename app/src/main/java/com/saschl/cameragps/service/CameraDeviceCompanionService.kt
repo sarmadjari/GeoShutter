@@ -32,7 +32,14 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
             serviceIntent.putExtra("address", address?.uppercase(Locale.getDefault()))
             Timber.i("Starting LocationSenderService for address: $address")
 
-            startForegroundService(serviceIntent)
+            try {
+                startForegroundService(serviceIntent)
+            } catch (e: IllegalStateException) {
+                // ForegroundServiceStartNotAllowedException (Android 12+) when the
+                // system refuses a background start; crashing the companion
+                // callback would take the whole app process down with it.
+                Timber.e(e, "Could not start LocationSenderService for $address")
+            }
         }
     }
 

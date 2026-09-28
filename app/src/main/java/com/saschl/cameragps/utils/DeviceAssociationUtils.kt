@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.IntentSender
 import android.os.Build
 import com.saschl.cameragps.service.AssociatedDeviceCompat
+import com.saschl.cameragps.service.nameOrNull
 import com.saschl.cameragps.service.toAssociatedDevice
 import kotlinx.coroutines.CompletableDeferred
 import timber.log.Timber
@@ -43,7 +44,7 @@ object DeviceAssociationUtils {
                     result = AssociatedDeviceCompat(
                         id = -1, //no id
                         address = scanResult.address ?: "N/A",
-                        name = scanResult.name ?: "N/A",
+                        name = scanResult.nameOrNull() ?: "N/A",
                         device = scanResult,
                     )
                 }
@@ -56,7 +57,7 @@ object DeviceAssociationUtils {
                     AssociatedDeviceCompat(
                         id = it.advertisingSid, //no id
                         address = it.device.address ?: "N/A",
-                        name = it.device.name ?: "N/A",
+                        name = it.device.nameOrNull() ?: "N/A",
                         device = it.device,
                     )
                 }

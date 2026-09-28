@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import androidx.annotation.RequiresPermission
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
@@ -204,6 +203,7 @@ class LocationSenderService : LifecycleService() {
             }
 
             is ServiceCommand.ReconnectAlwaysOn -> {
+                ensureBluetoothStateReceiver()
                 shutdownCoordinator.handleNoAddress(startId)
             }
 
@@ -243,6 +243,13 @@ class LocationSenderService : LifecycleService() {
                     orchestrator.onConnectRequested(command.address)
                     runCatching {
                         transport.connect(command.address)
+                    }.onSuccess { started ->
+                        if (!started) {
+                            // Not bonded (anymore) or Bluetooth permission missing:
+                            // don't leave the session stuck in "connecting".
+                            Timber.w("Could not connect to ${command.address}: not bonded or not permitted")
+                            orchestrator.onConnectFailed(command.address)
+                        }
                     }.onFailure {
                         Timber.e("Failed to connect to device, bluetooth is likely turned off")
                         orchestrator.onConnectFailed(command.address)
@@ -282,11 +289,15 @@ class LocationSenderService : LifecycleService() {
             Timber.e("Failed to start foreground service due to missing permissions: ${e.message}")
             stopSelf()
             return false
+        } catch (e: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException / ForegroundServiceTypeException
+            Timber.e(e, "Android did not allow the foreground service to start")
+            stopSelf()
+            return false
         }
         return true
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun requestShutdown(startId: Int? = null) {
         if (startId != null) stopSelf(startId) else stopSelf()
     }

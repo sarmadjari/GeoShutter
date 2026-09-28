@@ -86,9 +86,9 @@ fun CameraDeviceManager(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val deviceManager = context.getSystemService<CompanionDeviceManager>()
-    val devicesDao = LogDatabase.getRoomDatabase(
-        getDatabaseBuilder(context)
-    ).cameraDeviceDao()
+    val devicesDao = remember(context) {
+        LogDatabase.getRoomDatabase(getDatabaseBuilder(context)).cameraDeviceDao()
+    }
     val adapter = context.getSystemService<BluetoothManager>()?.adapter
     val locationManager = context.getSystemService<LocationManager>()
     var selectedDevice by remember {
@@ -104,8 +104,10 @@ fun CameraDeviceManager(
         mutableStateOf(
             if (SCREENSHOT_MODE) {
                 mockDevices
+            } else if (deviceManager != null && adapter != null) {
+                deviceManager.getAssociatedDevices(adapter)
             } else {
-                deviceManager!!.getAssociatedDevices(adapter!!)
+                emptyList()
             }
         )
     }
@@ -217,8 +219,10 @@ fun CameraDeviceManager(
         if (SCREENSHOT_MODE) return@LaunchedEffect
         when (lifecycleState) {
             Lifecycle.State.RESUMED -> {
-                associatedDevices = deviceManager!!.getAssociatedDevices(adapter!!)
-                isBluetoothEnabled = adapter.isEnabled == true
+                if (deviceManager != null && adapter != null) {
+                    associatedDevices = deviceManager.getAssociatedDevices(adapter)
+                }
+                isBluetoothEnabled = adapter?.isEnabled == true
                 isLocationEnabled =
                     locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
                             locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
@@ -329,7 +333,8 @@ fun CameraDeviceManager(
                 }
             } else {
                 EnhancedLocationPermissionBox {
-                deviceManager.getAssociatedDevices(adapter)
+                // The list state is refreshed on every resume; no IPC during composition.
+                associatedDevices
                     .find { it.address == selectedDevice?.address }?.id?.let {
 
                     DeviceDetailScreen(

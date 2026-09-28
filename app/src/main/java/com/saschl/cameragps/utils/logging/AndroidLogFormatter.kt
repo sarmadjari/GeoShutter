@@ -13,8 +13,10 @@ class AndroidLogFormatter(private val logRepository: LogRepository) : LogFormatt
     override fun format(): Flow<List<String>> {
         return logRepository.let { repo ->
             repo.getRecentLogs().map { logEntry ->
+                // One formatter per emitted list instead of one per line.
+                val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
                 logEntry.map {
-                    val date = formatTimestamp(it.timestamp)
+                    val date = formatter.format(Date(it.timestamp))
                     "[$date] [${priorityToString(it.priority)}] ${it.tag ?: "App"}: ${it.message}" +
                             (it.exception?.let { "\n$it" } ?: "")
                 }
@@ -31,13 +33,5 @@ class AndroidLogFormatter(private val logRepository: LogRepository) : LogFormatt
         Log.ERROR -> "E"
         Log.ASSERT -> "A"
         else -> priority.toString()
-    }
-
-    private fun formatTimestamp(timestamp: Long): String {
-        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(
-            Date(
-                timestamp
-            )
-        )
     }
 }
