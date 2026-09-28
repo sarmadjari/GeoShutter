@@ -73,7 +73,9 @@ android {
 
 
     defaultConfig {
-        applicationId = "com.saschl.cameragps"
+        // GeoShutter's own app ID, so it installs next to Alpha GPS. The code
+        // namespace (packages, R, BuildConfig) stays com.saschl.cameragps.
+        applicationId = "com.sarmadjari.geoshutter"
         minSdk = 26
         targetSdk = 37
         versionCode = 163

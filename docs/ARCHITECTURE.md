@@ -7,14 +7,16 @@ this document is the deep dive. Verified against the code at app version 1.6.3
 (Android `versionCode` 163 / iOS build 163).
 
 GeoShutter is a fork of [Alpha GPS](https://github.com/Saschl/alpha-gps). The code
-still uses the upstream identifiers (app name "Alpha GPS", Android package and iOS
-bundle ID `com.saschl.cameragps`), so those names appear throughout this document.
+still uses the upstream identifiers (app name "Alpha GPS", code namespace and iOS bundle
+ID `com.saschl.cameragps`), so those names appear throughout this document. Only the
+Android app ID (`com.sarmadjari.geoshutter`) and launcher label ("GeoShutter") are
+GeoShutter's own.
 
 ## 1. Modules
 
 | Module / folder | Kind | Identity | Role |
 |---|---|---|---|
-| `:app` (`app/`) | Android application | namespace + applicationId `com.saschl.cameragps`, launcher label `AlphaGPS` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
+| `:app` (`app/`) | Android application | namespace `com.saschl.cameragps`, applicationId `com.sarmadjari.geoshutter`, launcher label `GeoShutter` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
 | `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, StoreKit, Sentry). |
 | `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "Alpha GPS", bundle ID `com.saschl.cameragps`, iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
 | `website/` | Astro static site | — | Landing page (upstream deploys it to alphagps.app). |

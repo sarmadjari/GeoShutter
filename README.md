@@ -9,10 +9,11 @@ GeoShutter is a fork of [Alpha GPS](https://alphagps.app) by
 licensed under the [GPL-3.0](LICENSE).
 
 > [!IMPORTANT]
-> The code has not been renamed yet: GeoShutter still builds and ships as **Alpha GPS**
-> (Android package and iOS bundle ID `com.saschl.cameragps`). The store listings and
-> APK releases linked below are the published Alpha GPS app. GeoShutter does not publish
-> its own builds yet; [build from source](#build-from-source) to run this fork.
+> On Android this fork builds as its own app, **GeoShutter** (app ID
+> `com.sarmadjari.geoshutter`), so it installs next to Alpha GPS. Inside the app, and on
+> iOS (bundle ID `com.saschl.cameragps`), it is still named **Alpha GPS**. The store
+> listings and APK releases linked below are the published Alpha GPS app. GeoShutter does
+> not publish its own builds yet; [build from source](#build-from-source) to run this fork.
 
 ## What it does
 
@@ -219,6 +220,11 @@ with platform 37.1, and for the iOS app a Mac with a current Xcode (26.1 SDK or 
   `SIGNING_STORE_PASSWORD` are set; otherwise they are unsigned.
 - Native libraries are stripped with NDK `29.0.14206865`, pinned for reproducible F-Droid
   builds. Without that NDK the build still works but packages them unstripped.
+- Install a debug build on a phone with USB debugging enabled:
+  `adb install -r app/build/outputs/apk/gplay/debug/app-gplay-debug.apk`. GeoShutter
+  (`com.sarmadjari.geoshutter`) and Alpha GPS (`com.saschl.cameragps`) can be installed
+  side by side. Enable each camera in only one of them: otherwise both apps connect to
+  it and send locations.
 
 ### Crash reporting (optional)
 

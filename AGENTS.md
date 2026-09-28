@@ -19,12 +19,15 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
   (geotagging), syncs date/time/time zone, works as a Bluetooth remote shutter and can
   toggle the camera's automatic time correction and area adjustment. Android and iOS,
   built with Kotlin Multiplatform and Compose Multiplatform. License GPL-3.0.
-- **Naming decision (2026-09-28):** the repository documentation is branded GeoShutter,
-  but the code and the shipped app are still **Alpha GPS**: package / bundle ID
-  `com.saschl.cameragps`, app-name strings, StoreKit product IDs, the Core Bluetooth
-  restore identifier and the store listings all belong to upstream (Saschl). Do not rename
-  code identifiers unless the user asks for it; it changes the app identity (new store
-  listing, lost settings/pairings).
+- **Naming decision (2026-09-28):** the repository documentation is branded GeoShutter.
+  The **Android app ID is GeoShutter's own, `com.sarmadjari.geoshutter`, with the
+  launcher label "GeoShutter"** (user decision, so it installs next to Alpha GPS). Everything
+  else still belongs to upstream (Saschl): the code namespace/packages
+  (`com.saschl.cameragps`, `com.sasch.cameragps.sharednew`), the in-app name "Alpha GPS"
+  (strings), the iOS bundle ID `com.saschl.cameragps` and display name, StoreKit product
+  IDs, the Core Bluetooth restore identifier and the store listings. Do not rename further
+  identifiers unless the user asks for it; changing an app ID changes the app identity
+  (new store listing, lost settings/pairings).
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
 - Cameras: **Sony** (Android and iOS) and, experimentally on Android, **Fujifilm** with the
@@ -37,7 +40,7 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 
 | Path | What |
 |---|---|
-| `app/` | Android app (`com.saschl.cameragps`). Flavors `gplay` (default: Play Services location, Play review, Sentry) and `foss` (none of these). Flavor code in `app/src/gplay` and `app/src/foss`. |
+| `app/` | Android app (app ID `com.sarmadjari.geoshutter`, launcher label "GeoShutter"; code namespace `com.saschl.cameragps`). Flavors `gplay` (default: Play Services location, Play review, Sentry) and `foss` (none of these). Flavor code in `app/src/gplay` and `app/src/foss`. |
 | `sharednew/` | KMP module (`com.sasch.cameragps.sharednew`, note `sasch`). `commonMain`: BLE protocol + session orchestration, location transmission, Room DB, shared Compose UI, strings. `iosMain`: the whole iOS app logic. `androidMain`: small platform bits. Tests in `commonTest`, `iosTest`, `androidHostTest`, `androidDeviceTest`. |
 | `iosApp/` | Xcode project `alphagps.xcodeproj` (target/scheme `alphagps`): thin SwiftUI shell, `Info.plist`, `InfoPlist.xcstrings`; `Config/GeoShutter.xcconfig` (base configuration) + untracked `Config/Local.xcconfig`. |
 | `docs/ARCHITECTURE.md` | Deep technical reference (protocol, flows, platform shells, persistence, CI). |
@@ -204,6 +207,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   Alpha GPS; privacy provider/contact remain Saschl; repo/issue/privacy links point to
   `sarmadjari/GeoShutter`; store buttons stay on the Alpha GPS listings; GitHub Issues
   were enabled on the fork; in-app text changes were deferred (see §8).
+- 2026-09-28: the Android app gets its own permanent app ID `com.sarmadjari.geoshutter`
+  and launcher label "GeoShutter" in all flavors and build types, so it runs next to the
+  Play Store Alpha GPS on the maintainer's phone. The iOS bundle ID and in-app texts are
+  unchanged.
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -253,7 +260,8 @@ fork's site. GitHub Pages is not enabled on the fork.
   is experimental); homepage is upstream's https://alphagps.app; no topics;
   `.github/FUNDING.yml` shows Saschl's Buy Me a Coffee.
 - Upstream identity baked into the code (matters as soon as the fork publishes its own
-  app): application/bundle ID `com.saschl.cameragps`; iOS team `6T589MK27K`; StoreKit tip
+  app): iOS bundle ID `com.saschl.cameragps` (the Android app ID is GeoShutter's own since
+  2026-09-28); iOS team `6T589MK27K`; StoreKit tip
   IDs; in-app contact e-mail, docs and donation links in `HelpScreen.kt`,
   `IosHelpScreen.kt`, `CameraDeviceManager.kt`; `privacy.md` names Saschl as provider.
   (The upstream Sentry DSNs/org were removed on 2026-09-28; Sentry is now configured per
@@ -307,3 +315,9 @@ fork's site. GitHub Pages is not enabled on the fork.
   monitoring is never started for Fujifilm sessions. Verified: JVM and iOS simulator
   tests, app tests and lint, all four APK variants, iOS simulator app build. Nothing is
   verified on a real Fujifilm camera yet.
+- 2026-09-28: Android app ID changed to `com.sarmadjari.geoshutter` (launcher label
+  "GeoShutter") on `feature/fujifilm-support`. Installed `gplayDebug` over USB on the
+  maintainer's Samsung SM-F976B (Android 17, SDK 37) next to the Play Store Alpha GPS
+  v1.6.2; it launches without crashes. Install command:
+  `adb install -r app/build/outputs/apk/gplay/debug/app-gplay-debug.apk` (adb lives in
+  `~/Library/Android/sdk/platform-tools`).
