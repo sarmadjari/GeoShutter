@@ -54,6 +54,11 @@ jobs:
         SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        # Optional: without SENTRY_DSN the app has no error reporting; without
+        # SENTRY_AUTH_TOKEN the Sentry upload tasks are skipped.
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         
     - name: Get version from tag

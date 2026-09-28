@@ -47,6 +47,8 @@ fun StoreScreenshotViewController(scenario: String): UIViewController {
                     sentryEnabled = false,
                     onSentryEnabledChange = {},
                     onChangeLogLevel = {},
+                    // The store screenshot shows the optional error reporting.
+                    crashReportingAvailable = true,
                 )
             } else {
                 // Share the long fixture with SCREENSHOT_MODE so both entry points

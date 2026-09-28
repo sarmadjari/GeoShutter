@@ -64,6 +64,7 @@ import cameragps.sharednew.generated.resources.tip_jar_thank_you
 import cameragps.sharednew.generated.resources.tip_jar_unavailable
 import com.diamondedge.logging.LogLevel
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController
+import com.sasch.cameragps.sharednew.crash.IosCrashReporting
 import com.sasch.cameragps.sharednew.ui.settings.SharedLanguageSettingsCard
 import com.sasch.cameragps.sharednew.ui.settings.SharedSentrySettingsCard
 import com.sasch.cameragps.sharednew.ui.settings.SharedSettingsCard
@@ -102,6 +103,7 @@ internal fun IosSettingsScreen(
     onChangeLogLevel: (LogLevel) -> Unit,
     onTipJarScrollConsumed: () -> Unit = {},
     whatsNew: WhatsNewState? = null,
+    crashReportingAvailable: Boolean = IosCrashReporting.AVAILABLE,
 ) {
     var selectedLogLevel by remember { mutableStateOf(LogLevel.valueOf(IosAppPreferences.getLogLevel())) }
     var debugTapCounter by remember { mutableIntStateOf(0) }
@@ -194,12 +196,13 @@ internal fun IosSettingsScreen(
                 },
             )
 
-            // Unconditional: unlike Android there is no foss variant on iOS,
-            // so a build without a crash reporter does not exist here.
-            SharedSentrySettingsCard(
-                enabled = sentryEnabled,
-                onEnabledChange = onSentryEnabledChange,
-            )
+            // Only builds configured with a Sentry DSN offer error reporting.
+            if (crashReportingAvailable) {
+                SharedSentrySettingsCard(
+                    enabled = sentryEnabled,
+                    onEnabledChange = onSentryEnabledChange,
+                )
+            }
 
             if (debugTapCounter >= 5) {
                 IosDebugCard()

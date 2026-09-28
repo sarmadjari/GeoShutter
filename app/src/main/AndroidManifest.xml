@@ -100,10 +100,8 @@
         <meta-data
             android:name="io.sentry.auto-init"
             android:value="false" />
-        <!-- Required: set your sentry.io project identifier (DSN) -->
-        <meta-data
-            android:name="io.sentry.dsn"
-            android:value="https://3fdd3ec203a1dfe7a741b0143672adf1@o4510501457494016.ingest.de.sentry.io/4510501459460176" />
+        <!-- No DSN here: the gplay flavor passes it at init from BuildConfig.SENTRY_DSN,
+             which is empty (crash reporting hidden) unless the build configures one. -->
         <!-- Add data like request headers, user ip address and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
         <meta-data
             android:name="io.sentry.send-default-pii"

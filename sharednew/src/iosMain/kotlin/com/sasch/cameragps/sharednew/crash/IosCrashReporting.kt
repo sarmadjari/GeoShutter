@@ -7,26 +7,27 @@ import com.sasch.cameragps.sharednew.crash.IosCrashReporting.start
 import com.sasch.cameragps.sharednew.crash.IosCrashReporting.started
 import io.sentry.kotlin.multiplatform.Sentry
 import platform.Foundation.NSBundle
+import platform.Foundation.NSLog
 
 /**
  * iOS counterpart of the Android `com.saschl.cameragps.utils.CrashReporting`
  * object: the single place that starts Sentry, and only ever after the user
  * consented (see [com.sasch.cameragps.sharednew.ui.settings.SharedSentryConsentDialog]).
  *
- * Unlike Android there is no foss counterpart — iOS ships one build, so
- * [AVAILABLE] is a constant. Everything Sentry-typed lives in `iosMain`, which
- * is what keeps the Android foss flavor free of the SDK.
+ * The DSN comes from the `SentryDSN` Info.plist key, filled from the
+ * `SENTRY_DSN` build setting. Without one, [AVAILABLE] is false and the app
+ * hides error reporting entirely. Everything Sentry-typed lives in `iosMain`,
+ * which is what keeps the Android foss flavor free of the SDK.
  *
  * Runs on the main thread only: `ensureInitialized` and the settings UI are the
  * two callers, both `Dispatchers.Main.immediate`.
  */
 internal object IosCrashReporting {
 
-    /** Gates the consent dialog and the settings entry, mirroring Android. */
-    const val AVAILABLE: Boolean = true
+    private val DSN: String = configuredDsn()
 
-    private const val DSN =
-        "https://2b23f28f72b9b9d4f4e3ec950e9cb461@o4510501457494016.ingest.de.sentry.io/4512036235182160"
+    /** Gates the consent dialog and the settings entry, mirroring Android. */
+    val AVAILABLE: Boolean = DSN.isNotEmpty()
 
     private var started = false
 
@@ -105,5 +106,20 @@ internal object IosCrashReporting {
         // Same shape Sentry Cocoa derives itself, so releases line up with the
         // dSYMs uploaded for a build.
         return "$identifier@${shortVersion.orEmpty()}+${build.orEmpty()}"
+    }
+
+    /**
+     * The DSN from Info.plist, or empty when the build has none. An unexpanded
+     * `$(SENTRY_DSN)`, an unfilled placeholder or any other invalid value counts
+     * as none, so a misconfigured build simply offers no error reporting.
+     */
+    private fun configuredDsn(): String {
+        val value = (NSBundle.mainBundle.objectForInfoDictionaryKey("SentryDSN") as? String)
+            ?.trim()
+            .orEmpty()
+        if (value.isNotEmpty() && !CrashReportPolicy.isValidDsn(value)) {
+            NSLog("SentryDSN is set but not a valid Sentry DSN; error reporting stays off")
+        }
+        return value.takeIf(CrashReportPolicy::isValidDsn).orEmpty()
     }
 }

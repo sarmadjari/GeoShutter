@@ -12,6 +12,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		70875043302BADBBD7C694CB /* GeoShutter.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = GeoShutter.xcconfig; sourceTree = "<group>"; };
 		2B2597FB2F7146300006B4E3 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		2BE082CC2F6824510077F638 /* alphagps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = alphagps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -50,6 +51,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9C4934121360F66332754427 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				70875043302BADBBD7C694CB /* GeoShutter.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		2B2597FA2F7146300006B4E3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -61,6 +70,7 @@
 		2BE082C32F6824510077F638 = {
 			isa = PBXGroup;
 			children = (
+				9C4934121360F66332754427 /* Config */,
 				2BE082CE2F6824510077F638 /* alphagps */,
 				2B2597FA2F7146300006B4E3 /* Frameworks */,
 				2BE082CD2F6824510077F638 /* Products */,
@@ -306,6 +316,7 @@
 		};
 		2BE082D82F6824520077F638 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70875043302BADBBD7C694CB /* GeoShutter.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -354,6 +365,7 @@
 		};
 		2BE082D92F6824520077F638 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70875043302BADBBD7C694CB /* GeoShutter.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

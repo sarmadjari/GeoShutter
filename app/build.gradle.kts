@@ -2,6 +2,7 @@ import io.sentry.android.gradle.sourcecontext.UploadSourceBundleTask
 import io.sentry.android.gradle.tasks.SentryUploadNativeSymbolsTask
 import io.sentry.android.gradle.tasks.SentryUploadProguardMappingsTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -15,6 +16,36 @@ plugins {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+// Machine-specific settings from the untracked local.properties (git-ignored).
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
+}
+
+/**
+ * Non-empty value of a Gradle property, else an environment variable, else the
+ * same key in local.properties.
+ */
+fun configValue(key: String, environmentVariable: String): Provider<String> =
+    providers.gradleProperty(key)
+        .orElse(providers.environmentVariable(environmentVariable))
+        .orElse(providers.provider { localProperties.getProperty(key) })
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
+// Sentry is opt-in per build: without a DSN the gplay flavor hides error
+// reporting completely. Set `sentry.dsn` in local.properties, as a Gradle
+// property, or as the SENTRY_DSN environment variable.
+val sentryDsn: String = configValue("sentry.dsn", "SENTRY_DSN").getOrElse("").let { dsn ->
+    // Same pattern as CrashReportPolicy.isValidDsn, which also guards at runtime.
+    val valid = Regex("^https?://[0-9a-fA-F]{32}@[A-Za-z0-9.-]+(:[0-9]+)?(/[^/\\s]+)*/[0-9]+$")
+    if (dsn.isEmpty() || valid.matches(dsn)) {
+        dsn
+    } else {
+        logger.warn("w: sentry.dsn is not a valid Sentry DSN (https://<public key>@<host>/<project id>); error reporting stays off in this build")
+        ""
+    }
 }
 
 android {
@@ -52,10 +83,11 @@ android {
     }
 
     // F-Droid builds from source without the keystore or signing secrets — release
-    // must fall back to an unsigned APK instead of failing.
+    // must fall back to an unsigned APK instead of failing. CI passes the secrets
+    // as (possibly empty) environment variables, so blank values count as missing.
     val releaseKeystore = file(System.getenv("SIGNING_KEYSTORE_PATH") ?: "keystore.jks")
-    val releaseSigningAvailable =
-        releaseKeystore.exists() && System.getenv("SIGNING_KEY_ALIAS") != null
+    val releaseSigningAvailable = releaseKeystore.isFile && releaseKeystore.length() > 0 &&
+            !System.getenv("SIGNING_KEY_ALIAS").isNullOrBlank()
 
     signingConfigs {
         create("release") {
@@ -86,6 +118,8 @@ android {
         create("gplay") {
             dimension = "distribution"
             isDefault = true
+            // Crash reporting is only offered when a Sentry DSN is configured.
+            buildConfigField("String", "SENTRY_DSN", "\"${sentryDsn.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         }
         // F-Droid build: no GMS, no Play libraries, no Sentry.
         create("foss") {
@@ -107,6 +141,12 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    lint {
+        // Translations are community-maintained on Weblate and partial by design.
+        warning += "MissingTranslation"
     }
 }
 
@@ -178,9 +218,18 @@ dependencies {
 }
 
 
-val sentryUploadsEnabled = providers.gradleProperty("disableSentryUpload")
-    .map { !it.toBoolean() }
-    .orElse(true)
+// Uploads (ProGuard mappings, source context, native symbols) need a Sentry
+// auth token: `sentry.authToken` (local.properties or Gradle property),
+// SENTRY_AUTH_TOKEN, or a sentry.properties file with auth.token.
+// Without one, or with -PdisableSentryUpload=true, they are turned off so
+// release builds work without a Sentry account.
+val sentryUploadsDisabled = providers.gradleProperty("disableSentryUpload")
+    .map { it.toBoolean() }
+    .getOrElse(false)
+val sentryAuthToken = configValue("sentry.authToken", "SENTRY_AUTH_TOKEN")
+val sentryAuthAvailable = sentryAuthToken.isPresent ||
+        listOf(file("sentry.properties"), rootProject.file("sentry.properties")).any { it.isFile }
+val sentryUploadsEnabled = !sentryUploadsDisabled && sentryAuthAvailable
 
 // Sentry's --no-upload source task still requires authentication; skip the tasks entirely.
 tasks.configureEach {
@@ -188,17 +237,23 @@ tasks.configureEach {
         this is UploadSourceBundleTask ||
         this is SentryUploadNativeSymbolsTask
     ) {
-        onlyIf("Sentry uploads are enabled") { sentryUploadsEnabled.get() }
+        onlyIf("Sentry uploads are enabled") { sentryUploadsEnabled }
     }
 }
 
 sentry {
-    org.set("sascha-ni")
-    projectName.set("android")
+    // Your own Sentry organization and project (`sentry.org` / `sentry.project` in
+    // local.properties or as Gradle properties, or SENTRY_ORG / SENTRY_PROJECT);
+    // unset values fall back to sentry.properties.
+    org.set(configValue("sentry.org", "SENTRY_ORG"))
+    projectName.set(configValue("sentry.project", "SENTRY_PROJECT"))
+    authToken.set(sentryAuthToken)
 
-    // this will upload your source code to Sentry to show it as part of the stack traces
-    // disable if you don't want to expose your sources
-    includeSourceContext.set(true)
+    // Mapping and source-context uploads show deobfuscated stack traces with source
+    // in Sentry. Bundling sources needs an org even without uploading, so both are
+    // only set up when uploads can actually run.
+    autoUploadProguardMapping.set(sentryUploadsEnabled)
+    includeSourceContext.set(sentryUploadsEnabled)
 
     // The foss flavor ships without Sentry; the SDK is added explicitly via
     // gplayImplementation instead of auto-installation (which is variant-blind).
@@ -206,4 +261,7 @@ sentry {
     autoInstallation {
         enabled.set(false)
     }
+
+    // Don't report build-plugin telemetry to Sentry.
+    telemetry.set(false)
 }

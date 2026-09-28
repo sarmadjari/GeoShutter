@@ -1,0 +1,8 @@
+// Build settings for the alphagps target (all configurations).
+// Machine-specific values go in the untracked Local.xcconfig next to this file.
+
+// Sentry DSN of the iOS project; it becomes the SentryDSN Info.plist key.
+// Empty means the app offers no error reporting.
+SENTRY_DSN =
+
+#include? "Local.xcconfig"

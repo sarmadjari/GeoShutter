@@ -87,4 +87,18 @@ object CrashReportPolicy {
      */
     fun shouldShowConsentDialog(available: Boolean, consentDialogDismissed: Boolean): Boolean =
         available && !consentDialogDismissed
+
+    /**
+     * `https://<32-hex public key>@<host>[:port]/[path/]<project id>`.
+     * Keep in sync with the build-time check in `app/build.gradle.kts`.
+     */
+    private val dsnRegex =
+        Regex("^https?://[0-9a-fA-F]{32}@[A-Za-z0-9.-]+(:[0-9]+)?(/[^/\\s]+)*/[0-9]+$")
+
+    /**
+     * Whether [dsn] is a usable Sentry DSN. An empty value, an unfilled
+     * placeholder or a typo leaves crash reporting off instead of handing the
+     * SDK a DSN it would reject (the Android SDK throws on an invalid one).
+     */
+    fun isValidDsn(dsn: String): Boolean = dsnRegex.matches(dsn.trim())
 }

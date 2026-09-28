@@ -170,4 +170,34 @@ class CrashReportPolicyTest {
             )
         )
     }
+
+    // --- DSN -----------------------------------------------------------------
+
+    @Test
+    fun realDsnsAreAccepted() {
+        assertTrue(
+            CrashReportPolicy.isValidDsn(
+                "https://0123456789abcdef0123456789abcdef@o4512164121149440.ingest.de.sentry.io/4512164155293776"
+            )
+        )
+        // Surrounding whitespace from a properties file doesn't matter.
+        assertTrue(
+            CrashReportPolicy.isValidDsn(
+                " https://0123456789ABCDEF0123456789ABCDEF@sentry.example.com:9000/sentry/42 "
+            )
+        )
+    }
+
+    @Test
+    fun placeholdersAndBrokenValuesKeepCrashReportingOff() {
+        listOf(
+            "",
+            "$(SENTRY_DSN)",
+            "https://.....@o4512164121149440.ingest.de.sentry.io/4512164155293776",
+            "https://<public-key>@o4512164121149440.ingest.de.sentry.io/4512164155293776",
+            "https://0123456789abcdef0123456789abcdef@o4512164121149440.ingest.de.sentry.io/",
+            "https:/0123456789abcdef0123456789abcdef@o4512164121149440.ingest.de.sentry.io/1",
+            "0123456789abcdef0123456789abcdef@o4512164121149440.ingest.de.sentry.io/1",
+        ).forEach { assertFalse(CrashReportPolicy.isValidDsn(it), it) }
+    }
 }
