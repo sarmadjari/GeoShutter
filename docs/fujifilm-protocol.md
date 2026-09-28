@@ -187,7 +187,8 @@ and skipped.
 
 **Names.** The GAP device name `2A00` holds only the model ("X100VI"). NOT4 (`bf6dc9cf`)
 reads as the camera's own name, "FUJIFILM-X100VI-" plus four serial characters (the same
-suffix as the `X100VI-…` advertisement). GeoShutter reads NOT4 after each Fujifilm
+suffix as the `X100VI-…` advertisement): the camera's network NAME setting ("the camera is
+assigned a unique name by default", X100VI manual). GeoShutter reads NOT4 after each Fujifilm
 handshake and shows the name without "FUJIFILM-" in the camera list, with the model (the
 pairing name) underneath. A name set with Rename is never replaced.
 
@@ -209,7 +210,11 @@ checked with exiftool).
 - The camera stops advertising while connected, so Android 16+ companion presence
   reports it as gone.
 - It keeps the link, and keeps asking for the location every 10 s, while switched off or
-  asleep (seen for more than 15 minutes). The app therefore shows it as connected.
+  asleep (seen for more than 15 minutes). The app therefore shows it as connected. This is
+  the camera setting CONNECT WHILE POWER OFF (MENU/OK → network/USB settings →
+  Bluetooth/SMARTPHONE SETTING); the X100VI manual: "Select ON to maintain a Bluetooth
+  connection with a smartphone even when the camera is turned off." With it OFF the camera
+  should drop the link when switched off (not yet tried).
 - Switching it on or waking it drops the link (`0x13`), and the camera advertises again.
   Connections made in the first seconds often go silent right away (supervision timeout
   `0x08`, encryption request unanswered). With a single direct attempt followed by the
@@ -238,8 +243,9 @@ checked with exiftool).
 - Registration right after bonding (connect on the pairing connection) is implemented but
   not yet tried with a fresh pairing.
 - The app cannot show whether the camera is on or off while it stays connected: the camera
-  gives no signal (see On/off). While it is off but connected, the phone keeps its
-  location updates running.
+  gives no signal (see On/off). While it is off but connected (CONNECT WHILE POWER OFF on),
+  the phone keeps its location updates running. With the setting off the camera should
+  disconnect when switched off; not yet tried.
 - The date/time sync characteristic of XApp is unknown (furble doesn't implement it).
 
 ## Research plan

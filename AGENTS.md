@@ -267,9 +267,10 @@ fork's site. GitHub Pages is not enabled on the fork.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging works on an X100VI
   (firmware 01.32, 2026-09-28); open: UTC vs local time, registration right after pairing,
   iOS and legacy firmware unsupported, remote/camera settings Sony-only. The camera stays
-  connected while switched off and gives no Bluetooth sign of on/off (tested with every
-  readable and notifying characteristic), so the app can't show it; the phone keeps its
-  location updates running meanwhile (possible follow-up: slower location updates for
+  connected while switched off when its CONNECT WHILE POWER OFF setting is on (X100VI
+  manual) and gives no Bluetooth sign of on/off (tested with every readable and notifying
+  characteristic), so the app can't show it; the phone keeps its location updates running
+  meanwhile (possible follow-up: slower location updates for
   Fujifilm-only sessions, needs a user decision).
 - iOS: the camera-name/model line and the direct connects are Android-only so far.
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:

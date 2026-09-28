@@ -203,10 +203,10 @@ about July 2025). Older firmware with the legacy protocol is detected but not su
 Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera asks for
 the location itself; remote control and the camera time/area settings are Sony features.
 Geotagging works on an X100VI. Two things behave differently from Sony cameras: the camera
-stays connected while it is switched off (it keeps asking for the location, so the app
-shows it as connected, and there is no Bluetooth signal that tells on from off), and when
-it is switched on it drops the connection; GeoShutter reconnects within about half a
-minute. The camera list shows the camera's own name (for example `X100VI-…`) with the
+stays connected while it is switched off when its *CONNECT WHILE POWER OFF* setting is on
+(it keeps asking for the location, so the app shows it as connected; set it to OFF in the
+camera's Bluetooth/smartphone settings if you prefer it to disconnect), and when it is
+switched on it drops the connection; GeoShutter reconnects within about half a minute. The camera list shows the camera's own name (for example `X100VI-…`) with the
 model underneath. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details
 and what is still unverified.
 
