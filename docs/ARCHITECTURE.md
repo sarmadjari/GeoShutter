@@ -1,0 +1,359 @@
+# GeoShutter architecture
+
+Technical reference for the code base: modules, runtime flows on Android and iOS,
+the Sony Bluetooth protocol as implemented, persistence and release plumbing.
+The short, always-loaded project context lives in [`../AGENTS.md`](../AGENTS.md);
+this document is the deep dive. Verified against the code at app version 1.6.3
+(Android `versionCode` 163 / iOS build 163).
+
+GeoShutter is a fork of [Alpha GPS](https://github.com/Saschl/alpha-gps). The code
+still uses the upstream identifiers (app name "Alpha GPS", Android package and iOS
+bundle ID `com.saschl.cameragps`), so those names appear throughout this document.
+
+## 1. Modules
+
+| Module / folder | Kind | Identity | Role |
+|---|---|---|---|
+| `:app` (`app/`) | Android application | namespace + applicationId `com.saschl.cameragps`, launcher label `AlphaGPS` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
+| `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, StoreKit, Sentry). |
+| `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "Alpha GPS", bundle ID `com.saschl.cameragps`, iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
+| `website/` | Astro static site | — | Landing page (upstream deploys it to alphagps.app). |
+| `tools/` | Scripts | — | Screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
+
+Root Gradle project name: `CameraGps`. Dependency versions: `gradle/libs.versions.toml`.
+
+## 2. Layering
+
+```
+ Android shell (app/)                          iOS shell (sharednew/src/iosMain + iosApp/)
+ ─────────────────────                         ────────────────────────────────────────────
+ MainActivity, Compose screens                 CameraGpsIosApp (Compose), IosAppDialogHost
+ CameraDeviceCompanionService (CDM presence)   IosAccessoryShell / IosAccessoryCoordinator (AccessorySetupKit)
+ LocationSenderService (foreground service)    IosBluetoothController (policy + facade)
+ AppServices (app-scoped graph)                IosCentralShell (CBCentralManager, state restoration)
+ AndroidBleTransport (BluetoothGatt)           IosBleTransport (CBPeripheral, pairing gate)
+ Fused/PlatformLocationSource                  IosLocationSource (CLLocationManager)
+            │                                               │
+            └──────────────────┬────────────────────────────┘
+                               ▼
+      CameraSessionOrchestrator  (sharednew/commonMain, bluetooth/session)
+        ├─ CameraSessionRegistry      StateFlow<Map<id, CameraSession>>  ← both UIs observe this
+        ├─ BleOperationQueue          one sequential lane per device
+        ├─ QueuedBleGattPort          the only BleGattPort implementation
+        ├─ BleSessionCoordinator      handshake state machine
+        ├─ RemoteControlCoordinator   remote probe loop + shutter sequence
+        ├─ CameraAutoCorrectionController   camera time/area settings
+        └─ LocationTransmissionManager      LocationSource → location packets
+                               ▼
+      BlePeripheralTransport (interface; Android and iOS implementations above)
+```
+
+Rules the code relies on:
+
+- The orchestrator and everything under it run on **one confined dispatcher**
+  (`Dispatchers.Main.immediate` on both platforms). Platform callbacks only push
+  `BleTransportEvent`s into a channel; they never touch shared state.
+- Device identifiers are **uppercase** strings: the MAC address on Android, the
+  `CBPeripheral.identifier` UUID on iOS. Both are stored in `CameraDevice.mac`.
+- Every GATT operation (handshake, location packets, remote probes, shutter,
+  camera settings) goes through `BleOperationQueue`: one outstanding operation per
+  device, 15 s operation timeout, 30 s service-discovery timeout (the iOS pairing
+  gate runs inside discovery). Queued location writes are dropped at execution time
+  unless the session is `Transmitting`.
+- Continuous state lives in `CameraSessionRegistry`; one-shot side effects are
+  `OrchestratorEvent`s (`DeviceConnected`, `DeviceDisconnected`,
+  `HandshakeCompleted`, `PairingFailed`, `FirstLocationAcquired`,
+  `LocationUnavailable`) on a `SharedFlow`.
+
+## 3. Sony Bluetooth LE protocol (as implemented)
+
+Source of truth: `sharednew/.../bluetooth/SonyBluetoothConstants.kt`,
+`coordinator/LocationPacketBuilder.kt`, `coordinator/LocationDataConfig.kt` and
+`coordinator/RemoteControlCoordinator.kt`. Mirrored by `tools/sony_camera_sim`.
+
+Cameras advertise manufacturer data with Sony's Bluetooth company ID **`0x012D`**;
+both platforms discover cameras by that ID (Android CDM scan filter, iOS
+AccessorySetupKit descriptor and `NSAccessorySetupBluetoothCompanyIdentifiers`).
+
+| Service | Characteristic (16-bit, Bluetooth base UUID) | Use in the app |
+|---|---|---|
+| `8000DD00-DD00-FFFF-FFFF-FFFFFFFFFFFF` (location) | `DD01` | notify: location-linking status. `03 01 02 00` = disabled by the camera, `03 01 03 01` = available. **Advisory only** (UI warning); it never gates setup or sending. |
+| | `DD11` | write: location packet (below) |
+| | `DD21` | read: capabilities. `value[4] & 0x02` → the camera accepts time zone and DST → 95-byte packets |
+| | `DD30` | write `01`: enable/unlock GPS (a `00` "release" write is recognized and never advances the handshake) |
+| | `DD31` | write `01`: lock GPS |
+| | `DD32` | read/write one byte `0`/`1`: the camera's *Automatic time correction* setting |
+| | `DD33` | read/write one byte `0`/`1`: the camera's *Automatic area adjustment* setting |
+| `8000CC00-CC00-FFFF-FFFF-FFFFFFFFFFFF` (control) | `CC13` | write: 13-byte date/time sync |
+| | `CC09` | defined but **not used** (it reports Sony-app remote availability, not the Bluetooth remote setting) |
+| `8000FF00-FF00-FFFF-FFFF-FFFFFFFFFFFF` (remote) | `FF01` | write: button commands |
+| | `FF02` | notify: remote status |
+
+On iOS a characteristic is only usable if it is listed in
+`IosBleTransport.knownCharacteristicUuids`.
+
+### Location packet (`DD11`)
+
+`LocationDataConfig` + `LocationPacketBuilder.buildLocationDataPacket`:
+
+| Bytes | Content |
+|---|---|
+| 0–10 | fixed header `00 59 08 02 FC 00 00 00 10 10 10` (91-byte form) or `00 5D 08 02 FC 03 00 00 10 10 10` (95-byte form); byte 1 = packet length − 2 |
+| 11–14 | latitude × 10⁷, signed 32-bit big-endian |
+| 15–18 | longitude × 10⁷, signed 32-bit big-endian |
+| 19–25 | **UTC** date/time: year (16-bit BE), month, day, hour, minute, second |
+| 26–90 | 65 zero bytes |
+| 91–94 | 95-byte form only: standard UTC offset in minutes, DST offset in minutes (each signed 16-bit BE) |
+
+### Time sync packet (`CC13`)
+
+`buildTimeSyncPacket`: `0C 00 00`, year (16-bit BE), month, day, hour, minute,
+second (**local** time), DST flag (`1` while DST is active), signed standard-offset
+hours, absolute remaining offset minutes.
+
+### Remote control
+
+Commands on `FF01` (`RemoteCommand`): half press `01 07` / release `01 06`,
+full press `01 09` / release `01 08`, AF-ON `01 15` / release `01 14`.
+`01 06` doubles as the status **probe**.
+
+Status notifications on `FF02`: `02 3F 20` focus acquired, `02 A0 20` shutter
+active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
+(the only "inactive" value; anything else counts as active).
+
+## 4. Connection lifecycle (shared)
+
+1. **Connect**: the shell calls `orchestrator.onConnectRequested(id)` and opens the
+   link; the transport emits `Connected`. The registry entry is reset (phase
+   `Connected`, retry counters, camera-setting state).
+2. **Optional delay**: `CameraDevice.handshakeDelayMs` (UI: *Delay connection
+   setup*, 0–10 s). Workaround for cameras that stall their own boot under BLE
+   traffic (reported on the A7R IV).
+3. **Service discovery** through the queue (on iOS this includes the pairing gate).
+4. **Handshake** (`BleSessionCoordinator.beginHandshake`); each step is skipped
+   when its characteristic is missing: subscribe `DD01` → read `DD21` (one
+   automatic retry on failure, for Android's intermittent GATT 133) → write
+   `DD30=01` → write `DD31=01` → write the `CC13` time sync (a failed time sync
+   still continues) → `HandshakeComplete`.
+5. **Ready** (`handleHandshakeComplete`): iOS first checks that the camera is still
+   enabled (`shouldRemainConnected`); then the phase becomes `Transmitting`, the
+   location manager starts (or immediately sends a cached fix), `DD32`/`DD33` are
+   read, remote monitoring starts if *Enable remote control* is on, and
+   `HandshakeCompleted` is emitted (Android then drops the connection priority
+   back to balanced).
+6. **Auth errors** (ATT 5 / 15) on any step are retried per `PairingRetryPolicy`
+   (3 retries, 3 s apart; Android retries the first one immediately). When they
+   are exhausted, `PairingFailed` makes both UIs show the *Pairing Failed*
+   troubleshooting dialog; iOS also cancels the connection and suspends
+   auto-reconnect for that camera until the dialog is closed.
+7. **Disconnect** clears the session, cancels its queue lane and re-evaluates
+   location tracking.
+
+### Location transmission (`LocationTransmissionManager`)
+
+- Location updates start when the **first** session becomes ready and stop when no
+  session is ready (or, on iOS, when the app is disabled). Nothing reads location
+  while no camera is connected, also in Android's Always On mode.
+- Stale fixes (older than 30 s) are ignored: iOS checks every fix, Android checks
+  the initial/last-known seed fix, and a fix cached from a previous session is
+  discarded when it is older than 30 s. A new fix replaces the current one unless
+  it is more than 200 m less accurate *and* not more than 30 s newer.
+- The first usable fix is sent immediately; afterwards the latest fix is re-sent
+  to every ready camera every **5 s** (`LOCATION_UPDATE_INTERVAL_MS`). A tick
+  without any fix emits `LocationUnavailable` (Android: "location invalid" sound).
+- Sources: Android `gplay` = `SwitchingLocationSource` (Play Services fused
+  provider with high accuracy, 5 s interval and 2 m minimum distance, or the
+  platform provider, chosen in Settings); Android `foss` = `PlatformLocationSource`
+  only (`LocationManager`: FUSED provider on Android 12+, else GPS, else network);
+  iOS = `IosLocationSource` (`CLLocationManager`, best accuracy, 2 m distance
+  filter, background updates allowed, no automatic pausing).
+
+### Remote control and shutter
+
+- With *Enable remote control* on, `RemoteControlCoordinator` subscribes to `FF02`
+  and, while the remote is inactive, writes the probe every 3 s (first after
+  0.5 s). A successful `FF01` write or any status other than `02 C3 00` marks the
+  remote active; the shutter button then appears on the camera card.
+- The shutter button (both platforms) runs `startShutterSequence`: half press →
+  wait for focus (2 s fallback) → full press → wait for shutter active (2 s
+  fallback) → full release → half release → wait for ready (20 s fallback).
+  Pressing again during the final ready-wait starts a new cycle. Haptic feedback on
+  press and when the cycle ends (setting *Haptic feedback*, default on).
+- A single-press path also exists (`ShutterFullPress`, released automatically when
+  the camera acknowledges with `02 A0 00`); on Android it is reachable through the
+  service intents `ACTION_TRIGGER_REMOTE_SHUTTER` / `ACTION_SEND_REMOTE_COMMAND`,
+  but the UI does not use it.
+
+### Camera settings (`CameraAutoCorrectionController`)
+
+Only while the camera is `Transmitting`: reads `DD32`/`DD33` if the characteristic
+supports write-with-response (otherwise the UI shows *unsupported*), writes `0`/`1`
+on toggle and reports pending/failed states (*Refresh camera settings*). These
+change settings **on the camera**; an unknown value is never assumed to be "off".
+
+## 5. Android shell (`app/`)
+
+| Piece | Responsibility |
+|---|---|
+| `CameraGpsApplication` | Timber `FileTree` (logs into Room), KmLogging → Timber bridge, Sentry init only after consent and only in `gplay` builds configured with a DSN, global exception handler. |
+| `AppServices` | App-scoped graph without DI: DAO, `AndroidBleTransport`, `CameraSessionOrchestrator` (`PairingRetryPolicy(firstRetryDelayMs = 0)`), `pairingFailedDevice` flow for the UI. |
+| `MainActivity` | Navigation3 destinations Welcome → Devices, Settings, Help, Troubleshooting, Logs. On every resume it (re)starts the service for enabled Always-On cameras. |
+| Pairing | `DeviceAssociationUtils.requestDeviceAssociation`: CDM `AssociationRequest` with a BLE scan filter on manufacturer ID `0x012D` → system chooser. `ScanForDevicesMenu` handles the result; `PairingManager`/`PairingDialog` call `createBond()` when the camera is not bonded yet, then `startDevicePresenceObservation`. |
+| `CameraDeviceCompanionService` | `CompanionDeviceService` bound by the system. Presence callbacks by API level: < 33 `onDeviceAppeared(String)`, 33–35 `onDeviceAppeared(AssociationInfo)`, 36+ `onDevicePresenceEvent`. Appeared → `startForegroundService(LocationSenderService)` with the address if the app is enabled and location is granted (a refused background start is logged, not thrown); disappeared → `ACTION_REQUEST_SHUTDOWN`. Presence observation needs **Android 12+**; Android 8–11 rely on Always On. |
+| `LocationSenderService` | `LifecycleService`, foreground service type `location|connectedDevice`. `ServiceCommandRouter` maps intents to `ServiceCommand`s: `Connect`, `ReconnectAlwaysOn` (no address: connect all Always-On cameras), `Shutdown`, `TriggerShutterSequence`, `TriggerRemoteShutter`, `SendRemoteCommand`, `SetRemoteControlMonitoring`. Shuts down when Bluetooth turns off (for direct connects and Always-On reconnects alike; GATT handles don't survive a Bluetooth restart). A connect that can't start (camera no longer bonded) marks the session as failed. `startForeground` failures (`SecurityException`, `IllegalStateException`) stop the service instead of crashing. Plays event sounds and drives the status notification through the shared `TransmissionNotificationCoordinator`. |
+| `ServiceShutdownCoordinator` | On "disappeared": pause the camera unless it is Always On; stop the service when no camera is connected and none is Always On. |
+| `AndroidBleTransport` | `connectGatt(autoConnect = true)`, **bonded devices only**; API 37+ uses `BluetoothGattConnectionSettings` (automatic MTU). The GATT handle survives disconnects so autoConnect can resume; `disconnectAll()` is the only close path. High connection priority during setup, balanced afterwards. |
+| `RebootReceiver` | `BOOT_COMPLETED` (only with *Start App on Device boot*) and `MY_PACKAGE_REPLACED` → start the service without an address (Always-On reconnect), unless the app is disabled (*Enable App*) or location isn't granted. |
+| Notifications | Channels `general_notification_channel` (low importance, "Standby – Waiting for camera to connect"), `transmission_notification_channel` (high, "Transmitting location data to N cameras"), `disconnect_notification_channel` (alerts when the camera count drops). |
+| Permission safety | The permission screen can be skipped ("Continue anyway"), so reading bonds and device names goes through `bondedAddressesOrNull()` / `nameOrNull()` (`AssociatedDeviceCompat.kt`), which treat a missing Nearby devices permission as "unknown" instead of crashing. |
+| Preferences | `SharedPreferences` file `camera_gps_prefs` (`PreferencesManager`). |
+
+Flavors (`app/build.gradle.kts`, dimension `distribution`):
+
+| | `gplay` (default) | `foss` |
+|---|---|---|
+| Location | Play Services fused provider or platform provider (user-selectable) | platform provider only |
+| In-app review | Google Play review API | none |
+| Crash reporting | Sentry (opt-in; offered only when the build has a DSN, `BuildConfig.SENTRY_DSN`) | none; the SDK is not in the APK |
+| Flavor sources | `app/src/gplay/...` | `app/src/foss/...` |
+
+The `foss` guarantee also depends on `:sharednew`: Sentry KMP is declared only in
+`iosMain`, and the Sentry KMP Gradle plugin's auto-install is disabled
+(`sharednew/build.gradle.kts`). Never add Sentry or Google libraries to
+`commonMain`/`androidMain`.
+
+## 6. iOS shell (`iosApp/` + `sharednew/src/iosMain`)
+
+| Piece | Responsibility |
+|---|---|
+| `AppDelegate.swift` | Records the launch reason (`IosLaunchContext`: user, Bluetooth restoration or location event) and calls `IosBluetoothController.shared.ensureInitialized()` inside `didFinishLaunchingWithOptions`, which Core Bluetooth state restoration requires on background relaunches. |
+| `ContentView.swift` | Embeds `MainViewController(reviewTestMode:requestReview:)` and supplies the StoreKit review callback. Debug simulator builds honor `ALPHA_GPS_SCREENSHOT` (store screenshots) and `ALPHA_GPS_REVIEW_TEST=1`. |
+| `AccessoryDiscoveryNaming.swift`, `AccessoryDiscoveryItems.swift` | iOS 26.1+ picker naming customizer. **Currently disabled** (the install call is commented out in `AppDelegate`). |
+| `IosBluetoothController` | Singleton facade used by the Compose UI and owner of the policy: auto-reconnect decisions (`AutoReconnectPolicy`), app/device enable sweeps, pairing-failure state, device-list assembly, forwarding of the AccessorySetupKit APIs. |
+| `IosCentralShell` | The `CBCentralManager` (restore identifier `com.saschl.cameragps.central`), state restoration (restored peripherals are parked until the central is powered on, see `RestorePolicy`), `retrievePeripheralsWithIdentifiers` plus pending connects with `CBConnectPeripheralOptionEnableAutoReconnect`. It does **not** scan for new cameras. |
+| `IosBleTransport` | `CBPeripheral` delegate, two-phase discovery and the **pairing gate**: subscribing to the first notifiable characteristic forces iOS pairing before the handshake (auth errors are retried, then `PairingFailed`). |
+| `IosAccessoryShell` / `IosAccessoryCoordinator` | AccessorySetupKit: `ASAccessorySession`, discovery picker (company ID `0x012D`, BLE pairing), migration picker for cameras saved before AccessorySetupKit (app versions before 1.6.2), system rename sheet, removal events. A picker is first requested with the central alive; only if iOS refuses it with `ASErrorCodePickerRestricted` (a live `CBCentralManager` from the legacy global Bluetooth grant) is the central released and the picker retried (up to 10 attempts, 10 s after a release, 5 s otherwise). Central creation stays blocked (`centralCreationBlocked`) until the picker operation ends. |
+| `IosDeviceRepository` | Room DAO access, the legacy `NSUserDefaults` auto-reconnect store (read only for migration), enabled-state caches. |
+| `IosLocationSource` | `CLLocationManager`; requests When-In-Use, then escalates to Always. |
+| `IosTransmissionNotifications` | Local notification "Location transmission active" while sending (setting *Transmission notification*, default on). |
+| `IosTipJarController` | StoreKit products `com.saschl.cameragps.tip.small/medium/large`. |
+| `IosCrashReporting` | Sentry KMP (Cocoa SDK via the SPM package `sentry-cocoa` 8.58.2), started only after consent. The DSN comes from the `SentryDSN` Info.plist key (build setting `SENTRY_DSN`); without it error reporting is hidden. MAC addresses are redacted from messages, breadcrumbs and logs. |
+| `CameraGpsIosApp` | Screen state machine (Welcome, Devices, PairingPreparation, DeviceDetails, Settings, Help, Troubleshooting, Logs). Dialogs are queued through `IosAppDialogState` and the shared `DialogQueue`: error-reporting consent, migration explainer/error, pairing failed, "Always" location, precise location, what's new, donation (opens the Tip Jar). |
+| Preferences | `NSUserDefaults`, keys prefixed `ios.` (`IosAppPreferences`). |
+
+Build settings: the target's base configuration is `iosApp/Config/GeoShutter.xcconfig`,
+which optionally includes the untracked `iosApp/Config/Local.xcconfig` for
+machine-specific values such as `SENTRY_DSN`.
+
+`Info.plist` declares `NSAccessorySetupKitSupports` = Bluetooth, the Sony company
+ID and the three service UUIDs for AccessorySetupKit, and the background modes
+`location` and `bluetooth-central`. Permission texts are `INFOPLIST_KEY_*` build
+settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
+`tools/ios_localization`.
+
+## 7. Platform differences
+
+| Topic | Android | iOS |
+|---|---|---|
+| Adding a camera | CDM chooser + Bluetooth bonding | AccessorySetupKit picker (iOS pairs) |
+| Background reconnect | CDM presence (Android 12+) starts the foreground service; optional Always On keeps it running with `autoConnect` | pending connections with auto-reconnect + Core Bluetooth state restoration relaunches |
+| Always On / start on boot | yes | not applicable |
+| Status notification | mandatory foreground-service notification | optional local notification |
+| Event sounds | yes (connected, disconnected, location acquired, location invalid; custom sounds) | no |
+| Location provider choice | `gplay` only | no |
+| Battery-optimization helpers | yes | no |
+| Rename | in-app name only (CDM keeps its own) | system rename sheet for AccessorySetupKit cameras, in-app otherwise |
+| Removing a camera | removes the CDM association and the app's data | also removes the AccessorySetupKit authorization (and the bond) |
+| Crash reporting | `gplay` only, opt-in | opt-in |
+| Donations | Buy Me a Coffee link | Tip Jar (in-app purchase) |
+| Review prompt | Play in-app review (`gplay`) | StoreKit request (one day after setup, then at least 30 days apart) |
+
+## 8. Persistence
+
+- Room database shared by both platforms (`sharednew/.../database/LogDatabase.kt`,
+  bundled SQLite driver), file `log_database` (Android database directory) /
+  `Documents/log_database.db` (iOS). Version 6, auto-migrations 1→6, schemas
+  exported to `sharednew/schemas/` (commit the new schema JSON with every change).
+  - `camera_devices`: `mac` (PK), `deviceEnabled`, `alwaysOnEnabled`,
+    `deviceName`, `deviceNameIsCustom`, `remoteControlEnabled`,
+    `handshakeDelayMs`.
+  - `log_entries`: the in-app log, written by `LogRepository`: one write at a time in
+    call order, database failures dropped (logging must never crash the app, e.g. while
+    the iOS file is still protected before the first unlock), and every 50 inserts the
+    table is trimmed to the newest 500 rows once it exceeds 1000.
+- Name resolution (`AccessoryCameraName`): a name chosen by a person (in-app or in
+  the iOS rename sheet) is never overwritten; derived names upgrade to the hardware
+  name when it becomes available.
+
+## 9. Logging and crash reporting
+
+- Shared code logs through KmLogging (`com.diamondedge.logging`). Android routes it
+  to Timber (`FileTree` → Room; Sentry Timber integration in `gplay`); iOS installs
+  `IosLogging` (database logger, plus `SentryCrashLogger` when enabled).
+- `CrashReportPolicy` keeps both platforms' routing identical: errors → Sentry
+  events, info/warn → breadcrumbs, info and above → Sentry Logs. Sentry only starts
+  when it is enabled **and** the consent dialog was answered. Coordinates are never
+  logged.
+- MAC-address redaction (`CrashReportPolicy.redact`, replaces addresses with
+  `XX:XX:XX:XX:XX:XX`): Android `gplay` applies it to Sentry Logs, event messages and
+  parameters, exception messages and breadcrumbs (`SentryRedaction` in
+  `app/src/gplay/.../CrashReporting.kt`). iOS applies it to messages, breadcrumbs and
+  logs; exception messages are not reachable through the KMP `beforeSend` on Apple, and
+  iOS identifies cameras by UUID rather than MAC address.
+- Both platforms store warning/error stack traces in the in-app log (`FileTree` on
+  Android, `DatabaseLogger` on iOS).
+- Log level: Settings → Log Settings (default Info on both platforms).
+
+## 10. UI, strings and languages
+
+- Compose Multiplatform + Material 3 (`CameraGpsTheme`). Shared screens live in
+  `sharednew/.../ui/` (device list, device details, settings building blocks,
+  welcome, pairing preparation, troubleshooting guide, log viewer, what's new,
+  dialog queue). Android hosts them from `app/.../ui/`, iOS from `iosMain`.
+- Strings: shared `sharednew/src/commonMain/composeResources/values*/strings.xml`
+  (translated on Weblate), iOS-only `sharednew/src/iosMain/composeResources`,
+  Android framework strings (notification channels) in `app/src/main/res`.
+- The in-app language picker is generated at build time from the
+  `composeResources/values-*` folders (`:sharednew:generateSupportedLanguages`).
+  Folders today: en (source), de, es, fa, id, ja, ro, ru, ta, vi, zh-CN; coverage
+  varies (fa is empty, ro and ja are partial).
+- Release notes dialog: add an entry to `ReleaseNotesCatalog`
+  (`whatsnew/ReleaseNotes.kt`) plus strings for every release with user-facing
+  changes.
+
+## 11. Build, CI and release
+
+- Versions: Android `versionCode`/`versionName` in `app/build.gradle.kts`; iOS
+  `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` in `project.pbxproj`. Keep them in
+  sync.
+- Android release signing reads `app/keystore.jks` (or `SIGNING_KEYSTORE_PATH`)
+  plus `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` and `SIGNING_STORE_PASSWORD`;
+  without them (blank values and an empty keystore file count as missing) release
+  APKs are unsigned (F-Droid builds from source).
+- Sentry configuration, all optional and never committed: Android reads `sentry.dsn`,
+  `sentry.org`, `sentry.project` and `sentry.authToken` from a Gradle property, the
+  matching `SENTRY_*` environment variable or the untracked `local.properties`; the DSN
+  goes into `BuildConfig.SENTRY_DSN` of the `gplay` flavor. iOS takes the build setting
+  `SENTRY_DSN` from the untracked `iosApp/Config/Local.xcconfig` (included by the
+  target's base configuration `iosApp/Config/GeoShutter.xcconfig`) into Info.plist
+  `SentryDSN`. Both platforms accept only a valid DSN (`CrashReportPolicy.isValidDsn`;
+  the Android build repeats the pattern and warns). `gplay` release builds upload
+  ProGuard mappings and source context only when an auth token or a
+  `sentry.properties` file is present, never with `-PdisableSentryUpload=true`. Sentry
+  Gradle plugin telemetry is off.
+- Builds strip native libraries with NDK `29.0.14206865` (pinned for reproducible
+  F-Droid builds); without that NDK, builds still succeed but package the
+  libraries unstripped.
+- iOS: the Xcode build phase *Compile Kotlin* runs
+  `./gradlew :sharednew:embedAndSignAppleFrameworkForXcode`. The Sentry KMP Gradle
+  plugin links the `Sentry-Dynamic` xcframework that Xcode's Swift Package Manager
+  checked out (override: `-Psentry.cocoa.frameworkPath=...`); `sentryCocoa` in the
+  version catalog must equal the SPM pin in the Xcode project.
+- `.github/workflows/build-and-release.yml`: on `v*` tags builds `assembleRelease`
+  (both flavors) and publishes `app-gplay-release.apk` and `app-foss-release.apk`
+  as a GitHub release. Uses the secrets `KEYSTORE_BASE64`, `SIGNING_KEY_ALIAS`,
+  `SIGNING_KEY_PASSWORD`, `SIGNING_STORE_PASSWORD` and, optionally, `SENTRY_DSN`,
+  `SENTRY_AUTH_TOKEN` plus the variables `SENTRY_ORG`/`SENTRY_PROJECT`.
+- `.github/workflows/deploy-pages.yml`: builds `website/` and deploys it to GitHub
+  Pages on changes under `website/**`.
+- Renovate (`renovate.json`) keeps dependencies and pinned action digests current.

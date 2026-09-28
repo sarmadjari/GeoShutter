@@ -1,72 +1,306 @@
-<a href="https://hosted.weblate.org/engage/alpha-gps/">
-<img src="https://hosted.weblate.org/widget/alpha-gps/svg-badge.svg" alt="Übersetzungsstatus" />
-</a>
+# GeoShutter
 
+Open-source geotagging and Bluetooth remote shutter for Sony cameras, on Android and
+iPhone. Your phone sends its GPS position to the camera over Bluetooth Low Energy, so
+every photo records where it was taken.
 
-## What is it?
+GeoShutter is a fork of [Alpha GPS](https://alphagps.app) by
+[Saschl](https://github.com/Saschl) ([Saschl/alpha-gps](https://github.com/Saschl/alpha-gps)),
+licensed under the [GPL-3.0](LICENSE).
 
-App for transmitting location data to sony cameras. I was fed up with the official app and found a python script (https://github.com/anoulis/sony_camera_bluetooth_external_gps) that got the protocol right, so I thought let's make a better app.
+> [!IMPORTANT]
+> The code has not been renamed yet: GeoShutter still builds and ships as **Alpha GPS**
+> (Android package and iOS bundle ID `com.saschl.cameragps`). The store listings and
+> APK releases linked below are the published Alpha GPS app. GeoShutter does not publish
+> its own builds yet; [build from source](#build-from-source) to run this fork.
 
-Also big thanks to https://github.com/mlapaglia/AlphaSync which provided insights into how to enable the functionality for devices that use the Sony creators's app instead of Imaging Edge.
+## What it does
 
-It makes use of the companion device manager APIs of Android which *should* provide a reliable way to launch the transmission even when the app is in the background and the screen is off. However, due to limited devices, there might be differences. I have tested Android 10, 12, 13, 15 and 16 up to now, but your mileage may wary
+- **Geotagging**: sends your position to every connected camera every 5 seconds, using
+  the same Bluetooth location-linking feature as Sony's Imaging Edge Mobile and Creators'
+  App. Location is only used while a camera is connected.
+- **Time sync**: sets the camera's date and time when it connects, and adds time zone and
+  daylight-saving information to each position when the camera supports it.
+- **Automatic reconnect**: pair once, and the app reconnects whenever you switch the
+  camera on, also in the background and with the phone locked.
+- **Several cameras** at the same time.
+- **Remote shutter**: one tap runs a full half-press → focus → shutter → release cycle,
+  driven by the camera's status messages.
+- **Per-camera settings**: rename, enable/disable, remote control, a connection-setup
+  delay for slow-starting cameras, and the camera's own *Automatic time correction* and
+  *Automatic area adjustment* settings.
+- **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
+- **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
+  exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
+  flavor, intended for F-Droid) has no crash reporter at all. See the
+  [privacy policy](privacy.md).
 
-> [!NOTE]
-> I will move and add documentation to the new webpage at https://alphagps.app in the future
+The Bluetooth protocol was first worked out in
+[anoulis/sony_camera_bluetooth_external_gps](https://github.com/anoulis/sony_camera_bluetooth_external_gps);
+[mlapaglia/AlphaSync](https://github.com/mlapaglia/AlphaSync) provided insights for cameras
+that use Sony's Creators' App instead of Imaging Edge.
 
+## Requirements
 
-## How to install?
+| | Android | iPhone |
+|---|---|---|
+| System | Android 8.0 (API 26) or later with Bluetooth LE | iOS 18.0 or later (iPhone app) |
+| Automatic background reconnect | Android 12 or later. On Android 8–11, turn on **Always On** for the camera. | yes |
+| Permissions | precise location with "Allow all the time", Nearby devices (Bluetooth), notifications (Android 13+) | location **Always** with **Precise Location**; cameras are added through the iOS accessory picker |
+| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth | same |
 
-<a href="https://apps.apple.com/us/app/alpha-gps-camera-geotagging/id6760982303"><img width="200" alt="Download_on_the_App_Store_Badge_US" src="Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg"/></a>
+Upstream has tested Android 10, 12, 13, 15 and 16. Some manufacturers customize
+Android's background handling, so behavior can differ between phones.
 
-<a href="https://play.google.com/store/apps/details?id=com.saschl.cameragps"><img width="200" alt="GetItOnGooglePlay_Badge_Web_color_English" src="https://github.com/user-attachments/assets/775cb6fc-a297-4208-9249-43291c52d045" /></a>
+## Install
 
+The published app is **Alpha GPS**:
 
-You can also get the APK for Android from the releases and install it directly on your phone. Or use Obtainium and enter the repo URL for a more seamless experience.
-  
+<a href="https://apps.apple.com/us/app/alpha-gps-camera-geotagging/id6760982303"><img width="200" alt="Download on the App Store" src="Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg"/></a>
 
-## How can I contribute?
-As the project is open source, contributions are welcome! Just check out the repo, open Android Studio and create a Pull Request.
-If you wish to improve the translations, the project is also available on Weblate. Check it
-out [here](https://hosted.weblate.org/engage/alpha-gps/)
+<a href="https://play.google.com/store/apps/details?id=com.saschl.cameragps"><img width="200" alt="Get it on Google Play" src="https://github.com/user-attachments/assets/775cb6fc-a297-4208-9249-43291c52d045" /></a>
 
-If you want to contribute financially, consider supporting my work via [Buy Me A Coffee](https://buymeacoffee.com/wj8tism4dq)
+Android APKs are attached to the [upstream releases](https://github.com/Saschl/alpha-gps/releases)
+(you can also point [Obtainium](https://github.com/ImranR98/Obtainium) at the upstream repository):
 
-<a href="https://buymeacoffee.com/wj8tism4dq"><img width="244" height="54" alt="bmc-brand-logo" src="https://github.com/user-attachments/assets/59ffdcd5-d287-479f-b067-d97b67519691" /></a>
+- `app-gplay-release.apk`: Google Play build with Google Play services location, the
+  in-app review prompt and opt-in crash reporting.
+- `app-foss-release.apk`: FOSS build without Google Play services and without crash
+  reporting.
 
+## Using the app
 
-## How does it work?
+### Android
 
-### Associate the device
-- Make sure you grant the app the needed permissions. Background location is important so that the app runs properly when the phone is not in use.
-- Select Start and follow the instructions. Make sure bluetooth is turned on and the camera is in coupling mode (if it was not coupled before already, then this step is not neccesary). The app should prompt you to bond the device if needed.
-- After selecting the device, it should appear on the list of associated devices and will start transmitting the location data.
-- When turning off the camera, the transmission will stop. Once android realizes the device is gone, the service will also be destroyed, releasing any resources the app uses.
-- Check the logs if any issues are found and post them here.
+1. **Grant the permissions** on first start: precise location, Nearby devices (Bluetooth)
+   and notifications, then background location ("Allow all the time").
+2. **Put the camera into Bluetooth pairing mode** (menu names vary by model, for example
+   MENU → Network → Bluetooth → Pairing).
+3. Tap **Add camera**. Android's companion-device chooser lists nearby Sony cameras; pick
+   yours. If the phone is not paired with it yet, the app starts Bluetooth pairing:
+   confirm on the phone and on the camera.
+4. The camera now appears under **My Cameras**. On Android 12 and later, Android starts
+   the app's foreground service whenever the camera shows up, even when the app is
+   closed: it connects, syncs the time and sends your location. When the camera is
+   switched off, the service stops. A notification shows the current state.
+5. **Always On** (per camera: *Keep active (Always On)*) keeps the foreground service
+   running and reconnecting on its own. It is required on Android 8–11 and helps on
+   phones with aggressive battery management (for example Xiaomi). While no camera is
+   connected it does not access your location. Combine it with *Start App on Device boot*
+   in Settings.
 
-## It doesn't work!
+### iPhone
 
-As always with Android, not all devices are created equal. Different manufacturers might implement Android features differently or even produce bugs while doing the customizations. For troubleshooting you can try the following steps.
+1. Tap **Add camera**, put the camera into pairing mode as shown, then tap **Search for
+   camera**. iOS shows its accessory picker with nearby Sony cameras; select yours and
+   iOS pairs with it.
+2. When the first camera connects, allow **location access**, choose **Always** when iOS
+   offers it (needed for background geotagging) and keep **Precise Location** on. If you
+   missed the prompt, the app offers a shortcut to the Settings app.
+3. From then on the app reconnects automatically when the camera is switched on, also in
+   the background: iOS keeps a pending connection to your saved cameras and can relaunch
+   the app when one connects. *Transmission notification* in Settings shows a
+   notification while location is being sent.
+4. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
+   cameras** step so iOS can manage them; iOS usually finishes it within seconds without
+   further questions. All settings carry over and no new pairing is needed.
 
-- Turn off the camera - wait one minute - turn it on again
-- Remove the association and try again (tap on the device on the main screen to get to this option)
-- Check if any battery optimizations are active (those shouldn't hurt the app, but one never knows). Also see https://dontkillmyapp.com for instructions
-- Use the "Always On" mode. In the device details screen (accessible by tapping the device name on the main screen), enable the "Always on" toggle. This will start a Foreground Service which will stay active as long as the option is enabled. This might potentially use more battery, but I have optimized it that it more or less idles when the camera is not connected. That means:
-   - No location data will be accessed
-   - No transmission of data is performed
-until the device is connected again (this will happen automatically once the camera is turned on again, no action required from your side!
+### Camera details (both platforms)
 
-### Still no luck?
- - Feel free to open an issue here on Github and paste the logs if possible (accessible from the main screen by clicking on the icon with the three lines). I will take a look then
+Tap a camera on **My Cameras** to open its details:
 
-## Which cameras are supported?
+| Setting | What it does |
+|---|---|
+| Rename | Changes the name shown in the app. On iPhone, cameras added through the accessory picker are renamed in the iOS accessory record instead. |
+| Enable device | Stops or resumes using this camera without removing it. |
+| Keep active (Always On) | Android only, see above. |
+| Enable remote control | Watches the camera's Bluetooth remote. When the camera allows remote control (camera menu *Bluetooth Rmt Ctrl*), a **Trigger remote shutter** button appears on the camera card. |
+| Delay connection setup | Waits 1–10 s (default: off) after the camera connects before the GPS setup starts. Try it if the camera starts slowly or its screen stays black. |
+| Automatic time correction, Automatic area adjustment | Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
 
-- All cameras that are supported by the Imaging Edge and Creators' app should also be supported.
-  Reports are welcome, as I do not own all cameras ;) Confirmed working: A1, A7 V, A6400, A6700 and
-  ZV-E10.
+To remove a camera, swipe its card to the left (on Android also *Remove* in the details).
+Removing it also deletes the Android companion association or the iOS accessory pairing.
 
+### Settings
 
-<img width="242" height="512" alt="unnamed (1)" src="https://github.com/user-attachments/assets/0ee0e403-70a1-431c-bb68-99ddf03b95c3" />
+- **Android**: *Enable App* (master switch), *Start App on Device boot* (for Always On
+  cameras), *Haptic feedback*, show the welcome screen again, log level, *Location
+  Provider* (Google Play build only: Google Play services or the Android platform
+  provider), *Transmission Event Sounds* (connected, disconnected, location acquired,
+  location invalid), *Battery & Background Settings*, language, what's new and *Error
+  Reporting Settings* (Google Play build with a Sentry DSN only).
+- **iPhone**: *Enable App*, *Transmission notification*, *Haptic feedback*, Tip Jar,
+  language, what's new, log level and error reporting (builds with a Sentry DSN only).
 
-<img width="242" height="512" alt="unnamed (3)" src="https://github.com/user-attachments/assets/7acf30f5-3bbd-4d66-a5c0-bd779c47ccc8" />
-<img width="242" height="512" alt="unnamed (4)" src="https://github.com/user-attachments/assets/60c69256-10be-4422-8864-525b146d174f" />
+## Troubleshooting
+
+The app contains a step-by-step **troubleshooting guide** (ⓘ → *Troubleshooting Guide*,
+or *Need help?* below the camera list). The most common fixes:
+
+- **Older cameras need location linking switched on manually** (for example α6400,
+  ZV-E10, α6100, α7 III): MENU → Network → Loc. Info. Link Set. → Location Info. Link → On.
+  Turn on *Auto Time Correct.* and *Auto Area Adjust.* in the same menu to take over time
+  and time zone from the phone. Newer cameras activate linking automatically.
+- **Connected, but the photos get no location**: typical when the camera was set up with
+  Creators' App or Imaging Edge Mobile before. Remove the old pairing everywhere, then add
+  the camera again:
+  - phone: Android *Settings → Connected devices → your camera → Forget*; iPhone
+    *Settings → Bluetooth → ⓘ → Forget This Device*
+  - camera: *MENU → Network → Bluetooth → Manage Paired Device* (older models don't have
+    this item; pairing again replaces the old connection)
+  - Sony app: *Creators' App → Cameras → Setup → Unpair*
+- **Bluetooth remote and location linking conflict** on older cameras such as the α6400:
+  set *Bluetooth Rmt Ctrl* to Off on the camera and turn off *Enable remote control* in
+  the app. Newer models (α7 IV and later) support both.
+- **Imprecise positions**: allow precise location (Android: *Settings → Apps → Alpha GPS →
+  Permissions → Location → Use precise location*; iPhone: *Settings → Privacy & Security →
+  Location Services → Alpha GPS → Precise Location*).
+- **The camera starts slowly or its screen stays black**: set *Cnct. while Power OFF* (or
+  *Cnct. during Power OFF*) to Off on the camera, or use *Delay connection setup* for that
+  camera.
+- **"Pairing Failed" dialog**: put the camera into pairing mode, delete old pairings on
+  the camera and in the phone's Bluetooth settings, then add it again.
+
+On Android also try:
+
+- Turn the camera off, wait a minute and turn it on again, or toggle Bluetooth.
+- Remove the camera and add it again.
+- Exclude the app from battery optimizations (Settings → *Battery & Background Settings*,
+  see also [dontkillmyapp.com](https://dontkillmyapp.com)).
+- Turn on **Always On** for the camera (required on Android 8–11).
+- In the Google Play build, switch the *Location Provider*.
+
+On iPhone also check that location access is **Always** with **Precise Location**, and
+confirm your cameras if the app asks for it.
+
+**Still stuck?** Open the logs (list icon on *My Cameras*; raise the log level in Settings
+if needed), copy the relevant lines and open an issue in the
+[GeoShutter issue tracker](https://github.com/sarmadjari/GeoShutter/issues). The logs
+contain your cameras' Bluetooth addresses but no location data. Problems with the store
+versions of Alpha GPS can also be reported [upstream](https://github.com/Saschl/alpha-gps/issues).
+
+## Supported cameras
+
+Any Sony camera that can receive location information from Imaging Edge Mobile or
+Creators' App should work, because the app uses the same Bluetooth feature. Confirmed by
+users so far: **A1, A7 V, A6400, A6700 and ZV-E10**. Reports about other models, working
+or not, are welcome in the [issue tracker](https://github.com/sarmadjari/GeoShutter/issues).
+
+<!-- Keep in sync with confirmedCameras in website/src/pages/index.astro. -->
+
+## Build from source
+
+Requirements: a JDK 17 or newer to launch Gradle (Gradle then provisions its daemon JVM,
+JetBrains JDK 21, as configured in `gradle/gradle-daemon-jvm.properties`), the Android SDK
+with platform 37.1, and for the iOS app a Mac with a current Xcode (26.1 SDK or later).
+
+### Android
+
+```sh
+./gradlew :app:assembleGplayDebug        # Google Play flavor (default)
+./gradlew :app:assembleFossDebug         # FOSS flavor, no Google Play services or Sentry
+./gradlew :app:assembleGplayRelease
+```
+
+- Release builds are signed only when `app/keystore.jks` (or `SIGNING_KEYSTORE_PATH`)
+  is a non-empty file and `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` and
+  `SIGNING_STORE_PASSWORD` are set; otherwise they are unsigned.
+- Native libraries are stripped with NDK `29.0.14206865`, pinned for reproducible F-Droid
+  builds. Without that NDK the build still works but packages them unstripped.
+
+### Crash reporting (optional)
+
+The repository contains no Sentry DSN, so a fresh clone builds apps that never show the
+error-reporting consent dialog or setting and never send anything. GeoShutter's own
+builds report to the EU-hosted Sentry organization `sarmad-jari` (projects
+`geoshutter-android` and `geoshutter-ios`); the keys live only in untracked files:
+
+| | Android (Google Play flavor) | iOS |
+|---|---|---|
+| DSN | `sentry.dsn=…` in `local.properties` (git-ignored), the Gradle property `sentry.dsn`, or `SENTRY_DSN` | `SENTRY_DSN = https:/$()/…` in `iosApp/Config/Local.xcconfig` (git-ignored, included by `iosApp/Config/GeoShutter.xcconfig`; `//` starts a comment in xcconfig files, hence `$()`). It becomes the `SentryDSN` Info.plist key. |
+| Release uploads (ProGuard mappings, source context) | `sentry.org`, `sentry.project` and `sentry.authToken` in `local.properties` (or `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, or a `sentry.properties` file). Without a token nothing is uploaded; `-PdisableSentryUpload=true` turns uploads off anyway. | not set up (uploading dSYMs would be a separate step) |
+| CI (`build-and-release.yml`) | secrets `SENTRY_DSN` and `SENTRY_AUTH_TOKEN`, variables `SENTRY_ORG` and `SENTRY_PROJECT` | not built in CI |
+
+A value that isn't a valid DSN (`https://<32-hex public key>@<host>/<project id>`) is
+ignored with a build warning (Android) or a log line (iOS), and error reporting stays off.
+
+### iOS
+
+1. Open `iosApp/alphagps.xcodeproj` in Xcode and let it resolve the Swift package
+   `sentry-cocoa`.
+2. Select the `alphagps` scheme. The *Compile Kotlin* build phase runs
+   `./gradlew :sharednew:embedAndSignAppleFrameworkForXcode`, which builds the shared
+   Kotlin code as the `sharedKit` framework (Apple silicon simulators and devices).
+3. To run on your own iPhone, change the signing team (currently upstream's `6T589MK27K`)
+   and the bundle ID `com.saschl.cameragps`. The Tip Jar products only exist for
+   upstream's App Store app.
+
+Bluetooth does not work in the iOS Simulator; test camera features on a real iPhone.
+
+### Tests
+
+```sh
+./gradlew :sharednew:testAndroidHostTest       # shared logic (commonTest) on the JVM
+./gradlew :sharednew:iosSimulatorArm64Test     # shared + iOS tests on the simulator (macOS, see note)
+./gradlew :app:testGplayDebugUnitTest :app:testFossDebugUnitTest
+./gradlew :app:lintGplayDebug :app:lintFossDebug   # Android lint (fails on errors)
+./gradlew :app:connectedGplayDebugAndroidTest  # instrumented tests, needs a device or emulator
+python3 -m unittest discover -s tools/ios_localization -v
+(cd tools/sony_shutter && python3 -m unittest test_intervalometer -v)
+```
+
+The iOS tests link the Sentry framework that Xcode downloads, so open the project in
+Xcode once first (or pass `-Psentry.cocoa.frameworkPath=/path/to/Sentry-Dynamic.xcframework`).
+To exercise the app without a camera, use the [Sony camera simulator](tools/sony_camera_sim/README.md).
+
+### Website
+
+```sh
+cd website && npm ci && npm run dev    # local preview; npm run build writes website/dist
+```
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| [`app/`](app) | Android app: Compose host, CompanionDeviceManager integration, foreground service, Android Bluetooth and location code, flavors `gplay` and `foss` |
+| [`sharednew/`](sharednew) | Kotlin Multiplatform module shared by both apps: Bluetooth protocol and session logic, location transmission, database, most of the UI and all shared strings. `src/iosMain` holds the iOS app logic. |
+| [`iosApp/`](iosApp) | Thin SwiftUI/Xcode shell that embeds the shared `sharedKit` framework |
+| [`website/`](website) | Astro landing page |
+| [`fastlane/metadata/android/`](fastlane/metadata/android) | F-Droid store metadata |
+| [`localization/ios/`](localization/ios) | XLIFF files for translating the iOS permission texts on Weblate |
+| [`tools/`](tools) | App Store screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer |
+| [`.github/workflows/`](.github/workflows) | APK release on `v*` tags, website deployment |
+
+## Documentation
+
+- [AGENTS.md](AGENTS.md): project context, conventions and workflows for contributors
+  and AI coding assistants. Keep it up to date when things change.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): architecture, Sony Bluetooth protocol and
+  platform details.
+- [privacy.md](privacy.md): privacy policy of the published Alpha GPS app.
+- Tool guides: [App Store screenshots](tools/app_store/README.md),
+  [iOS localization](tools/ios_localization/README.md),
+  [Sony camera simulator](tools/sony_camera_sim/README.md),
+  [intervalometer](tools/sony_shutter/README.md).
+
+## Contributing
+
+Pull requests are welcome. Please read [AGENTS.md](AGENTS.md) first and update the
+documentation together with the code.
+
+The app's texts are translated in upstream's
+[Weblate project](https://hosted.weblate.org/engage/alpha-gps/):
+
+<a href="https://hosted.weblate.org/engage/alpha-gps/"><img src="https://hosted.weblate.org/widget/alpha-gps/svg-badge.svg" alt="Translation status" /></a>
+
+To pick up upstream changes, add Alpha GPS as a remote once
+(`git remote add upstream https://github.com/Saschl/alpha-gps.git`), then run
+`git fetch upstream && git merge upstream/main`.
+
+## Credits and support
+
+GeoShutter builds on Alpha GPS by Saschl and its contributors. If the app helps your
+photography, consider supporting the original author:
+
+<a href="https://buymeacoffee.com/wj8tism4dq"><img width="244" height="54" alt="Buy Me a Coffee" src="https://github.com/user-attachments/assets/59ffdcd5-d287-479f-b067-d97b67519691" /></a>

@@ -20,15 +20,22 @@ the whole peripheral — advertising data, GATT database, pairing — is under o
 | `8000FF00-FF00-FFFF-…` remote | `FF01` remote control | write | half/full press, releases, AF-ON, status probe |
 | | `FF02` remote status | read / notify | `02 3F 20` focus acquired → `02 A0 20` shutter active → `02 A0 00` ready, or `02 C3 00` when remote control is off |
 
+Not simulated: `DD32`/`DD33` (the camera's automatic time correction and area adjustment
+settings), so the app's camera-details screen reports those settings as not supported, and
+`CC09`, which the app does not use.
+
 It advertises as a connectable peripheral with manufacturer data under Sony's company ID
-`0x012D`, which is what both device pickers filter on (Android's `CompanionDeviceManager`
-filter in `DeviceAssociationUtils`, and the iOS scan filter in `IosCentralShell`).
+`0x012D`, which is what both device pickers filter on: Android's `CompanionDeviceManager`
+filter in `DeviceAssociationUtils`, and the iOS AccessorySetupKit discovery descriptor in
+`IosAccessoryPickerItems` (declared in `Info.plist` as
+`NSAccessorySetupBluetoothCompanyIdentifiers`).
 
 The UUIDs and byte protocol mirror `SonyBluetoothConstants.kt`; the sequencing mirrors
 `BleSessionCoordinator` and `RemoteControlCoordinator`.
 
-> If you have a spare Android phone, `:camerasim` does the same job with no extra hardware —
-> see `camerasim/README.md`. The behaviour of the two is deliberately identical.
+> `settings.gradle.kts` mentions a `:camerasim` module (an Android phone acting as the
+> camera), but that module is not part of this repository; this Bumble simulator is the
+> only camera simulator here.
 
 ## You need a controller
 
@@ -56,13 +63,15 @@ python sony_camera_sim.py --transport usb:0
 
 Then, on the phone:
 
-- **Android** — the app only connects to *bonded* devices, so pair first in
-  Settings → Bluetooth → Pair new device (the simulator shows up under `--name`,
-  `ILCE-7RM4` by default). Afterwards add it in the app; the picker lists it because of the
-  Sony company ID.
-- **iOS** — nothing to do up front. Run the simulator with `--require-encryption` to make
-  it behave like a real camera: subscribing to `DD01` (the app's pairing gate) then forces
-  the iOS pairing prompt.
+- **Android** — the app only connects to *bonded* devices. Tap **Add camera**; the
+  companion-device chooser lists the simulator (under `--name`, `ILCE-7RM4` by default)
+  because of the Sony company ID, and the app starts Bluetooth pairing if the phone is not
+  bonded yet. You can also pair first in Settings → Bluetooth → Pair new device.
+- **iOS** — tap **Add camera** → **Search for camera**. The AccessorySetupKit picker lists
+  the simulator (it labels every camera "Camera"; the advertised name shows up in the app
+  after pairing) and pairs with it. Run the simulator with `--require-encryption` to make
+  it behave like a real camera: subscribing to `DD01` (the app's pairing gate) then
+  requires an encrypted, paired link.
 
 Bonds are stored in `--keystore` (`sony_camera_keys.json` by default). If you delete that
 file, also forget the device on the phone — otherwise the phone keeps using keys the
