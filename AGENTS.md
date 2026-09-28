@@ -159,8 +159,9 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Every GATT operation goes through `BleOperationQueue` (one in-flight operation per
   device); never write to a characteristic directly from coordinators or UI.
 - `DD01` "location disabled" is advisory only; it must never gate the handshake or sending.
-- Sony behavior must not change when adding other brands: detection checks Sony first,
-  and Fujifilm sessions (`CameraSession.protocol`) are kept out of the Sony handlers.
+- Sony behavior must not change as a side effect of adding other brands: detection checks
+  Sony first, and Fujifilm sessions (`CameraSession.protocol`) are kept out of the Sony
+  handlers. Deliberate Sony changes are user decisions (see §7).
 - Fujifilm protocol changes need evidence (capture, furble source or observed camera
   response) recorded in `docs/fujifilm-protocol.md`; files porting furble logic credit it
   (MIT) in their header, new files name "Sarmad Jari" as author. Geotag packets contain
@@ -232,6 +233,9 @@ fork's site. GitHub Pages is not enabled on the fork.
   and launcher label "GeoShutter" in all flavors and build types, so it runs next to the
   Play Store Alpha GPS on the maintainer's phone. The iOS bundle ID and in-app texts are
   unchanged.
+- 2026-09-28: every camera, Sony included, connects directly (fast) when Android reports
+  it nearby; the camera list shows each camera's own name with its model underneath (Sony
+  model codes as marketing names, e.g. "ILCE-1M2" → "α1 II").
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -267,9 +271,7 @@ fork's site. GitHub Pages is not enabled on the fork.
   readable and notifying characteristic), so the app can't show it; the phone keeps its
   location updates running meanwhile (possible follow-up: slower location updates for
   Fujifilm-only sessions, needs a user decision).
-- Services-changed handling (restart setup, retrying rediscovery) is unit-tested but not
-  yet exercised on hardware: the Sony α1 II stopped sending Service Changed after it was
-  paired again.
+- iOS: the camera-name/model line and the direct connects are Android-only so far.
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
@@ -369,3 +371,8 @@ fork's site. GitHub Pages is not enabled on the fork.
   nothing changes, so on/off can't be shown. Fujifilm direct connections are now retried
   three times before falling back to autoConnect: back within about 11 s after switching
   on (was 26 s to 1.5 min, once never).
+- 2026-09-28 (night, later): direct connect on presence for Sony too (user's request) and
+  Sony model names under the camera name (`cameraModelName`). On the α1 II the link came
+  up 0.06–0.2 s after the camera appeared; it sent Service Changed right after encryption
+  on each connection, and the restart/rediscovery handling made setup complete 3–5 s after
+  the camera appeared (first hardware run of that code).

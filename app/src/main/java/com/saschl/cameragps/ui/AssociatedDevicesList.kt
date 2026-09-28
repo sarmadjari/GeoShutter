@@ -15,6 +15,7 @@ import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.ui.devicelist.DeviceListViewModel
 import com.sasch.cameragps.sharednew.ui.devicelist.EmptyStateCard
 import com.sasch.cameragps.sharednew.ui.devicelist.SharedDeviceList
+import com.sasch.cameragps.sharednew.ui.devicelist.cameraModelName
 import com.saschl.cameragps.AppServices
 import com.saschl.cameragps.service.AssociatedDeviceCompat
 import com.saschl.cameragps.service.LocationSenderService
@@ -63,7 +64,9 @@ fun AssociatedDevicesList(
             isConnected = item?.isTransmissionActive == true,
             isSaved = true,
             isPaired = compat.isPaired,
-            model = compat.name.takeIf { it != name && it != "N/A" },
+            // The model under the name: Sony's marketing name for its model code
+            // ("ILCE-1M2" → "α1 II"), the pairing name for other cameras.
+            model = cameraModelName(compat.name).takeIf { it != name && compat.name != "N/A" },
         )
     }
 

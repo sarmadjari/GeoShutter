@@ -124,7 +124,7 @@ produce new fixes, and Fujifilm cameras ignore locations older than three hours.
 | `LocationTransmissionManager.kt` | Sony: pushed every 5 s; Fujifilm: answers requests (`onLocationRequested`) |
 | `AndroidBleTransport.kt` | service-scoped characteristic lookup; enables indications for indication-only characteristics |
 | `DeviceAssociationUtils.kt` | companion-device filter for `0x04D8` |
-| `CameraDeviceCompanionService.kt`, `CameraDeviceManager.kt` | a camera that stops advertising while connected stays connected; direct connect when a Fujifilm camera appears and right after pairing (registration) |
+| `CameraDeviceCompanionService.kt`, `CameraDeviceManager.kt` | a camera that stops advertising while connected stays connected; direct connect whenever a camera appears (all brands) and, for Fujifilm, right after pairing (registration) |
 | `AndroidBleTransport.kt` (`connect(direct = true)`) | direct connection with three direct retries before falling back to `autoConnect` |
 | `CameraSessionOrchestrator.storeCameraName`, `AssociatedDevicesList.kt` | camera name from NOT4 stored unless renamed; the list shows name and model |
 | `FujifilmPacketBuilderTest.kt`, `FujifilmSessionTest.kt` | packets checked against Python `struct.pack('<iii4sHBBBBB', …)`, handshake order, pull-only delivery, failure paths, no remote monitoring for Fujifilm, protocol re-detected on every connect, Sony and Fujifilm side by side |

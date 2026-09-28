@@ -86,10 +86,12 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    confirm on the phone and on the camera. A Fujifilm camera shows a six-digit code: press
    MENU/OK on the camera within 30 seconds (Android confirms on the phone by itself and
    shows no code).
-4. The camera now appears under **My Cameras**. On Android 12 and later, Android starts
-   the app's foreground service whenever the camera shows up, even when the app is
-   closed: it connects, syncs the time and sends your location. When the camera is
-   switched off, the service stops. A notification shows the current state.
+4. The camera now appears under **My Cameras**, with the camera's own name and its model
+   underneath (for example *ILCE-1M2* and *α1 II*, or *X100VI-…* and *X100VI*). On
+   Android 12 and later, Android starts the app's foreground service whenever the camera
+   shows up, even when the app is closed: it connects within seconds, syncs the time and
+   sends your location. When the camera is switched off, the service stops. A
+   notification shows the current state.
 5. **Always On** (per camera: *Keep active (Always On)*) keeps the foreground service
    running and reconnecting on its own. It is required on Android 8–11 and helps on
    phones with aggressive battery management (for example Xiaomi). While no camera is

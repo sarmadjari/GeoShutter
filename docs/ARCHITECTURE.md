@@ -160,13 +160,14 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
    troubleshooting dialog; iOS also cancels the connection and suspends
    auto-reconnect for that camera until the dialog is closed.
    **Services changed** (Android `onServiceChanged`, `BleTransportEvent.ServicesChanged`):
-   the characteristics found so far are stale (seen on a Sony α1 II right after
-   encryption, when the phone's cached service table was outdated; the camera then
-   rejected the `DD30` unlock with status 159 and the Sony setup stalled). The
-   orchestrator cancels the device's queue lane, ignores late results of the cancelled
-   attempt, and restarts discovery and the handshake (`handleServicesChanged`).
-   Android re-reads the services itself first and silently drops discovery requests
-   meanwhile, so `rediscover` retries (1 s pause + 2.5 s wait, up to 8 times).
+   the characteristics found so far are stale. A Sony α1 II sends it right after the
+   link is encrypted on nearly every connection; without handling, the camera rejected
+   the `DD30` unlock with status 159 and the Sony setup stalled. The orchestrator
+   cancels the device's queue lane, ignores late results of the cancelled attempt, and
+   restarts discovery and the handshake (`handleServicesChanged`). Android re-reads the
+   services itself first and silently drops discovery requests meanwhile, so
+   `rediscover` retries (1 s pause + 2.5 s wait, up to 8 times). On the α1 II setup now
+   completes 3–5 s after the camera appears.
 7. **Disconnect** clears the session, cancels its queue lane and re-evaluates
    location tracking.
 
@@ -225,10 +226,10 @@ change settings **on the camera**; an unknown value is never assumed to be "off"
 | `AppServices` | App-scoped graph without DI: DAO, `AndroidBleTransport`, `CameraSessionOrchestrator` (`PairingRetryPolicy(firstRetryDelayMs = 0)`), `pairingFailedDevice` flow for the UI. |
 | `MainActivity` | Navigation3 destinations Welcome → Devices, Settings, Help, Troubleshooting, Logs. On every resume it (re)starts the service for enabled Always-On cameras. |
 | Pairing | `DeviceAssociationUtils.requestDeviceAssociation`: CDM `AssociationRequest` with BLE scan filters on the manufacturer IDs `0x012D` (Sony) and `0x04D8` (Fujifilm) → system chooser. `ScanForDevicesMenu` handles the result; `PairingManager`/`PairingDialog` call `createBond()` when the camera is not bonded yet, then `startDevicePresenceObservation`. Android confirms the pairing code automatically for companion-associated devices (no code on the phone); a Fujifilm camera shows a code and must be confirmed with MENU/OK on the camera within 30 s. For a Fujifilm camera (Fujifilm company ID in the chooser's scan result, Android 14+) the service connects right after bonding so the handshake runs while the camera is still in pairing registration. |
-| `CameraDeviceCompanionService` | `CompanionDeviceService` bound by the system. Presence callbacks by API level: < 33 `onDeviceAppeared(String)`, 33–35 `onDeviceAppeared(AssociationInfo)`, 36+ `onDevicePresenceEvent`. Appeared → `startForegroundService(LocationSenderService)` with the address if the app is enabled and location is granted (a refused background start is logged, not thrown), asking for a direct connection when the association's scan result shows a Fujifilm camera; disappeared → `ACTION_REQUEST_SHUTDOWN`. On Android 16+ (`onDevicePresenceEvent`) "BLE disappeared" is ignored while the camera is still connected (Fujifilm cameras stop advertising once connected); the session then ends on `EVENT_BT_DISCONNECTED`, matching the older callbacks, which count a connected device as present. After an app update Android rebinds the service without repeating "appeared", so a camera that is already present only reconnects after it is switched off and on. Presence observation needs **Android 12+**; Android 8–11 rely on Always On. |
+| `CameraDeviceCompanionService` | `CompanionDeviceService` bound by the system. Presence callbacks by API level: < 33 `onDeviceAppeared(String)`, 33–35 `onDeviceAppeared(AssociationInfo)`, 36+ `onDevicePresenceEvent`. Appeared → `startForegroundService(LocationSenderService)` with the address if the app is enabled and location is granted (a refused background start is logged, not thrown), asking for a direct (fast) connection; disappeared → `ACTION_REQUEST_SHUTDOWN`. On Android 16+ (`onDevicePresenceEvent`) "BLE disappeared" is ignored while the camera is still connected (Fujifilm cameras stop advertising once connected); the session then ends on `EVENT_BT_DISCONNECTED`, matching the older callbacks, which count a connected device as present. After an app update Android rebinds the service without repeating "appeared", so a camera that is already present only reconnects after it is switched off and on. Presence observation needs **Android 12+**; Android 8–11 rely on Always On. |
 | `LocationSenderService` | `LifecycleService`, foreground service type `location|connectedDevice`. `ServiceCommandRouter` maps intents to `ServiceCommand`s: `Connect`, `ReconnectAlwaysOn` (no address: connect all Always-On cameras), `Shutdown`, `TriggerShutterSequence`, `TriggerRemoteShutter`, `SendRemoteCommand`, `SetRemoteControlMonitoring`. Shuts down when Bluetooth turns off (for direct connects and Always-On reconnects alike; GATT handles don't survive a Bluetooth restart). A connect that can't start (camera no longer bonded) marks the session as failed. `startForeground` failures (`SecurityException`, `IllegalStateException`) stop the service instead of crashing. Plays event sounds and drives the status notification through the shared `TransmissionNotificationCoordinator`. |
 | `ServiceShutdownCoordinator` | On "disappeared": pause the camera unless it is Always On; stop the service when no camera is connected and none is Always On. |
-| `AndroidBleTransport` | `connectGatt(autoConnect = true)`, **bonded devices only**; API 37+ uses `BluetoothGattConnectionSettings` (automatic MTU). `connect(direct = true)` makes a direct attempt instead (aggressive scan for about 30 s), for Fujifilm cameras that advertise only briefly after switching on; it replaces a waiting background connection. A failed or dropped direct connection is retried directly three times (a drop after a connection that lasted 30 s starts a fresh round), then the device falls back to `autoConnect`. Late callbacks of a replaced GATT handle are ignored. Operations can name a service to look the characteristic up in (needed for Fujifilm, which reuses a UUID across services); subscriptions write the indication bit for indication-only characteristics. `onServiceChanged` is forwarded as `ServicesChanged`. The GATT handle survives disconnects so autoConnect can resume; `disconnectAll()` is the only close path. High connection priority during setup, balanced afterwards. |
+| `AndroidBleTransport` | `connectGatt(autoConnect = true)`, **bonded devices only**; API 37+ uses `BluetoothGattConnectionSettings` (automatic MTU). `connect(direct = true)` makes a direct attempt instead (aggressive scan for about 30 s), used whenever a camera appears (Fujifilm cameras advertise only briefly after switching on; Sony cameras connect within about a second); it replaces a waiting background connection. A failed or dropped direct connection is retried directly three times (a drop after a connection that lasted 30 s starts a fresh round), then the device falls back to `autoConnect`. Late callbacks of a replaced GATT handle are ignored. Operations can name a service to look the characteristic up in (needed for Fujifilm, which reuses a UUID across services); subscriptions write the indication bit for indication-only characteristics. `onServiceChanged` is forwarded as `ServicesChanged`. The GATT handle survives disconnects so autoConnect can resume; `disconnectAll()` is the only close path. High connection priority during setup, balanced afterwards. |
 | `RebootReceiver` | `BOOT_COMPLETED` (only with *Start App on Device boot*) and `MY_PACKAGE_REPLACED` → start the service without an address (Always-On reconnect), unless the app is disabled (*Enable App*) or location isn't granted. |
 | Notifications | Channels `general_notification_channel` (low importance, "Standby – Waiting for camera to connect"), `transmission_notification_channel` (high, "Transmitting location data to N cameras"), `disconnect_notification_channel` (alerts when the camera count drops). |
 | Permission safety | The permission screen can be skipped ("Continue anyway"), so reading bonds and device names goes through `bondedAddressesOrNull()` / `nameOrNull()` (`AssociatedDeviceCompat.kt`), which treat a missing Nearby devices permission as "unknown" instead of crashing. |
@@ -312,9 +313,10 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
   the iOS rename sheet) is never overwritten; derived names upgrade to the hardware
   name when it becomes available. On Android a Fujifilm camera's own name is read from
   NOT4 after each handshake (`CameraSessionOrchestrator.storeCameraName`, stored without
-  the "FUJIFILM-" prefix unless renamed); the camera list shows the stored or custom name
-  with the pairing name (the model) underneath when they differ
-  (`BluetoothDeviceInfo.model`).
+  the "FUJIFILM-" prefix unless renamed). The camera list shows the stored or custom name
+  with the model underneath when they differ (`BluetoothDeviceInfo.model`): Sony's
+  marketing name for the model code the camera reports (`cameraModelName`, e.g.
+  "ILCE-1M2" → "α1 II"), otherwise the pairing name.
 
 ## 9. Logging and crash reporting
 

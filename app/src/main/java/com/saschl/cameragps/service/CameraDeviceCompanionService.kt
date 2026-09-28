@@ -32,7 +32,13 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
         val disappearedWhileConnected: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     }
 
-    private fun startLocationSenderService(address: String?, direct: Boolean = false) {
+    /**
+     * Starts the service for a camera that was just seen advertising. It connects
+     * directly (fast) instead of waiting for the slower background connection:
+     * Fujifilm cameras advertise only briefly after switching on, and it makes Sony
+     * cameras connect sooner too.
+     */
+    private fun startLocationSenderService(address: String?) {
         if (PreferencesManager.isAppEnabled(this)) {
             if (!LocationSenderService.hasLocationPermission(this)) {
                 Timber.e("Location permission missing, not starting LocationSenderService for $address")
@@ -41,8 +47,8 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
 
             val serviceIntent = Intent(this, LocationSenderService::class.java)
             serviceIntent.putExtra("address", address?.uppercase(Locale.getDefault()))
-            serviceIntent.putExtra(ServiceCommandRouter.EXTRA_DIRECT_CONNECT, direct)
-            Timber.i("Starting LocationSenderService for address: $address (direct=$direct)")
+            serviceIntent.putExtra(ServiceCommandRouter.EXTRA_DIRECT_CONNECT, true)
+            Timber.i("Starting LocationSenderService for address: $address")
 
             try {
                 startForegroundService(serviceIntent)
@@ -119,10 +125,7 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
 
             Timber.i("Device appeared new API: ${event.associationId}")
 
-            // Fujifilm cameras advertise only briefly after switching on.
-            val isFujifilm = associationInfo?.associatedDevice?.bleDevice
-                ?.isFujifilmAdvertisement() == true
-            startLocationSenderService(address, direct = isFujifilm)
+            startLocationSenderService(address)
         }
 
         if (event.event == DevicePresenceEvent.EVENT_BLE_DISAPPEARED) {
