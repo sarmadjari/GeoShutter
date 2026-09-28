@@ -1,11 +1,11 @@
 # Fujifilm Bluetooth protocol
 
-Status: **experimental, Android only, not yet verified on a real camera.** GeoShutter's
+Status: **experimental, Android only.** Geotagging works on a real X100VI (see
+[Hardware findings](#hardware-findings-x100vi-2026-09-28)). GeoShutter's
 Fujifilm support targets the X100VI and other Fujifilm cameras that geotag through
-FUJIFILM XApp. Fujifilm publishes no protocol documentation. Everything below comes from
-[furble](https://github.com/gkoh/furble), which reverse-engineered the protocol from
-Android HCI snoop logs of Fujifilm's app. furble lists the X100V as tested; the X100VI is
-assumed to use the same protocol because it belongs to the same XApp generation.
+FUJIFILM XApp. Fujifilm publishes no protocol documentation. The protocol comes from
+[furble](https://github.com/gkoh/furble), which reverse-engineered it from
+Android HCI snoop logs of Fujifilm's app, and was then checked against an X100VI.
 
 Rules for changing this protocol code: never guess bytes. Back every UUID, byte and
 ordering with a capture, furble source or an observed camera response, and record the
@@ -44,7 +44,8 @@ files above and comparing the canonical strings with
   as a *new* camera to pair (`FujifilmSecure.cpp:19-23`), and recognizes an already paired
   camera by service `123d8f06-62a1-4935-9322-833c531ee225` plus a matching serial
   (`FujifilmSecure.cpp:55-66`). The original design note had these two the other way
-  round; Phase 1 must confirm which one the X100VI advertises when.
+  round. The X100VI advertises `a9d2b304-…` in pairing registration, as furble says (see
+  Hardware findings).
 - Legacy firmware: 7 bytes (type `0x02` plus a 4-byte pairing token) and service
   `af854c2e-b214-458e-97e2-912c4ecf2cb8` or `117c4142-edd4-4c77-8696-dd18eebb770a`.
 - GeoShutter's Android companion-device chooser matches the company ID only
@@ -123,6 +124,7 @@ produce new fixes, and Fujifilm cameras ignore locations older than three hours.
 | `LocationTransmissionManager.kt` | Sony: pushed every 5 s; Fujifilm: answers requests (`onLocationRequested`) |
 | `AndroidBleTransport.kt` | service-scoped characteristic lookup; enables indications for indication-only characteristics |
 | `DeviceAssociationUtils.kt` | companion-device filter for `0x04D8` |
+| `CameraDeviceCompanionService.kt`, `CameraDeviceManager.kt` | a camera that stops advertising while connected stays connected; direct connect when a Fujifilm camera appears and right after pairing (registration) |
 | `FujifilmPacketBuilderTest.kt`, `FujifilmSessionTest.kt` | packets checked against Python `struct.pack('<iii4sHBBBBB', …)`, handshake order, pull-only delivery, failure paths, no remote monitoring for Fujifilm, protocol re-detected on every connect, Sony and Fujifilm side by side |
 
 Not implemented: iOS (the AccessorySetupKit picker only lists Sony cameras), the legacy
@@ -131,25 +133,98 @@ settings are Sony features: the camera details hide them while a Fujifilm camera
 connected (the app only learns the brand when the camera connects), and the camera card
 shows a plain "Connected".
 
+## Hardware findings (X100VI, 2026-09-28)
+
+Observed with a GeoShutter debug build on a Samsung Galaxy SM-F976B (Android 17), from
+the Android Bluetooth stack's log and GeoShutter's own log. No HCI snoop capture was
+taken; the camera's firmware version was not recorded yet (it is readable from Device
+Information `2A26`). Addresses and the serial number are left out.
+
+**Advertisement.** In PAIRING REGISTRATION the camera advertises as `X100VI` from a random
+resolvable address, with service `a9d2b304-…` and 6 bytes of manufacturer data after the
+company ID `0x04D8`: `01` followed by the serial number as 5 ASCII characters, as in furble.
+Before it was registered it also advertised as `X100VI-` plus four serial characters from
+a public address, with service `804daa8e-…` (furble's "notification 3" service, not
+`123d8f06-…`) and 7 bytes (`01`, serial, `00`). A registered camera that is switched on
+advertises only briefly (about 6–10 s).
+
+**Pairing.** LE Secure Connections with numeric comparison (Android pairing variant 2).
+The camera shows a six-digit code and must be confirmed with MENU/OK. Android confirms
+automatically for companion-associated devices, so the phone shows no code. Without the
+confirmation on the camera the phone gives up after 30 s (`SMP_RSP_TIMEOUT`). The bond
+maps the pairing address to the camera's public identity address; later connections and
+companion presence detection resolve the camera's changing addresses.
+
+**Registration.** The first bond was made without running the handshake on the pairing
+connection. Afterwards, the status read returned `xx 8a 01 00` or `xx 8a 21 00` (a
+different first byte on every connection), and the camera dropped the link (reason `0x13`)
+about 160 ms after the acknowledgement `xx 8a 01 20`. This lasted about four and a half
+minutes, presumably until the camera's pairing screen ended. From then on the status read
+returned `0c 01 00 00`, and `0c 01 00 20` plus the rest of the handshake were accepted.
+furble and XApp run the handshake on the pairing connection itself; GeoShutter now
+connects right after bonding to do the same (not yet verified with a fresh pairing).
+
+**GATT table.** Services found (properties: R read, W write, N notify, I indicate):
+
+| Service | Characteristics |
+|---|---|
+| `1800` Generic Access | `2A00` device name (R), `2A01` appearance (R) |
+| `1801` Generic Attribute | `2A05` service changed (R, I) |
+| `180A` Device Information | `2A29` manufacturer, `2A24` model, `2A25` serial, `2A27` hardware, `2A26` firmware, `2A28` software (all R) |
+| `a9d2b304-…` | seven read-only characteristics, unknown |
+| `15ca59fe-…` | three read-only characteristics, unknown |
+| `123d8f06-…` pairing | `85b9163e` identifier (W), `f557d96b` status (R, W), `aba356eb` legacy pair (W), four more unknown |
+| `4e941240-…` notifications | NOT4 `bf6dc9cf`, NOT7 `aab609c4`, sync interval `c95d91ae`, NOT5 `75823784`, NOT9 `82a9f452`, `98934b2c`, `bd45f887`, `caedb497` (all R, W, N); two read-only |
+| `4c0020fe-…` configuration | IND1 `a68e3f66`, IND2 `bd17ba04`, `049ec406`, `2f6cb772`, `11438c83`, `4b3a413c` (R, I); NOT1 `f9150137`, geotag request `ad06c7b7`, NOT6 `e6692c5c` (R, N); three read-only |
+| `6514eb81-…` shutter | `7fcf49c6` shutter and eight more (W) |
+| `3b46ec2b-…` geotag | `0f36ec14` geotag (W) |
+| `af854c2e-…`, `804daa8e-…`, `e872b11f-…`, `fcc1` | further write-only and read/write characteristics, unused |
+
+NOT8 (`2a125640-…`) and NOT10 (`deef7187-…`) do not exist on the X100VI; they are optional
+and skipped.
+
+**Handshake and geotagging.** Every step of furble's secure handshake was accepted. After
+it the camera notifies NOT1 `01 00` and the geotag request `01 00`; the sync-interval write
+`0a 00` is echoed as a notification with the same value. The camera then asks for the
+location exactly every 10 s. Every 23-byte answer was accepted, and new photos showed a
+location in the camera's playback information (coordinates and the GPS time not yet
+checked with exiftool).
+
+**Link behavior.**
+- The camera stops advertising while connected, so Android 16+ companion presence
+  reports it as gone.
+- It keeps the link, and keeps asking for the location every 10 s, while switched off or
+  asleep (seen for more than 15 minutes). The app therefore shows it as connected.
+- Switching it on or waking it drops the link (`0x13`), and the camera advertises again.
+  Connections made in the first seconds often go silent right away (supervision timeout
+  `0x08`, encryption request unanswered). GeoShutter reconnected after 26 s to about
+  1.5 minutes.
+- No notification and no connection-parameter change showed whether the camera is on or
+  off.
+
 ## Verification status
 
 | Item | Source | Verified on X100VI |
 |---|---|---|
-| Company ID and advertisement | furble | no |
-| GATT table and properties | furble | no |
-| Handshake order and values | furble | no |
-| Geotag request `01 00` and sync interval `0A 00` | furble | no |
-| Geotag packet layout | furble, Python cross-check | no |
+| Company ID and advertisement | furble | yes (pairing registration) |
+| GATT table and properties | furble | yes (table above) |
+| Handshake order and values | furble | yes, once the camera is registered |
+| Geotag request `01 00` and sync interval `0A 00` | furble | yes (every 10 s) |
+| Geotag packet layout | furble, Python cross-check | accepted; location shown in playback |
 | UTC time in the packet | furble (GPS time) | no |
-| Whole app built and unit-tested | this repository | n/a (no camera) |
+| Whole app built and unit-tested | this repository | n/a |
 
 ## Known gaps
 
-- The X100VI protocol has not been confirmed on a real camera.
-- It is unknown whether the camera sends geotag requests reliably after this handshake.
-- UTC versus local time for the X100VI's EXIF GPS timestamp is unconfirmed.
-- Behavior when the camera is switched off with Bluetooth left on is unknown, as is whether
-  Android's companion-device presence detection sees the camera's advertisements.
+- UTC versus local time for the X100VI's EXIF GPS timestamp is unconfirmed; the
+  coordinates have not been compared with exiftool either.
+- Registration right after bonding (connect on the pairing connection) is implemented but
+  not yet tried with a fresh pairing.
+- After the camera is switched on, reconnecting can take up to about 1.5 minutes (see
+  Link behavior).
+- The app cannot show whether the camera is on or off while it stays connected; a signal
+  for that has not been found (candidates: the unsubscribed characteristics above).
+- The firmware version is not recorded yet.
 - The date/time sync characteristic of XApp is unknown (furble doesn't implement it).
 
 ## Research plan

@@ -2,6 +2,8 @@ package com.saschl.cameragps.service
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.companion.AssociationInfo
 import android.companion.CompanionDeviceManager
 import android.companion.CompanionDeviceService
@@ -16,12 +18,21 @@ import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.saschl.cameragps.utils.PreferencesManager
 import timber.log.Timber
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 
 @RequiresApi(Build.VERSION_CODES.S)
 class CameraDeviceCompanionService : CompanionDeviceService() {
 
-    private fun startLocationSenderService(address: String?) {
+    private companion object {
+        /**
+         * Associations whose camera stopped advertising while still connected.
+         * Process-wide: the system may bind a new service instance between events.
+         */
+        val disappearedWhileConnected: MutableSet<Int> = ConcurrentHashMap.newKeySet()
+    }
+
+    private fun startLocationSenderService(address: String?, direct: Boolean = false) {
         if (PreferencesManager.isAppEnabled(this)) {
             if (!LocationSenderService.hasLocationPermission(this)) {
                 Timber.e("Location permission missing, not starting LocationSenderService for $address")
@@ -30,7 +41,8 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
 
             val serviceIntent = Intent(this, LocationSenderService::class.java)
             serviceIntent.putExtra("address", address?.uppercase(Locale.getDefault()))
-            Timber.i("Starting LocationSenderService for address: $address")
+            serviceIntent.putExtra(ServiceCommandRouter.EXTRA_DIRECT_CONNECT, direct)
+            Timber.i("Starting LocationSenderService for address: $address (direct=$direct)")
 
             try {
                 startForegroundService(serviceIntent)
@@ -103,10 +115,14 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
         val address = associationInfo?.deviceMacAddress?.toString()
 
         if (event.event == DevicePresenceEvent.EVENT_BLE_APPEARED) {
+            disappearedWhileConnected.remove(associationId)
 
             Timber.i("Device appeared new API: ${event.associationId}")
 
-            startLocationSenderService(address)
+            // Fujifilm cameras advertise only briefly after switching on.
+            val isFujifilm = associationInfo?.associatedDevice?.bleDevice
+                ?.isFujifilmAdvertisement() == true
+            startLocationSenderService(address, direct = isFujifilm)
         }
 
         if (event.event == DevicePresenceEvent.EVENT_BLE_DISAPPEARED) {
@@ -115,8 +131,32 @@ class CameraDeviceCompanionService : CompanionDeviceService() {
                 Timber.e("Could not get address for disappeared device with association id: $associationId")
                 return
             }
+            // Some cameras (Fujifilm) stop advertising while connected. Like the
+            // pre-Android 16 callbacks, treat the camera as gone only once the
+            // link is down too (EVENT_BT_DISCONNECTED below).
+            if (isGattConnected(address)) {
+                Timber.i("Device $associationId stopped advertising but is still connected, keeping the session")
+                disappearedWhileConnected.add(associationId)
+                return
+            }
             stopServiceOnDeviceDisappeared(address)
         }
+
+        if (event.event == DevicePresenceEvent.EVENT_BT_DISCONNECTED &&
+            disappearedWhileConnected.remove(associationId)
+        ) {
+            Timber.i("Device $associationId disconnected and is not advertising")
+            if (address != null) stopServiceOnDeviceDisappeared(address)
+        }
+    }
+
+    @SuppressLint("MissingPermission") // Checked by the caller (missingPermissions)
+    private fun isGattConnected(address: String): Boolean {
+        val manager = getSystemService<BluetoothManager>() ?: return false
+        val device = runCatching { manager.adapter?.getRemoteDevice(address.uppercase()) }
+            .getOrNull() ?: return false
+        return manager.getConnectionState(device, BluetoothProfile.GATT) ==
+                BluetoothProfile.STATE_CONNECTED
     }
 
     @Deprecated("Deprecated in Java")

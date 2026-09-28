@@ -3,10 +3,12 @@ package com.saschl.cameragps.service
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.ScanResult
 import android.companion.AssociationInfo
 import android.companion.CompanionDeviceManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import timber.log.Timber
 import java.util.Locale
 
@@ -18,7 +20,9 @@ data class AssociatedDeviceCompat(
     val address: String,
     var name: String,
     val device: BluetoothDevice?,
-    var isPaired: Boolean = true
+    var isPaired: Boolean = true,
+    /** The chooser saw Fujifilm's company ID in the camera's advertisement. */
+    val isFujifilm: Boolean = false,
 )
 
 
@@ -61,17 +65,24 @@ internal fun AssociationInfo.toAssociatedDevice(adapter: BluetoothAdapter?): Ass
     // self-managed ones get it; Android 14+ persists the chooser name), so fall
     // back to the Bluetooth stack's cached name for the bonded device.
     val cachedName = address?.let { adapter?.cachedNameOrNull(it) }
+    // Android 14+ keeps the chooser's scan result with the association.
+    val scanResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        associatedDevice?.bleDevice
+    } else {
+        null
+    }
     return AssociatedDeviceCompat(
         id = id,
         address = address ?: "N/A",
         name = displayName?.toString()?.takeIf { it.isNotBlank() } ?: cachedName ?: "N/A",
-        device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            associatedDevice?.bleDevice?.device
-        } else {
-            null
-        },
+        device = scanResult?.device,
+        isFujifilm = scanResult?.isFujifilmAdvertisement() == true,
     )
 }
+
+/** Fujifilm cameras advertise manufacturer data with Fujifilm's company ID. */
+internal fun ScanResult.isFujifilmAdvertisement(): Boolean =
+    scanRecord?.getManufacturerSpecificData(FujifilmBluetoothConstants.COMPANY_ID) != null
 
 /**
  * Uppercased addresses of the bonded devices, or null when they cannot be read.

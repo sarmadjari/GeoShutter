@@ -242,7 +242,7 @@ class LocationSenderService : LifecycleService() {
                     Timber.i("Service initialized")
                     orchestrator.onConnectRequested(command.address)
                     runCatching {
-                        transport.connect(command.address)
+                        transport.connect(command.address, command.direct)
                     }.onSuccess { started ->
                         if (!started) {
                             // Not bonded (anymore) or Bluetooth permission missing:
@@ -254,6 +254,10 @@ class LocationSenderService : LifecycleService() {
                         Timber.e("Failed to connect to device, bluetooth is likely turned off")
                         orchestrator.onConnectFailed(command.address)
                     }
+                } else if (command.direct && !transport.isConnected(command.address)) {
+                    // The camera is advertising now: don't leave it to the slow background connection.
+                    runCatching { transport.connect(command.address, direct = true) }
+                        .onFailure { Timber.w(it, "Direct connection to ${command.address} failed") }
                 }
             }
         }

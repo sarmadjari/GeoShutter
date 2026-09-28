@@ -265,6 +265,75 @@ class FujifilmSessionTest {
         assertTrue(f.transport.sonyLocationWrites("X").isNotEmpty())
     }
 
+    @Test
+    fun aServicesChangeRestartsSonySetupAndIgnoresTheCancelledAttempt() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.holdReads = true
+        f.connect("S", SONY)
+        runCurrent()
+        // The config read is in flight when the camera changes its services;
+        // its late response must not drive the restarted handshake.
+        val staleRead = f.transport.heldReads.removeAt(0)
+        f.transport.emit(BleTransportEvent.ServicesChanged("S"))
+        f.transport.emit(staleRead)
+        runCurrent()
+        assertTrue(f.transport.writes("S", Sony.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND).isEmpty())
+
+        advanceTimeBy(1_100)
+        runCurrent()
+        assertEquals(2, f.transport.discoveries("S"))
+        f.transport.holdReads = false
+        f.transport.releaseReads()
+        runCurrent()
+
+        assertEquals(1, f.transport.writes("S", Sony.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND).size)
+        assertTrue(f.session("S").isLocationReady)
+        assertEquals(CameraProtocol.Sony, f.session("S").protocol)
+    }
+
+    @Test
+    fun rediscoveryRetriesWhileAndroidIgnoresTheRequest() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("S", SONY)
+        runCurrent()
+        assertTrue(f.session("S").isLocationReady)
+
+        f.transport.discoveriesToDrop = 2
+        f.transport.emit(BleTransportEvent.ServicesChanged("S"))
+        runCurrent()
+        assertFalse(f.session("S").isLocationReady)
+
+        advanceTimeBy(15_000)
+        runCurrent()
+        // The first discovery, two ignored ones and the answered one.
+        assertEquals(4, f.transport.discoveries("S"))
+        assertTrue(f.session("S").isLocationReady)
+        assertEquals(2, f.transport.writes("S", Sony.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND).size)
+    }
+
+    @Test
+    fun aServicesChangeDuringTheFujifilmHandshakeRestartsItCleanly() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.holdReads = true
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        val staleStatusRead = f.transport.heldReads.removeAt(0)
+        f.transport.emit(BleTransportEvent.ServicesChanged("F"))
+        f.transport.emit(staleStatusRead)
+        runCurrent()
+        // Setup starts over with a fresh discovery.
+        assertEquals(BleSessionPhase.DiscoveringServices, f.session("F").phase)
+
+        advanceTimeBy(1_100)
+        runCurrent()
+        f.transport.holdReads = false
+        f.transport.releaseReads()
+        runCurrent()
+
+        assertTrue(f.session("F").isLocationReady)
+        assertEquals(CameraProtocol.FujifilmSecure, f.session("F").protocol)
+    }
+
     // ---- fixtures ----
 
     private sealed interface Step {
@@ -346,8 +415,25 @@ class FujifilmSessionTest {
         val failingSubscriptions = mutableSetOf<String>()
         var authErrorsLeft = 0
 
+        /** Keeps read responses back (in flight) until [releaseReads]. */
+        var holdReads = false
+        val heldReads = mutableListOf<BleTransportEvent.CharacteristicRead>()
+
+        /** Discovery requests to ignore, like Android does while it re-reads services itself. */
+        var discoveriesToDrop = 0
+
+        fun releaseReads() {
+            val released = heldReads.toList()
+            heldReads.clear()
+            released.forEach(::emit)
+        }
+
         fun emit(event: BleTransportEvent) {
             channel.trySend(event)
+        }
+
+        fun discoveries(id: String) = operations.count { (device, op) ->
+            device == id && op == BleOperation.DiscoverServices
         }
 
         /** The operations sent to [id] after service discovery, as comparable steps. */
@@ -368,7 +454,7 @@ class FujifilmSessionTest {
         fun geotagWrites(id: String) = writes(id, Fuji.GEOTAG_CHARACTERISTIC_UUID)
         fun sonyLocationWrites(id: String) = writes(id, Sony.CHARACTERISTIC_UUID)
 
-        private fun writes(id: String, uuid: String) = operations.mapNotNull { (device, op) ->
+        fun writes(id: String, uuid: String) = operations.mapNotNull { (device, op) ->
             (op as? BleOperation.Write)?.takeIf {
                 device == id && it.characteristicUuid.equals(uuid, ignoreCase = true)
             }?.value
@@ -386,6 +472,10 @@ class FujifilmSessionTest {
 
         override fun initiateDiscoverServices(identifier: String): Boolean {
             operations += identifier to BleOperation.DiscoverServices
+            if (discoveriesToDrop > 0) {
+                discoveriesToDrop--
+                return true
+            }
             emit(BleTransportEvent.ServicesDiscovered(identifier, success = true))
             return true
         }
@@ -402,7 +492,8 @@ class FujifilmSessionTest {
             }
             // Sony's config read reports time zone support (byte 4, bit 0x02).
             val value = if (isStatus) status else byteArrayOf(0, 0, 0, 0, 2)
-            emit(BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result))
+            val event = BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result)
+            if (holdReads) heldReads += event else emit(event)
             return true
         }
 

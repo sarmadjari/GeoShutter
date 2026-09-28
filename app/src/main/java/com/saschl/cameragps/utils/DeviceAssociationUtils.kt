@@ -15,6 +15,7 @@ import android.os.Build
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.saschl.cameragps.service.AssociatedDeviceCompat
+import com.saschl.cameragps.service.isFujifilmAdvertisement
 import com.saschl.cameragps.service.nameOrNull
 import com.saschl.cameragps.service.toAssociatedDevice
 import kotlinx.coroutines.CompletableDeferred
@@ -61,6 +62,7 @@ object DeviceAssociationUtils {
                         address = it.device.address ?: "N/A",
                         name = it.device.nameOrNull() ?: "N/A",
                         device = it.device,
+                        isFujifilm = it.isFujifilmAdvertisement(),
                     )
                 }
             }

@@ -50,6 +50,14 @@ sealed interface BleTransportEvent {
         val success: Boolean,
     ) : BleTransportEvent
 
+    /**
+     * The peripheral changed its GATT database (Service Changed indication).
+     * Android: `onServiceChanged`. Characteristics found earlier are stale, so
+     * discovery and setup must run again. Some Sony cameras send it right after
+     * the link is encrypted.
+     */
+    data class ServicesChanged(override val identifier: String) : BleTransportEvent
+
     /** A characteristic read completed (read response). */
     data class CharacteristicRead(
         override val identifier: String,

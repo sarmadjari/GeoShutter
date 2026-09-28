@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -201,6 +202,8 @@ class CameraSessionOrchestrator(
         queue.cancelOperations(id, "session cleared")
         sessionCoordinator.clearSession(id)
         locationManager.forgetDevice(id)
+        restartingSetup -= id
+        setupGeneration.remove(id)
         registry.remove(id)
         locationManager.updateTracking()
     }
@@ -216,12 +219,23 @@ class CameraSessionOrchestrator(
     // ---- Transport event routing ----
 
     private fun handleTransportEvent(event: BleTransportEvent, completedOperation: BleOperation?) {
+        // After a restart, results of the cancelled setup no longer match a queued
+        // operation; they must not drive the new handshake.
+        if (completedOperation == null && event.identifier.uppercase() in restartingSetup &&
+            (event is BleTransportEvent.CharacteristicRead ||
+                    event is BleTransportEvent.CharacteristicWritten ||
+                    event is BleTransportEvent.SubscriptionChanged)
+        ) {
+            log.d { "Ignoring a result of the cancelled setup of ${event.identifier}" }
+            return
+        }
         // The Fujifilm handshake awaits its own results through the queue; the
         // Sony handlers below must not react to them (or restart a Sony handshake).
         if (isFujifilm(event.identifier)) {
             when (event) {
                 is BleTransportEvent.Connected,
-                is BleTransportEvent.Disconnected -> Unit
+                is BleTransportEvent.Disconnected,
+                is BleTransportEvent.ServicesChanged -> Unit
 
                 is BleTransportEvent.CharacteristicChanged -> {
                     handleFujifilmNotification(event)
@@ -267,6 +281,8 @@ class CameraSessionOrchestrator(
             is BleTransportEvent.CharacteristicChanged -> handleCharacteristicChanged(event)
 
             is BleTransportEvent.ServicesDiscovered -> Unit // consumed by the queue
+
+            is BleTransportEvent.ServicesChanged -> handleServicesChanged(event.identifier)
         }
     }
 
@@ -307,9 +323,18 @@ class CameraSessionOrchestrator(
         }
     }
 
-    private suspend fun runDiscoveryAndHandshake(id: String) {
+    private suspend fun runDiscoveryAndHandshake(id: String, afterServicesChanged: Boolean = false) {
+        val generation = setupGeneration[id]
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.DiscoveringServices) }
-        when (queue.execute(id, BleOperation.DiscoverServices)) {
+        val discovery = if (afterServicesChanged) {
+            rediscover(id, generation)
+        } else {
+            queue.execute(id, BleOperation.DiscoverServices)
+        }
+        // A newer setup (services changed) owns the session now.
+        if (setupGeneration[id] != generation) return
+        restartingSetup -= id
+        when (discovery) {
             is BleOperationResult.Success -> when (fujifilm.detect(id)) {
                 CameraDetection.Sony -> {
                     // Detection decides the protocol on every connect, so a session
@@ -467,12 +492,68 @@ class CameraSessionOrchestrator(
     private fun isFujifilm(identifier: String) =
         registry.get(identifier)?.protocol == CameraProtocol.FujifilmSecure
 
+    /** Devices whose setup restarted after a services change; see [handleTransportEvent]. */
+    private val restartingSetup = mutableSetOf<String>()
+
+    /** Bumped on every restart so an older setup run can tell it was replaced. */
+    private val setupGeneration = mutableMapOf<String, Int>()
+
+    /**
+     * The camera changed its GATT services, so characteristics found so far are
+     * stale (a Sony camera then rejects the GPS unlock and setup stalls). Throw
+     * the running setup away and start again with a fresh discovery.
+     */
+    private fun handleServicesChanged(identifier: String) {
+        val id = identifier.uppercase()
+        if (registry.get(id) == null || !transport.isConnected(id)) return
+        log.i { "Camera $id changed its Bluetooth services, restarting setup" }
+        setupGeneration[id] = (setupGeneration[id] ?: 0) + 1
+        restartingSetup += id
+        queue.cancelOperations(id, "services changed")
+        sessionCoordinator.clearSession(id)
+        autoCorrection.clear(id)
+        registry.updateIfPresent(id) {
+            it.copy(
+                phase = BleSessionPhase.DiscoveringServices,
+                pairingRetryCount = 0,
+                hasRetriedConfigRead = false,
+            )
+        }
+        scope.launch { runDiscoveryAndHandshake(id, afterServicesChanged = true) }
+    }
+
+    /**
+     * After a Service Changed indication Android re-reads the services itself and
+     * silently drops discovery requests until it is done, without telling the app
+     * when that is. Retry with short waits until a discovery completes.
+     */
+    private suspend fun rediscover(id: String, generation: Int?): BleOperationResult {
+        repeat(REDISCOVERY_ATTEMPTS) { attempt ->
+            delay(REDISCOVERY_PAUSE_MS.milliseconds)
+            if (setupGeneration[id] != generation || !transport.isConnected(id)) {
+                return BleOperationResult.Cancelled
+            }
+            val result = withTimeoutOrNull(REDISCOVERY_WAIT_MS.milliseconds) {
+                queue.execute(id, BleOperation.DiscoverServices)
+            }
+            if (result is BleOperationResult.Success) return result
+            log.d { "Rediscovery of $id not answered (attempt ${attempt + 1}), retrying" }
+            // Drop the unanswered request so the next one isn't queued behind it.
+            queue.cancelOperations(id, "rediscovery retry")
+        }
+        return BleOperationResult.Timeout
+    }
+
     private suspend fun runFujifilmHandshake(id: String) {
         log.i { "Camera $id speaks the Fujifilm secure protocol" }
+        val generation = setupGeneration[id]
         registry.updateIfPresent(id) {
             it.copy(protocol = CameraProtocol.FujifilmSecure, phase = BleSessionPhase.EnablingGps)
         }
-        when (val result = fujifilm.runHandshake(id)) {
+        val result = fujifilm.runHandshake(id)
+        // A restarted setup (services changed) reports its own result.
+        if (setupGeneration[id] != generation) return
+        when (result) {
             FujifilmHandshakeResult.Success -> handleHandshakeComplete(id)
             FujifilmHandshakeResult.PairingRejected -> {
                 log.e { "Pairing retries exhausted for $id" }
@@ -498,3 +579,9 @@ class CameraSessionOrchestrator(
         }
     }
 }
+
+// Rediscovery after a services change: up to 8 × (1 s pause + 2.5 s wait) ≈ 28 s.
+// Android's own re-read of a camera's services took up to about 7 s in tests.
+private const val REDISCOVERY_ATTEMPTS = 8
+private const val REDISCOVERY_PAUSE_MS = 1_000L
+private const val REDISCOVERY_WAIT_MS = 2_500L

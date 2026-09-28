@@ -33,8 +33,8 @@ licensed under the [GPL-3.0](LICENSE).
 - **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
 - **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
   the X100VI, using Fujifilm's own Bluetooth geotagging protocol (the camera asks for the
-  location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble) and
-  not yet verified on a real camera; see [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
+  location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble);
+  geotagging works on an X100VI. See [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
 - **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
   exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
   flavor, intended for F-Droid) has no crash reporter at all. See the
@@ -83,7 +83,9 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    MENU → Network → Bluetooth → Pairing).
 3. Tap **Add camera**. Android's companion-device chooser lists nearby Sony (and
    Fujifilm) cameras; pick yours. If the phone is not paired with it yet, the app starts Bluetooth pairing:
-   confirm on the phone and on the camera.
+   confirm on the phone and on the camera. A Fujifilm camera shows a six-digit code: press
+   MENU/OK on the camera within 30 seconds (Android confirms on the phone by itself and
+   shows no code).
 4. The camera now appears under **My Cameras**. On Android 12 and later, Android starts
    the app's foreground service whenever the camera shows up, even when the app is
    closed: it connects, syncs the time and sends your location. When the camera is
@@ -198,8 +200,11 @@ starting with the X100VI, on firmware with Fujifilm's secured Bluetooth connecti
 about July 2025). Older firmware with the legacy protocol is detected but not supported.
 Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera asks for
 the location itself; remote control and the camera time/area settings are Sony features.
-Nothing has been verified on a real Fujifilm camera yet: reports are very welcome, and
-[docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) lists what to check.
+Geotagging works on an X100VI. Two things behave differently from Sony cameras: the camera
+stays connected while it is switched off (it keeps asking for the location, so the app
+shows it as connected), and after switching it on, reconnecting can take up to a minute or
+two. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details and what is
+still unverified.
 
 ## Build from source
 

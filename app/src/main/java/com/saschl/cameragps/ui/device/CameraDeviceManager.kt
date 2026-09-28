@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.companion.CompanionDeviceManager
 import android.companion.ObservingDevicePresenceRequest
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
@@ -61,8 +62,10 @@ import com.saschl.cameragps.AppServices
 import com.saschl.cameragps.service.AssociatedDeviceCompat
 import com.saschl.cameragps.service.BluetoothStateBroadcastReceiver
 import com.saschl.cameragps.service.LocationSenderService
+import com.saschl.cameragps.service.ServiceCommandRouter
 import com.saschl.cameragps.service.getAssociatedDevices
 import com.saschl.cameragps.ui.EnhancedLocationPermissionBox
+import com.saschl.cameragps.ui.pairing.isDevicePaired
 import com.saschl.cameragps.ui.pairing.startDevicePresenceObservation
 import com.saschl.cameragps.ui.review.launchInAppReviewIfDue
 import com.saschl.cameragps.utils.PreferencesManager
@@ -312,6 +315,12 @@ fun CameraDeviceManager(
                                             deviceEnabled = true,
                                         )
                                     )
+                                    // A Fujifilm camera registers the phone only while it is
+                                    // still in pairing registration: connect right away so
+                                    // the handshake runs on the pairing connection.
+                                    if (it.isFujifilm && isDevicePaired(adapter, it.address)) {
+                                        connectNow(context, it.address)
+                                    }
                                     delay(1000) // give the system a short time to breathe
                                     startDevicePresenceObservation(deviceManager, it)
                                     // Refresh the devices list to update pairing state
@@ -427,3 +436,17 @@ fun CameraDeviceManager(
 }
 
 private const val BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/wj8tism4dq"
+
+/** Starts the location service for [address], which connects to the camera immediately. */
+private fun connectNow(context: Context, address: String) {
+    if (!LocationSenderService.hasLocationPermission(context)) {
+        Timber.w("Location permission missing, not connecting to $address yet")
+        return
+    }
+    Timber.i("Connecting to $address right after pairing")
+    context.startForegroundService(
+        Intent(context, LocationSenderService::class.java)
+            .putExtra("address", address.uppercase())
+            .putExtra(ServiceCommandRouter.EXTRA_DIRECT_CONNECT, true)
+    )
+}

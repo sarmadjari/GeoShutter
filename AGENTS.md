@@ -99,6 +99,27 @@ python3 -m unittest discover -s tools/ios_localization -v
   project in Xcode once so SPM resolves `sentry-cocoa`), or pass
   `-Psentry.cocoa.frameworkPath=…`.
 
+### Debugging on the maintainer's phone (Samsung SM-F976B, Android 17)
+
+- `adb` is `~/Library/Android/sdk/platform-tools/adb`. Install:
+  `adb install -r app/build/outputs/apk/gplay/debug/app-gplay-debug.apk`.
+- Shared-code logs (KmLogging) reach logcat with class tags: `CameraSessionOrchestrator`,
+  `FujifilmSessionController`, `BleSessionCoordinator`, `BleOperationQueue`,
+  `LocationTransmissionManager`. System side: `CDM_DevicePresenceProcessor` (presence
+  events 0 appeared, 1 disappeared, 2 BT connected, 3 BT disconnected), `BtGatt`, `smp`,
+  `bt_bta_gattc`. Record with `adb logcat -v time -T 1 > file` in the background.
+- App-module (Timber) logs are not in logcat: they are in the app's Room database. Debug
+  builds allow `adb exec-out run-as com.sarmadjari.geoshutter cat databases/log_database`
+  (also `-wal`, `-shm`), then query `log_entries` with sqlite3 (`timestamp` is epoch ms;
+  cast when comparing: `timestamp >= CAST(strftime('%s', '…') AS INTEGER) * 1000`).
+- `adb shell dumpsys companiondevice` (associations, present devices) and
+  `dumpsys bluetooth_manager` (bonds with identity addresses) are the quickest state checks.
+- `screencap` on the Fold prints a multi-display warning before the PNG; strip everything
+  before the PNG signature.
+- After installing a new build, Android rebinds the companion service without repeating
+  "appeared", so a camera that is already present only reconnects once it is switched off
+  and on.
+
 ## 4. Architecture in brief
 
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -239,8 +260,18 @@ fork's site. GitHub Pages is not enabled on the fork.
   (`app-*-release.apk`) doesn't match. `deploy-pages.yml` fails while Pages is disabled.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
-- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md` (nothing verified on a camera,
-  iOS unsupported, legacy firmware unsupported, remote/camera settings Sony-only).
+- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging works on an X100VI
+  (2026-09-28); open: UTC vs local time, registration right after pairing, slow reconnect
+  after switching the camera on (up to about 1.5 min), no on/off indication (the camera
+  stays connected while off), iOS and legacy firmware unsupported, remote/camera settings
+  Sony-only.
+- Requested, not built yet: show each saved camera's own Bluetooth name plus its model in
+  the camera list (user's choice, 2026-09-28). The X100VI exposes both: GAP device name
+  `2A00` and Device Information model `2A24` are readable. Store the name without
+  overwriting a rename (`deviceNameIsCustom`).
+- Services-changed handling (restart setup, retrying rediscovery) is unit-tested but not
+  yet exercised on hardware: the Sony α1 II stopped sending Service Changed after it was
+  paired again.
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
@@ -321,3 +352,15 @@ fork's site. GitHub Pages is not enabled on the fork.
   v1.6.2; it launches without crashes. Install command:
   `adb install -r app/build/outputs/apk/gplay/debug/app-gplay-debug.apk` (adb lives in
   `~/Library/Android/sdk/platform-tools`).
+- 2026-09-28 (evening): first hardware tests with an X100VI and a Sony α1 II on that phone.
+  Fujifilm pairing uses numeric comparison: the camera needs MENU/OK, the phone confirms by
+  itself. The camera refused the handshake until its pairing screen ended (bond made
+  without registration), then geotagging worked end to end (request every 10 s, location
+  in photos). Fixes: connect right after pairing for Fujifilm; on Android 16+ keep a camera
+  that stops advertising while connected (end on BT disconnect instead); direct connect for
+  Fujifilm cameras on presence (they advertise only briefly after switching on); restart
+  setup with retried rediscovery when a camera changes its services (the α1 II did so after
+  encryption while the phone's cached table was stale, which stalled the Sony setup at
+  `DD30`, status 159). Observed: the X100VI stays connected while switched off. Findings
+  and the GATT table are in `docs/fujifilm-protocol.md`. 20 tests in `FujifilmSessionTest`;
+  full suite green (185 JVM, 222 iOS simulator, app tests, lint, four APKs).

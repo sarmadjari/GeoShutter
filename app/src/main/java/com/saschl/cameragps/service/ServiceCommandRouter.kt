@@ -11,6 +11,9 @@ class ServiceCommandRouter {
 
         /** Extra holding a [RemoteCommand] enum name for [SonyBluetoothConstants.ACTION_SEND_REMOTE_COMMAND]. */
         const val EXTRA_REMOTE_COMMAND = "remoteCommand"
+
+        /** Boolean extra: connect directly (see [ServiceCommand.Connect.direct]). */
+        const val EXTRA_DIRECT_CONNECT = "directConnect"
     }
 
     fun route(intent: Intent?): ServiceCommand {
@@ -66,7 +69,7 @@ class ServiceCommandRouter {
         return if (address == null) {
             ServiceCommand.ReconnectAlwaysOn
         } else {
-            ServiceCommand.Connect(address)
+            ServiceCommand.Connect(address, intent.getBooleanExtra(EXTRA_DIRECT_CONNECT, false))
         }
     }
 }

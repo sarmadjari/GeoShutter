@@ -48,7 +48,7 @@ class AndroidBleTransport(
     private val eventChannel = Channel<BleTransportEvent>(Channel.UNLIMITED)
     override val events: Flow<BleTransportEvent> = eventChannel.receiveAsFlow()
 
-    private class Connection(val gatt: BluetoothGatt) {
+    private class Connection(val gatt: BluetoothGatt, val direct: Boolean = false) {
         @Volatile
         var isActive = false
     }
@@ -60,10 +60,20 @@ class AndroidBleTransport(
     private val pendingSubscribeEnable =
         Collections.synchronizedMap(mutableMapOf<String, Boolean>())
 
-    fun connect(mac: String): Boolean {
+    /**
+     * Opens a background (`autoConnect`) connection, or with [direct] a direct one
+     * that scans aggressively for about 30 s. Direct is for cameras that advertise
+     * only briefly (Fujifilm); after a failed attempt or its first disconnect the
+     * device falls back to the background connection. A direct request also
+     * replaces a background connection that is still waiting.
+     */
+    fun connect(mac: String, direct: Boolean = false): Boolean {
         val address = mac.uppercase()
-        if (connections.containsKey(address)) {
-            return true
+        val existing = connections[address]
+        if (existing != null) {
+            if (!direct || existing.direct || existing.isActive) return true
+            if (!connections.remove(address, existing)) return true
+            closeQuietly(existing.gatt)
         }
 
         try {
@@ -72,31 +82,55 @@ class AndroidBleTransport(
                 //Timber.w("Device $address is not paired. Cannot connect.")
                 return false
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
-                val gatt = device.connectGatt(
-                    BluetoothGattConnectionSettings.Builder()
-                        .setAutoConnectEnabled(true)
-                        .setTransport(BluetoothDevice.TRANSPORT_LE)
-                        .setAutomaticMtuEnabled(true)
-                        .build(),
-                    context.mainExecutor,
-                    gattCallback
-                )
-                    ?: throw IllegalStateException("Failed to connect to device $address: GATT is null")
-                connections[address] = Connection(gatt)
-
-            } else {
-                val gatt = device.connectGatt(context, true, gattCallback)
-                    ?: throw IllegalStateException("Failed to connect to device $address: GATT is null")
-                connections[address] = Connection(gatt)
-            }
-
+            val gatt = openGatt(device, autoConnect = !direct)
+                ?: throw IllegalStateException("Failed to connect to device $address: GATT is null")
+            connections[address] = Connection(gatt, direct)
         } catch (e: SecurityException) {
             Timber.e("SecurityException while connecting to device $address: ${e.message}")
             return false
         }
 
         return true
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun openGatt(device: BluetoothDevice, autoConnect: Boolean): BluetoothGatt? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
+            device.connectGatt(
+                BluetoothGattConnectionSettings.Builder()
+                    .setAutoConnectEnabled(autoConnect)
+                    .setTransport(BluetoothDevice.TRANSPORT_LE)
+                    .setAutomaticMtuEnabled(true)
+                    .build(),
+                context.mainExecutor,
+                gattCallback
+            )
+        } else if (autoConnect) {
+            device.connectGatt(context, true, gattCallback)
+        } else {
+            device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        }
+
+    /** A direct connection does not come back by itself: hand the device to autoConnect. */
+    private fun fallBackToAutoConnect(address: String, finished: Connection) {
+        // Not found: shut down or replaced meanwhile.
+        if (!connections.remove(address, finished)) return
+        closeQuietly(finished.gatt)
+        val gatt = runCatching { openGatt(finished.gatt.device, autoConnect = true) }
+            .onFailure { Timber.w(it, "Could not reopen %s with autoConnect", address) }
+            .getOrNull() ?: return
+        if (connections.putIfAbsent(address, Connection(gatt)) != null) closeQuietly(gatt)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun closeQuietly(gatt: BluetoothGatt) {
+        runCatching {
+            try {
+                gatt.disconnect()
+            } finally {
+                gatt.close()
+            }
+        }.onFailure { Timber.w(it) }
     }
 
     /** `true` if a GATT handle exists for this device (connected or waiting for autoConnect). */
@@ -254,8 +288,14 @@ class AndroidBleTransport(
             val address = gatt.device.address.uppercase()
 
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                val connection = connections[address]
+                if (connection?.gatt !== gatt) {
+                    // A handle replaced meanwhile (direct ↔ autoConnect) must not start a session.
+                    Timber.d("Ignoring connection of a replaced GATT handle for %s", address)
+                    return
+                }
                 Timber.i("Connected to device with status %d", status)
-                connections[address]?.isActive = true
+                connection.isActive = true
                 // Discovery + handshake are dozens of sequential ATT round trips,
                 // each costing one connection interval (~50ms at the default).
                 // Request the short interval for setup; relaxConnection() drops
@@ -279,11 +319,19 @@ class AndroidBleTransport(
             }
 
             if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
-                connections[address]?.isActive = false
+                val connection = connections[address]?.takeIf { it.gatt === gatt }
+                val wasActive = connection?.isActive == true
+                connection?.isActive = false
                 if (status == 19 || status == 8 || status == 0) {
                     Timber.i("Device disconnected in callback with status: $status")
                 } else {
                     Timber.e("An error happened: $status")
+                }
+                if (connection != null && connection.direct) {
+                    // A direct attempt that timed out never connected: no session to end.
+                    if (wasActive) eventChannel.trySend(BleTransportEvent.Disconnected(address, status))
+                    fallBackToAutoConnect(address, connection)
+                    return
                 }
                 eventChannel.trySend(BleTransportEvent.Disconnected(address, status))
                 return
@@ -324,6 +372,14 @@ class AndroidBleTransport(
                     status == BluetoothGatt.GATT_SUCCESS,
                 )
             )
+        }
+
+        // Android 12+. The characteristics from the last discovery are stale now.
+        override fun onServiceChanged(gatt: BluetoothGatt) {
+            val address = gatt.device.address.uppercase()
+            if (connections[address]?.gatt !== gatt) return
+            Timber.i("Services changed on %s", address)
+            eventChannel.trySend(BleTransportEvent.ServicesChanged(address))
         }
 
         override fun onCharacteristicWrite(
