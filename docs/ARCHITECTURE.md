@@ -314,9 +314,11 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
   name when it becomes available. On Android a Fujifilm camera's own name is read from
   NOT4 after each handshake (`CameraSessionOrchestrator.storeCameraName`, stored without
   the "FUJIFILM-" prefix unless renamed). The camera list shows the stored or custom name
-  with the model underneath when they differ (`BluetoothDeviceInfo.model`): Sony's
-  marketing name for the model code the camera reports (`cameraModelName`, e.g.
-  "ILCE-1M2" → "α1 II"), otherwise the pairing name.
+  with brand and model underneath (`BluetoothDeviceInfo.model`, built by
+  `cameraModelLine`, e.g. "Sony α1 II", "Fujifilm X100VI"). The brand comes from the
+  manufacturer ID in the advertisement Android keeps with the association (Android 14+),
+  else from a Sony model code or the live session; Sony model codes become marketing
+  names ("ILCE-1M2" → "α1 II"), Fujifilm shows the pairing name.
 
 ## 9. Logging and crash reporting
 

@@ -8,6 +8,7 @@ import android.companion.AssociationInfo
 import android.companion.CompanionDeviceManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import timber.log.Timber
 import java.util.Locale
@@ -23,6 +24,8 @@ data class AssociatedDeviceCompat(
     var isPaired: Boolean = true,
     /** The chooser saw Fujifilm's company ID in the camera's advertisement. */
     val isFujifilm: Boolean = false,
+    /** The chooser saw Sony's company ID in the camera's advertisement. */
+    val isSony: Boolean = false,
 )
 
 
@@ -77,12 +80,17 @@ internal fun AssociationInfo.toAssociatedDevice(adapter: BluetoothAdapter?): Ass
         name = displayName?.toString()?.takeIf { it.isNotBlank() } ?: cachedName ?: "N/A",
         device = scanResult?.device,
         isFujifilm = scanResult?.isFujifilmAdvertisement() == true,
+        isSony = scanResult?.isSonyAdvertisement() == true,
     )
 }
 
 /** Fujifilm cameras advertise manufacturer data with Fujifilm's company ID. */
 internal fun ScanResult.isFujifilmAdvertisement(): Boolean =
     scanRecord?.getManufacturerSpecificData(FujifilmBluetoothConstants.COMPANY_ID) != null
+
+/** Sony cameras advertise manufacturer data with Sony's company ID. */
+internal fun ScanResult.isSonyAdvertisement(): Boolean =
+    scanRecord?.getManufacturerSpecificData(SonyBluetoothConstants.COMPANY_ID) != null
 
 /**
  * Uppercased addresses of the bonded devices, or null when they cannot be read.

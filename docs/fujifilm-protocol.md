@@ -189,8 +189,8 @@ and skipped.
 reads as the camera's own name, "FUJIFILM-X100VI-" plus four serial characters (the same
 suffix as the `X100VI-…` advertisement): the camera's network NAME setting ("the camera is
 assigned a unique name by default", X100VI manual). GeoShutter reads NOT4 after each Fujifilm
-handshake and shows the name without "FUJIFILM-" in the camera list, with the model (the
-pairing name) underneath. A name set with Rename is never replaced.
+handshake and shows the name without "FUJIFILM-" in the camera list, with "Fujifilm" and
+the model (the pairing name) underneath. A name set with Rename is never replaced.
 
 **On/off.** A diagnostic build subscribed to the seven notify/indicate characteristics
 GeoShutter doesn't use (`049ec406`, `2f6cb772`, `11438c83`, `4b3a413c`, `bd45f887`,

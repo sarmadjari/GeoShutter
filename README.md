@@ -86,8 +86,9 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    confirm on the phone and on the camera. A Fujifilm camera shows a six-digit code: press
    MENU/OK on the camera within 30 seconds (Android confirms on the phone by itself and
    shows no code).
-4. The camera now appears under **My Cameras**, with the camera's own name and its model
-   underneath (for example *ILCE-1M2* and *α1 II*, or *X100VI-…* and *X100VI*). On
+4. The camera now appears under **My Cameras**, with the camera's own name and its brand
+   and model underneath (for example *ILCE-1M2* with *Sony α1 II*, or *X100VI-…* with
+   *Fujifilm X100VI*). On
    Android 12 and later, Android starts the app's foreground service whenever the camera
    shows up, even when the app is closed: it connects within seconds, syncs the time and
    sends your location. When the camera is switched off, the service stops. A

@@ -234,8 +234,8 @@ fork's site. GitHub Pages is not enabled on the fork.
   Play Store Alpha GPS on the maintainer's phone. The iOS bundle ID and in-app texts are
   unchanged.
 - 2026-09-28: every camera, Sony included, connects directly (fast) when Android reports
-  it nearby; the camera list shows each camera's own name with its model underneath (Sony
-  model codes as marketing names, e.g. "ILCE-1M2" → "α1 II").
+  it nearby; the camera list shows each camera's own name with brand and model underneath
+  (for example "Sony α1 II", "Fujifilm X100VI"; Sony model codes as marketing names).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 

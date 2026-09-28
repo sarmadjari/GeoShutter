@@ -13,9 +13,11 @@ import cameragps.sharednew.generated.resources.no_devices_title
 import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.ui.devicelist.DeviceListViewModel
+import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
+import com.sasch.cameragps.sharednew.ui.devicelist.DeviceListItem
 import com.sasch.cameragps.sharednew.ui.devicelist.EmptyStateCard
 import com.sasch.cameragps.sharednew.ui.devicelist.SharedDeviceList
-import com.sasch.cameragps.sharednew.ui.devicelist.cameraModelName
+import com.sasch.cameragps.sharednew.ui.devicelist.cameraModelLine
 import com.saschl.cameragps.AppServices
 import com.saschl.cameragps.service.AssociatedDeviceCompat
 import com.saschl.cameragps.service.LocationSenderService
@@ -64,9 +66,8 @@ fun AssociatedDevicesList(
             isConnected = item?.isTransmissionActive == true,
             isSaved = true,
             isPaired = compat.isPaired,
-            // The model under the name: Sony's marketing name for its model code
-            // ("ILCE-1M2" → "α1 II"), the pairing name for other cameras.
-            model = cameraModelName(compat.name).takeIf { it != name && compat.name != "N/A" },
+            // Brand and model under the name: "Sony α1 II", "Fujifilm X100VI".
+            model = cameraModelLine(compat.brand(item), compat.name)?.takeIf { it != name },
         )
     }
 
@@ -96,4 +97,15 @@ fun AssociatedDevicesList(
         onOpenDetails = { info -> resolve(info)?.let(onConnect) },
         onOpenTroubleshooting = onOpenTroubleshooting,
     )
+}
+
+/**
+ * The camera's maker, from the advertisement Android kept when the camera was added, or
+ * from the live session (Fujifilm sessions have no Bluetooth remote).
+ */
+private fun AssociatedDeviceCompat.brand(item: DeviceListItem?): CameraBrand? = when {
+    isFujifilm -> CameraBrand.Fujifilm
+    isSony -> CameraBrand.Sony
+    item?.remoteSupported == false -> CameraBrand.Fujifilm
+    else -> null
 }

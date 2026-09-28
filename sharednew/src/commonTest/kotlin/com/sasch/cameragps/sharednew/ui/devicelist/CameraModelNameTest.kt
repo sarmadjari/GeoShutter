@@ -34,4 +34,18 @@ class CameraModelNameTest {
             assertEquals(it, cameraModelName(it))
         }
     }
+
+    @Test
+    fun theModelLineNamesTheBrandAndTheModel() {
+        assertEquals("Sony α1 II", cameraModelLine(CameraBrand.Sony, "ILCE-1M2"))
+        assertEquals("Fujifilm X100VI", cameraModelLine(CameraBrand.Fujifilm, "X100VI"))
+        // A Sony model code identifies the brand by itself.
+        assertEquals("Sony α7 IV", cameraModelLine(null, "ILCE-7M4"))
+        // A name chosen on a Sony camera isn't a model.
+        assertEquals("Sony", cameraModelLine(CameraBrand.Sony, "Sarmad's A1"))
+        assertEquals("Fujifilm", cameraModelLine(CameraBrand.Fujifilm, "N/A"))
+        // Unknown brand: the pairing name as before.
+        assertEquals("X100VI", cameraModelLine(null, "X100VI"))
+        assertEquals(null, cameraModelLine(null, "N/A"))
+    }
 }
