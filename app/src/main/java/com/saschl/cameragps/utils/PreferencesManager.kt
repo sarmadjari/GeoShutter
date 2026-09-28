@@ -7,6 +7,10 @@ import androidx.core.content.edit
 import com.sasch.cameragps.sharednew.ui.settings.LocationProvider
 import com.saschl.cameragps.service.TransmissionSoundEvent
 import com.saschl.cameragps.service.TransmissionSoundMode
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -82,6 +86,17 @@ object PreferencesManager {
             putBoolean(KEY_APP_ENABLED, enabled)
         }
     }
+
+    /** [isAppEnabled] now and after every change. */
+    fun appEnabledFlow(context: Context): Flow<Boolean> = callbackFlow {
+        val preferences = getPreferences(context)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key == KEY_APP_ENABLED) trySend(prefs.getBoolean(KEY_APP_ENABLED, true))
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        trySend(preferences.getBoolean(KEY_APP_ENABLED, true))
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
 
 
     fun reviewHintLastShownDaysAgo(context: Context, initialize: Boolean = false): Long {

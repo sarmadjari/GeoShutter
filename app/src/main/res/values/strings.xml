@@ -1,8 +1,24 @@
 <resources>
     <!-- Android framework/service-only strings. Shared UI strings live in sharednew composeResources. -->
-    <string name="foreground_service_notification">Transmitting location data to %1$d cameras</string>
     <string name="app_standby_title">Standby</string>
     <string name="app_standby_content">Waiting for camera to connect</string>
     <string name="notification_channel_name">Transmission state</string>
     <string name="disconnect_notification_channel_name">device disconnected</string>
+
+    <!-- Status outside the app: notification, Quick Settings tile, home-screen widget. -->
+    <string name="status_app_name" translatable="false">GeoShutter</string>
+    <string name="status_waiting_title">GeoShutter is on</string>
+    <string name="status_waiting_for">Waiting for %1$s</string>
+    <string name="status_sending_one">Sending location to %1$s</string>
+    <string name="status_sending_many">Sending location to %1$d cameras</string>
+    <string name="status_connecting_one">Connecting to %1$s</string>
+    <string name="status_connecting_many">Connecting to %1$d cameras</string>
+    <string name="status_turn_off">Turn off</string>
+    <string name="status_off">Off</string>
+    <string name="status_waiting_short">Waiting</string>
+    <string name="status_connecting_short">Connecting</string>
+    <string name="status_sending_count">%1$d sending</string>
+    <string name="status_sending_short">Sending location</string>
+    <string name="status_no_cameras">No cameras added yet</string>
+    <string name="status_widget_description">Whether GeoShutter is on and which cameras receive your location</string>
 </resources>

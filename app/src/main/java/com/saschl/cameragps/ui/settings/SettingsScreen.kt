@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import com.sasch.cameragps.sharednew.whatsnew.WhatsNewSettingsCard
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewState
 import com.saschl.cameragps.R
 import com.saschl.cameragps.service.location.LOCATION_PROVIDER_SELECTABLE
+import com.saschl.cameragps.status.GeoShutterSwitch
 import com.saschl.cameragps.ui.ReviewHintDebugPanel
 import com.saschl.cameragps.utils.CrashReporting
 import com.saschl.cameragps.utils.PreferencesManager
@@ -183,16 +185,13 @@ private fun SettingsOverviewScreen(
 @Composable
 private fun AppControlsInlineSection() {
     val context = LocalContext.current
-    var isAppEnabled by remember {
-        mutableStateOf(PreferencesManager.isAppEnabled(context))
-    }
+    // Follows the switch in the notification, tile and widget too.
+    val isAppEnabled by remember(context) { PreferencesManager.appEnabledFlow(context) }
+        .collectAsState(initial = PreferencesManager.isAppEnabled(context))
 
     AppControlsCard(
         isAppEnabled = isAppEnabled,
-        onAppEnabledChange = { enabled ->
-            isAppEnabled = enabled
-            PreferencesManager.setAppEnabled(context, enabled)
-        }
+        onAppEnabledChange = { enabled -> GeoShutterSwitch.setEnabled(context, enabled) }
     )
 }
 

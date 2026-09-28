@@ -11,6 +11,7 @@ import com.sasch.cameragps.sharednew.database.devices.CameraDeviceDAO
 import com.sasch.cameragps.sharednew.database.getDatabaseBuilder
 import com.saschl.cameragps.service.location.createLocationSource
 import com.saschl.cameragps.service.transport.AndroidBleTransport
+import com.saschl.cameragps.status.StatusPublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +55,9 @@ class AppServices(context: Context) {
         // A 3s first delay would stall every reconnect handshake.
         pairingPolicy = PairingRetryPolicy(firstRetryDelayMs = 0),
     )
+
+    /** GeoShutter's status for the notification, tile and widget; started by the Application. */
+    val statusPublisher = StatusPublisher(appContext, this)
 
     /**
      * Address of the last device whose pairing was rejected by the camera (auth

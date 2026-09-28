@@ -15,6 +15,12 @@ sealed interface ServiceCommand {
     data class SetRemoteControlMonitoring(val address: String, val enabled: Boolean) :
         ServiceCommand
     data object ReconnectAlwaysOn : ServiceCommand
+
+    /**
+     * GeoShutter was turned on: connect directly to every enabled saved camera so the
+     * ones that are already on connect now; stop again if none does.
+     */
+    data object ConnectSaved : ServiceCommand
     data class Ignore(val reason: String) : ServiceCommand
 }
 

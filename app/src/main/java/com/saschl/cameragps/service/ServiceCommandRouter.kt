@@ -14,11 +14,16 @@ class ServiceCommandRouter {
 
         /** Boolean extra: connect directly (see [ServiceCommand.Connect.direct]). */
         const val EXTRA_DIRECT_CONNECT = "directConnect"
+
+        /** See [ServiceCommand.ConnectSaved]. */
+        const val ACTION_CONNECT_SAVED = "com.saschl.cameragps.action.CONNECT_SAVED"
     }
 
     fun route(intent: Intent?): ServiceCommand {
         val action = intent?.action
         val address = intent?.getStringExtra("address")?.uppercase(Locale.getDefault())
+
+        if (action == ACTION_CONNECT_SAVED) return ServiceCommand.ConnectSaved
 
         if (action == SonyBluetoothConstants.ACTION_SET_REMOTE_CONTROL_MONITORING) {
             val enabled = intent.getBooleanExtra(EXTRA_REMOTE_CONTROL_ENABLED, false)

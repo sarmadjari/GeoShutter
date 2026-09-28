@@ -1,6 +1,5 @@
 package com.saschl.cameragps.ui.settings
 
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,6 @@ import cameragps.sharednew.generated.resources.haptic_feedback
 import cameragps.sharednew.generated.resources.haptic_feedback_description
 import cameragps.sharednew.generated.resources.reset_welcome
 import cameragps.sharednew.generated.resources.will_show_welcome
-import com.saschl.cameragps.service.LocationSenderService
 import com.saschl.cameragps.utils.PreferencesManager
 import org.jetbrains.compose.resources.stringResource
 
@@ -67,15 +65,7 @@ internal fun AppControlsCard(
 
             Switch(
                 checked = isAppEnabled,
-                onCheckedChange = { enabled ->
-                    onAppEnabledChange(enabled)
-                    context.stopService(
-                        Intent(
-                            context.applicationContext,
-                            LocationSenderService::class.java
-                        )
-                    )
-                }
+                onCheckedChange = onAppEnabledChange
             )
         }
 

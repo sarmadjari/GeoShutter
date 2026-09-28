@@ -25,6 +25,9 @@ licensed under the [GPL-3.0](LICENSE).
 - **Automatic reconnect**: pair once, and the app reconnects whenever you switch the
   camera on, also in the background and with the phone locked.
 - **Several cameras** at the same time.
+- **Status at a glance (Android)**: a status notification, a Quick Settings tile (on/off)
+  and a home-screen widget show whether GeoShutter is on and which cameras receive your
+  location.
 - **Remote shutter**: one tap runs a full half-press → focus → shutter → release cycle,
   driven by the camera's status messages.
 - **Per-camera settings**: rename, enable/disable, remote control, a connection-setup
@@ -91,13 +94,25 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    *Fujifilm X100VI*). On
    Android 12 and later, Android starts the app's foreground service whenever the camera
    shows up, even when the app is closed: it connects within seconds, syncs the time and
-   sends your location. When the camera is switched off, the service stops. A
-   notification shows the current state.
+   sends your location. When the camera is switched off, the service stops.
 5. **Always On** (per camera: *Keep active (Always On)*) keeps the foreground service
    running and reconnecting on its own. It is required on Android 8–11 and helps on
    phones with aggressive battery management (for example Xiaomi). While no camera is
    connected it does not access your location. Combine it with *Start App on Device boot*
    in Settings.
+6. **Status at a glance.** While GeoShutter is on, a notification shows what it is doing:
+   *Sending location to X100VI-…* (brand and model underneath), *Connecting to …* or
+   *GeoShutter is on – Waiting for …*. Its **Turn off** button switches GeoShutter off.
+   Two optional extras:
+   - the **GeoShutter** Quick Settings tile turns GeoShutter on or off; its icon fills
+     while a camera receives your location;
+   - the **GeoShutter** home-screen widget only shows the state: each camera with a green
+     (sending), amber (connecting), red (away) or grey (GeoShutter off) dot. Tap it to
+     open the app.
+
+   Turning GeoShutter on (tile or *Enable App*) connects right away to cameras that are
+   already on. An X100VI stops advertising about 30 seconds after it loses its connection:
+   if it doesn't connect, wake it or switch it off and on.
 
 ### iPhone
 
@@ -133,7 +148,8 @@ Removing it also deletes the Android companion association or the iOS accessory 
 
 ### Settings
 
-- **Android**: *Enable App* (master switch), *Start App on Device boot* (for Always On
+- **Android**: *Enable App* (master switch, same as the tile and the notification's *Turn
+  off*), *Start App on Device boot* (for Always On
   cameras), *Haptic feedback*, show the welcome screen again, log level, *Location
   Provider* (Google Play build only: Google Play services or the Android platform
   provider), *Transmission Event Sounds* (connected, disconnected, location acquired,

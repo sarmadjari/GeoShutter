@@ -3,14 +3,10 @@ package com.saschl.cameragps.notification
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
-import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
-import androidx.core.app.NotificationCompat
-import com.saschl.cameragps.MainActivity
 import com.saschl.cameragps.R
 
 internal object NotificationsHelper {
@@ -71,70 +67,5 @@ internal object NotificationsHelper {
             context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager
 
         notificationManager.notify(notificationId, notification)
-    }
-
-    fun buildWaitingNotification(
-        context: Context,
-        channelId: String = NOTIFICATION_CHANNEL_ID,
-    ): Notification = buildNotification(
-        context,
-        context.getString(R.string.app_standby_title),
-        context.getString(R.string.app_standby_content),
-        channelId,
-    )
-
-    fun buildNotification(
-        context: Context,
-        activeCameras: Int,
-        channelId: String = TRANSMISSION_NOTIFICATION_CHANNEL,
-        silent: Boolean = false,
-    ): Notification {
-        return NotificationCompat.Builder(context, channelId)
-            .setOngoing(true)
-            .setSilent(silent)
-            .setContentTitle(
-                context.getString(
-                    R.string.foreground_service_notification,
-                    activeCameras
-                )
-            )
-            .setContentText(
-                context.getString(
-                    R.string.foreground_service_notification,
-                    activeCameras
-                )
-            )
-            .setSmallIcon(R.drawable.ic_gps_fixed)
-            .setContentIntent(Intent(context, MainActivity::class.java).let { notificationIntent ->
-                PendingIntent.getActivity(
-                    context,
-                    0,
-                    notificationIntent,
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-            })
-            .build()
-    }
-
-    fun buildNotification(
-        context: Context,
-        title: String,
-        content: String,
-        channelId: String = DISCONNECT_NOTIFICATION_CHANNEL
-    ): Notification {
-        return NotificationCompat.Builder(context, channelId)
-            .setOngoing(true)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setSmallIcon(R.drawable.ic_gps_fixed)
-            .setContentIntent(Intent(context, MainActivity::class.java).let { notificationIntent ->
-                PendingIntent.getActivity(
-                    context,
-                    0,
-                    notificationIntent,
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-            })
-            .build()
     }
 }

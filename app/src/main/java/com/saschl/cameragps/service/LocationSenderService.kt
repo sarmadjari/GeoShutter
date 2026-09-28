@@ -3,6 +3,7 @@ package com.saschl.cameragps.service
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -10,22 +11,26 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.locationTransmissionNotificationId
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSessionOrchestrator
 import com.sasch.cameragps.sharednew.bluetooth.session.OrchestratorEvent
-import com.sasch.cameragps.sharednew.notification.TransmissionNotificationCoordinator
 import com.saschl.cameragps.AppServices
-import com.saschl.cameragps.notification.AndroidTransmissionNotificationPublisher
 import com.saschl.cameragps.notification.NotificationsHelper
 import com.saschl.cameragps.service.coordinator.ServiceShutdownCoordinator
 import com.saschl.cameragps.service.transport.AndroidBleTransport
-import kotlinx.coroutines.Job
+import com.saschl.cameragps.status.StatusNotifier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Thin Android lifecycle shell. Owns the foreground service, notifications,
@@ -41,7 +46,6 @@ class LocationSenderService : LifecycleService() {
     private lateinit var bluetoothStateReceiver: BluetoothStateBroadcastReceiver
     private val commandMutex = Mutex()
     private val commandRouter = ServiceCommandRouter()
-    private var transmissionNotificationJob: Job? = null
 
     // The BLE/location graph is app-scoped (see [AppServices]); the service
     // borrows it for the duration of a foreground session.
@@ -59,6 +63,14 @@ class LocationSenderService : LifecycleService() {
     companion object {
         @Volatile
         var isRunning: Boolean = false
+
+        private val runningState = MutableStateFlow(false)
+
+        /** Whether the service exists; while it does, it owns the status notification. */
+        val running: StateFlow<Boolean> = runningState.asStateFlow()
+
+        /** How long [ServiceCommand.ConnectSaved] waits for a camera that is already on. */
+        private val CONNECT_SAVED_TIMEOUT = 40.seconds
 
         /**
          * Check before every startForegroundService(): without a location grant,
@@ -82,6 +94,7 @@ class LocationSenderService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        runningState.value = true
     }
 
     @SuppressLint("MissingPermission")
@@ -95,20 +108,19 @@ class LocationSenderService : LifecycleService() {
         lifecycleScope.launch {
             orchestrator.events.collect { event -> handleEvent(event) }
         }
-        transmissionNotificationJob = TransmissionNotificationCoordinator(
-            scope = lifecycleScope,
-            sessions = orchestrator.sessions,
-            transmitting = orchestrator.locationManager.isTransmitting,
-            publisher = AndroidTransmissionNotificationPublisher(this),
-        ).start()
+        // The status notification itself is kept up to date by StatusPublisher.
         return true
     }
 
     @SuppressLint("MissingPermission")
     override fun onDestroy() {
         isRunning = false
-        // Stop publishing before shutdown clears sessions; teardown must not repost standby.
-        transmissionNotificationJob?.cancel()
+        // Keep the status notification: StatusPublisher turns it into "waiting" (or
+        // removes it when GeoShutter was turned off).
+        if (hasForegroundSession) {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+        }
+        runningState.value = false
         super.onDestroy()
         runCatching {
             if (::bluetoothStateReceiver.isInitialized) unregisterReceiver(bluetoothStateReceiver)
@@ -207,6 +219,11 @@ class LocationSenderService : LifecycleService() {
                 shutdownCoordinator.handleNoAddress(startId)
             }
 
+            is ServiceCommand.ConnectSaved -> {
+                ensureBluetoothStateReceiver()
+                connectSavedCameras(startId)
+            }
+
             is ServiceCommand.Shutdown -> {
                 shutdownCoordinator.handleShutdownRequest(command.address, startId)
             }
@@ -263,6 +280,36 @@ class LocationSenderService : LifecycleService() {
         }
     }
 
+    /** See [ServiceCommand.ConnectSaved]. */
+    @SuppressLint("MissingPermission")
+    private suspend fun connectSavedCameras(startId: Int) {
+        // The saved cameras are the companion associations (as in the camera list);
+        // cameras switched off in the app are skipped.
+        val associations = runCatching {
+            getSystemService<CompanionDeviceManager>()
+                ?.getAssociatedDevices(bluetoothManager.adapter)
+                .orEmpty()
+        }.onFailure { Timber.w(it, "Could not read the saved cameras") }
+            .getOrDefault(emptyList())
+        val addresses = associations.map { it.address.uppercase() }
+            .filter { it != "N/A" && services.deviceDao.findDeviceEnabled(it) != false }
+        Timber.i("Connecting to %d saved camera(s) that may already be on", addresses.size)
+        for (address in addresses) {
+            if (transport.isConnected(address)) continue
+            if (!transport.hasConnection(address)) orchestrator.onConnectRequested(address)
+            val started = runCatching { transport.connect(address, direct = true) }
+                .onFailure { Timber.w(it, "Direct connection to $address failed") }
+                .getOrDefault(false)
+            if (!started) orchestrator.onConnectFailed(address)
+        }
+        // Cameras that are off don't answer: stop again unless one connected or one is
+        // Always On. Android reports the others when they are switched on.
+        lifecycleScope.launch {
+            if (addresses.isNotEmpty()) delay(CONNECT_SAVED_TIMEOUT)
+            shutdownCoordinator.stopIfIdle(startId)
+        }
+    }
+
     private fun ensureBluetoothStateReceiver() {
         if (!::bluetoothStateReceiver.isInitialized) {
             bluetoothStateReceiver = BluetoothStateBroadcastReceiver { enabled ->
@@ -286,7 +333,7 @@ class LocationSenderService : LifecycleService() {
             ServiceCompat.startForeground(
                 this,
                 locationTransmissionNotificationId,
-                NotificationsHelper.buildWaitingNotification(this),
+                StatusNotifier.quiet(this, services.statusPublisher.status.value),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
             )
         } catch (e: SecurityException) {

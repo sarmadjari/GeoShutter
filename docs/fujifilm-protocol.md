@@ -223,6 +223,12 @@ checked with exiftool).
   each) before falling back: back within about 11 s in the test.
 - No notification, readable value or connection-parameter change shows whether the camera
   is on or off (see On/off).
+- Without a connection it stops advertising soon: after GeoShutter was turned off (link
+  closed by the phone) companion presence reported it gone 31 s later. Turning GeoShutter
+  on 50 s after that, with the camera still on, the four direct attempts timed out
+  (status `147`) while an α1 II that was on connected in 0.3 s. The camera connects the
+  next time it advertises (switching on or waking); with Always On the background
+  connection waits for it.
 
 ## Verification status
 

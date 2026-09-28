@@ -32,6 +32,11 @@ class RebootReceiver : BroadcastReceiver() {
             else -> false
         }
         if (!shouldStart) return
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            // The update ended every connection, and Android does not report cameras
+            // that are still on again: connect to them.
+            serviceIntent.action = ServiceCommandRouter.ACTION_CONNECT_SAVED
+        }
 
         try {
             ContextCompat.startForegroundService(context, serviceIntent)

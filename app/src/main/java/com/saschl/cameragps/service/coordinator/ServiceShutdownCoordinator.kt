@@ -54,6 +54,17 @@ class ServiceShutdownCoordinator(
         }
     }
 
+    /**
+     * Stop the service when no camera connected and none is Always On. A newer start
+     * command (a camera Android reported meanwhile) keeps it running; stopping cleans
+     * up pending connections in onDestroy.
+     */
+    suspend fun stopIfIdle(startId: Int) {
+        if (transport.connectedCount() > 0 || deviceDao.getAlwaysOnEnabledDeviceCount() > 0) return
+        Timber.i("No saved camera answered, waiting until Android reports one")
+        onShutdownRequested(startId)
+    }
+
     @SuppressLint("MissingPermission")
     private suspend fun handleShutdownAllDevices(startId: Int) {
         if (deviceDao.getAlwaysOnEnabledDeviceCount() == 0) {

@@ -44,5 +44,9 @@ class CameraGpsApplication : Application() {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))
+
+        // Status notification, Quick Settings tile and widget follow GeoShutter's state
+        // for as long as the process lives.
+        services.statusPublisher.start()
     }
 }

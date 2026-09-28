@@ -97,6 +97,38 @@
             </intent-filter>
         </receiver>
 
+        <!-- Status outside the app: Quick Settings tile, home-screen widget and the
+             status notification's "Turn off" button. -->
+        <service
+            android:name=".status.StatusTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_gps_not_fixed"
+            android:label="@string/status_app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
+
+        <receiver
+            android:name=".status.StatusWidgetReceiver"
+            android:exported="true"
+            android:label="@string/status_app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/status_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".status.StatusActionReceiver"
+            android:exported="false" />
+
         <meta-data
             android:name="io.sentry.auto-init"
             android:value="false" />

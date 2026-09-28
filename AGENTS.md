@@ -117,8 +117,16 @@ python3 -m unittest discover -s tools/ios_localization -v
 - `screencap` on the Fold prints a multi-display warning before the PNG; strip everything
   before the PNG signature.
 - After installing a new build, Android rebinds the companion service without repeating
-  "appeared", so a camera that is already present only reconnects once it is switched off
-  and on.
+  "appeared"; `RebootReceiver` therefore connects the saved cameras (`ConnectSaved`) when
+  the app is enabled. A Fujifilm camera is reached only if it still advertises.
+- Quick Settings tile from adb: `adb shell cmd statusbar expand-settings`, then
+  `adb shell cmd statusbar click-tile com.sarmadjari.geoshutter/com.saschl.cameragps.status.StatusTileService`.
+  With the panel closed the click is queued and delivered when the panel next opens (it
+  then toggles once more). `cmd statusbar add-tile …` adds the tile.
+- Never run `connectedAndroidTest` on this phone: it uninstalls the app afterwards, which
+  deletes the companion associations (every camera must be added again). `am instrument`
+  also force-stops the app. Only assemble the instrumented tests
+  (`:app:assembleGplayDebugAndroidTest`).
 
 ## 4. Architecture in brief
 
@@ -139,7 +147,10 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
   - Android: `AppServices` (app-scoped graph), CompanionDeviceManager association +
     presence (`CameraDeviceCompanionService`, Android 12+) → foreground
     `LocationSenderService`; optional per-camera *Always On*; `AndroidBleTransport`
-    (`autoConnect`, bonded devices only).
+    (direct connect on presence, `autoConnect` fallback, bonded devices only).
+    `StatusPublisher` drives the status notification, Quick Settings tile and home-screen
+    widget from the shared `GeoShutterStatus`; `GeoShutterSwitch` turns the app on (and
+    connects cameras that are already on) or off.
   - iOS: `IosBluetoothController` (facade/policy), `IosCentralShell` (CBCentralManager with
     state restoration, created in `AppDelegate` via `ensureInitialized()`),
     `IosBleTransport` (pairing gate), AccessorySetupKit (`IosAccessoryShell`/`Coordinator`)
@@ -236,6 +247,12 @@ fork's site. GitHub Pages is not enabled on the fork.
 - 2026-09-28: every camera, Sony included, connects directly (fast) when Android reports
   it nearby; the camera list shows each camera's own name with brand and model underneath
   (for example "Sony α1 II", "Fujifilm X100VI"; Sony model codes as marketing names).
+- 2026-09-28: GeoShutter's state is shown outside the app in all three places the user
+  picked: status notification (with *Turn off*), Quick Settings tile (on/off) and
+  home-screen widget. The widget is **monitoring only** (no on/off button; a tap opens
+  the app). Live Updates / promoted notifications were rejected (Google reserves them for
+  user-initiated, time-sensitive activities). Turning GeoShutter on connects right away
+  to saved cameras that are already on.
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -272,7 +289,15 @@ fork's site. GitHub Pages is not enabled on the fork.
   characteristic), so the app can't show it; the phone keeps its location updates running
   meanwhile (possible follow-up: slower location updates for
   Fujifilm-only sessions, needs a user decision).
-- iOS: the camera-name/model line and the direct connects are Android-only so far.
+- iOS: the camera-name/model line, the direct connects and the status tile/widget are
+  Android-only so far.
+- Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
+  minute, and is back 5–35 s later; seen in every session on 2026-09-28 since the first
+  test, before the status and turn-on changes. Probably the camera's power save; not
+  investigated. Each drop costs a reconnect and setup (about 4 s).
+- An X100VI that is on but lost its connection more than about half a minute ago no
+  longer advertises, so turning GeoShutter on can't reach it until it is woken or switched
+  off and on (see `docs/fujifilm-protocol.md`, Link behavior).
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
@@ -377,3 +402,14 @@ fork's site. GitHub Pages is not enabled on the fork.
   up 0.06–0.2 s after the camera appeared; it sent Service Changed right after encryption
   on each connection, and the restart/rediscovery handling made setup complete 3–5 s after
   the camera appeared (first hardware run of that code).
+- 2026-09-28 (late night): GeoShutter's state outside the app. Shared `GeoShutterStatus`
+  (3 tests); Android `StatusPublisher` drives one status notification (replaces
+  `AndroidTransmissionNotificationPublisher`; foreground while the service runs, a quiet
+  "waiting" notification otherwise, *Turn off* action), a Quick Settings tile (on/off) and
+  a Glance home-screen widget, made monitoring-only at the user's request. Turning
+  GeoShutter on (tile, *Enable App*) and app updates send `ConnectSaved`: direct
+  connections to every enabled saved camera; the service stops after 40 s if none
+  connected and none is Always On. On the phone an α1 II that was already on connected
+  0.2–0.3 s after turning on and received locations 2–4 s later; an X100VI that had been
+  on without a connection could not be reached (it had stopped advertising). Full suite
+  green: 192 JVM tests, app tests, lint (0 errors), four APKs, instrumented-test APK.
