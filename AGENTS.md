@@ -261,14 +261,12 @@ fork's site. GitHub Pages is not enabled on the fork.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging works on an X100VI
-  (2026-09-28); open: UTC vs local time, registration right after pairing, slow reconnect
-  after switching the camera on (up to about 1.5 min), no on/off indication (the camera
-  stays connected while off), iOS and legacy firmware unsupported, remote/camera settings
-  Sony-only.
-- Requested, not built yet: show each saved camera's own Bluetooth name plus its model in
-  the camera list (user's choice, 2026-09-28). The X100VI exposes both: GAP device name
-  `2A00` and Device Information model `2A24` are readable. Store the name without
-  overwriting a rename (`deviceNameIsCustom`).
+  (firmware 01.32, 2026-09-28); open: UTC vs local time, registration right after pairing,
+  iOS and legacy firmware unsupported, remote/camera settings Sony-only. The camera stays
+  connected while switched off and gives no Bluetooth sign of on/off (tested with every
+  readable and notifying characteristic), so the app can't show it; the phone keeps its
+  location updates running meanwhile (possible follow-up: slower location updates for
+  Fujifilm-only sessions, needs a user decision).
 - Services-changed handling (restart setup, retrying rediscovery) is unit-tested but not
   yet exercised on hardware: the Sony α1 II stopped sending Service Changed after it was
   paired again.
@@ -364,3 +362,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   `DD30`, status 159). Observed: the X100VI stays connected while switched off. Findings
   and the GATT table are in `docs/fujifilm-protocol.md`. 20 tests in `FujifilmSessionTest`;
   full suite green (185 JVM, 222 iOS simulator, app tests, lint, four APKs).
+- 2026-09-28 (night): camera list shows each camera's own name with the model underneath
+  (user's choice). For Fujifilm the name comes from NOT4 ("FUJIFILM-X100VI-…"; the GAP
+  device name is only "X100VI"), stored unless renamed. A diagnostic build (not
+  committed) watched all readable and notifying X100VI characteristics through on/off:
+  nothing changes, so on/off can't be shown. Fujifilm direct connections are now retried
+  three times before falling back to autoConnect: back within about 11 s after switching
+  on (was 26 s to 1.5 min, once never).

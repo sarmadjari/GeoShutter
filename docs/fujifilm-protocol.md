@@ -125,6 +125,8 @@ produce new fixes, and Fujifilm cameras ignore locations older than three hours.
 | `AndroidBleTransport.kt` | service-scoped characteristic lookup; enables indications for indication-only characteristics |
 | `DeviceAssociationUtils.kt` | companion-device filter for `0x04D8` |
 | `CameraDeviceCompanionService.kt`, `CameraDeviceManager.kt` | a camera that stops advertising while connected stays connected; direct connect when a Fujifilm camera appears and right after pairing (registration) |
+| `AndroidBleTransport.kt` (`connect(direct = true)`) | direct connection with three direct retries before falling back to `autoConnect` |
+| `CameraSessionOrchestrator.storeCameraName`, `AssociatedDevicesList.kt` | camera name from NOT4 stored unless renamed; the list shows name and model |
 | `FujifilmPacketBuilderTest.kt`, `FujifilmSessionTest.kt` | packets checked against Python `struct.pack('<iii4sHBBBBB', …)`, handshake order, pull-only delivery, failure paths, no remote monitoring for Fujifilm, protocol re-detected on every connect, Sony and Fujifilm side by side |
 
 Not implemented: iOS (the AccessorySetupKit picker only lists Sony cameras), the legacy
@@ -137,8 +139,8 @@ shows a plain "Connected".
 
 Observed with a GeoShutter debug build on a Samsung Galaxy SM-F976B (Android 17), from
 the Android Bluetooth stack's log and GeoShutter's own log. No HCI snoop capture was
-taken; the camera's firmware version was not recorded yet (it is readable from Device
-Information `2A26`). Addresses and the serial number are left out.
+taken. Camera firmware 01.32 (Device Information `2A26`; `2A28` reads 01.81, `2A24` the
+model code FF230003). Addresses, serial numbers and other identifiers are left out.
 
 **Advertisement.** In PAIRING REGISTRATION the camera advertises as `X100VI` from a random
 resolvable address, with service `a9d2b304-…` and 6 bytes of manufacturer data after the
@@ -183,6 +185,19 @@ connects right after bonding to do the same (not yet verified with a fresh pairi
 NOT8 (`2a125640-…`) and NOT10 (`deef7187-…`) do not exist on the X100VI; they are optional
 and skipped.
 
+**Names.** The GAP device name `2A00` holds only the model ("X100VI"). NOT4 (`bf6dc9cf`)
+reads as the camera's own name, "FUJIFILM-X100VI-" plus four serial characters (the same
+suffix as the `X100VI-…` advertisement). GeoShutter reads NOT4 after each Fujifilm
+handshake and shows the name without "FUJIFILM-" in the camera list, with the model (the
+pairing name) underneath. A name set with Rename is never replaced.
+
+**On/off.** A diagnostic build subscribed to the seven notify/indicate characteristics
+GeoShutter doesn't use (`049ec406`, `2f6cb772`, `11438c83`, `4b3a413c`, `bd45f887`,
+`caedb497`, `98934b2c`) and read about 40 readable characteristics every 30 s while the
+camera was switched on, off for about 20 minutes and on again. No value changed, no
+notification arrived, and the location requests kept coming exactly every 10 s. The
+X100VI shows no sign over Bluetooth of whether it is on or off.
+
 **Handshake and geotagging.** Every step of furble's secure handshake was accepted. After
 it the camera notifies NOT1 `01 00` and the geotag request `01 00`; the sync-interval write
 `0a 00` is echoed as a notification with the same value. The camera then asks for the
@@ -197,10 +212,12 @@ checked with exiftool).
   asleep (seen for more than 15 minutes). The app therefore shows it as connected.
 - Switching it on or waking it drops the link (`0x13`), and the camera advertises again.
   Connections made in the first seconds often go silent right away (supervision timeout
-  `0x08`, encryption request unanswered). GeoShutter reconnected after 26 s to about
-  1.5 minutes.
-- No notification and no connection-parameter change showed whether the camera is on or
-  off.
+  `0x08`, encryption request unanswered). With a single direct attempt followed by the
+  background connection, GeoShutter needed 26 s to about 1.5 minutes, and once missed
+  the camera entirely. It now retries the direct connection three times (about 30 s
+  each) before falling back: back within about 11 s in the test.
+- No notification, readable value or connection-parameter change shows whether the camera
+  is on or off (see On/off).
 
 ## Verification status
 
@@ -220,11 +237,9 @@ checked with exiftool).
   coordinates have not been compared with exiftool either.
 - Registration right after bonding (connect on the pairing connection) is implemented but
   not yet tried with a fresh pairing.
-- After the camera is switched on, reconnecting can take up to about 1.5 minutes (see
-  Link behavior).
-- The app cannot show whether the camera is on or off while it stays connected; a signal
-  for that has not been found (candidates: the unsubscribed characteristics above).
-- The firmware version is not recorded yet.
+- The app cannot show whether the camera is on or off while it stays connected: the camera
+  gives no signal (see On/off). While it is off but connected, the phone keeps its
+  location updates running.
 - The date/time sync characteristic of XApp is unknown (furble doesn't implement it).
 
 ## Research plan

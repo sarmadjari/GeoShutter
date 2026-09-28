@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import androidx.annotation.RequiresPermission
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationStatus
@@ -43,14 +44,28 @@ class AndroidBleTransport(
     private companion object {
         // BluetoothStatusCodes.ERROR_DEVICE_NOT_CONNECTED is hidden from the public SDK.
         const val ERROR_DEVICE_NOT_CONNECTED = 4
+
+        /** Direct retries after a failed or dropped direct connection (about 30 s each). */
+        const val DIRECT_RETRIES = 3
+
+        /** A connection that lasted this long counts as stable, not as a failed attempt. */
+        const val STABLE_CONNECTION_MS = 30_000L
     }
 
     private val eventChannel = Channel<BleTransportEvent>(Channel.UNLIMITED)
     override val events: Flow<BleTransportEvent> = eventChannel.receiveAsFlow()
 
-    private class Connection(val gatt: BluetoothGatt, val direct: Boolean = false) {
+    private class Connection(
+        val gatt: BluetoothGatt,
+        val direct: Boolean = false,
+        /** Further direct attempts before falling back to autoConnect. */
+        val directAttemptsLeft: Int = 0,
+    ) {
         @Volatile
         var isActive = false
+
+        @Volatile
+        var connectedAtMs = 0L
     }
 
     /** Uppercased MAC → connection. Entries survive disconnects (autoConnect). */
@@ -63,9 +78,11 @@ class AndroidBleTransport(
     /**
      * Opens a background (`autoConnect`) connection, or with [direct] a direct one
      * that scans aggressively for about 30 s. Direct is for cameras that advertise
-     * only briefly (Fujifilm); after a failed attempt or its first disconnect the
-     * device falls back to the background connection. A direct request also
-     * replaces a background connection that is still waiting.
+     * only briefly (Fujifilm). A Fujifilm camera that was just switched on drops its
+     * first connections and advertises again shortly after, so a failed or dropped
+     * direct connection is retried directly [DIRECT_RETRIES] times before the device
+     * falls back to the background connection. A direct request also replaces a
+     * background connection that is still waiting.
      */
     fun connect(mac: String, direct: Boolean = false): Boolean {
         val address = mac.uppercase()
@@ -84,7 +101,8 @@ class AndroidBleTransport(
             }
             val gatt = openGatt(device, autoConnect = !direct)
                 ?: throw IllegalStateException("Failed to connect to device $address: GATT is null")
-            connections[address] = Connection(gatt, direct)
+            connections[address] =
+                Connection(gatt, direct, directAttemptsLeft = if (direct) DIRECT_RETRIES else 0)
         } catch (e: SecurityException) {
             Timber.e("SecurityException while connecting to device $address: ${e.message}")
             return false
@@ -111,15 +129,20 @@ class AndroidBleTransport(
             device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
         }
 
-    /** A direct connection does not come back by itself: hand the device to autoConnect. */
-    private fun fallBackToAutoConnect(address: String, finished: Connection) {
+    /**
+     * A direct connection does not come back by itself: retry directly while attempts
+     * are left, then hand the device to autoConnect.
+     */
+    private fun reconnectAfter(address: String, finished: Connection, directAttemptsLeft: Int) {
         // Not found: shut down or replaced meanwhile.
         if (!connections.remove(address, finished)) return
         closeQuietly(finished.gatt)
-        val gatt = runCatching { openGatt(finished.gatt.device, autoConnect = true) }
-            .onFailure { Timber.w(it, "Could not reopen %s with autoConnect", address) }
+        val direct = directAttemptsLeft > 0
+        val gatt = runCatching { openGatt(finished.gatt.device, autoConnect = !direct) }
+            .onFailure { Timber.w(it, "Could not reopen %s", address) }
             .getOrNull() ?: return
-        if (connections.putIfAbsent(address, Connection(gatt)) != null) closeQuietly(gatt)
+        val next = Connection(gatt, direct, directAttemptsLeft = (directAttemptsLeft - 1).coerceAtLeast(0))
+        if (connections.putIfAbsent(address, next) != null) closeQuietly(gatt)
     }
 
     @SuppressLint("MissingPermission")
@@ -296,6 +319,7 @@ class AndroidBleTransport(
                 }
                 Timber.i("Connected to device with status %d", status)
                 connection.isActive = true
+                connection.connectedAtMs = SystemClock.elapsedRealtime()
                 // Discovery + handshake are dozens of sequential ATT round trips,
                 // each costing one connection interval (~50ms at the default).
                 // Request the short interval for setup; relaxConnection() drops
@@ -330,7 +354,15 @@ class AndroidBleTransport(
                 if (connection != null && connection.direct) {
                     // A direct attempt that timed out never connected: no session to end.
                     if (wasActive) eventChannel.trySend(BleTransportEvent.Disconnected(address, status))
-                    fallBackToAutoConnect(address, connection)
+                    // After a stable connection (the camera was switched on, for example)
+                    // start a fresh round of direct attempts.
+                    val stable = wasActive &&
+                            SystemClock.elapsedRealtime() - connection.connectedAtMs > STABLE_CONNECTION_MS
+                    reconnectAfter(
+                        address,
+                        connection,
+                        if (stable) DIRECT_RETRIES else connection.directAttemptsLeft,
+                    )
                     return
                 }
                 eventChannel.trySend(BleTransportEvent.Disconnected(address, status))

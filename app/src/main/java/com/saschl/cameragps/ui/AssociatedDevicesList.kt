@@ -50,16 +50,20 @@ fun AssociatedDevicesList(
     }
 
     val devices = associatedDevices.map { compat ->
+        val item = items[compat.address.uppercase()]
+        // A name the user chose wins, then the camera's own Bluetooth name; the
+        // association (pairing) name is the model. CDM is left alone, so its own
+        // record keeps whatever the pairing flow set.
+        val name = item?.customName ?: item?.reportedName ?: compat.name
         BluetoothDeviceInfo(
             identifier = compat.address.uppercase(),
-            // A name the user chose wins over the association name; CDM is left
-            // alone, so its own record keeps whatever the pairing flow set.
-            name = items[compat.address.uppercase()]?.customName ?: compat.name,
+            name = name,
             // Drives the card's status line; mirrors the old "remote text only
             // while transmitting" gating
-            isConnected = items[compat.address.uppercase()]?.isTransmissionActive == true,
+            isConnected = item?.isTransmissionActive == true,
             isSaved = true,
             isPaired = compat.isPaired,
+            model = compat.name.takeIf { it != name && it != "N/A" },
         )
     }
 

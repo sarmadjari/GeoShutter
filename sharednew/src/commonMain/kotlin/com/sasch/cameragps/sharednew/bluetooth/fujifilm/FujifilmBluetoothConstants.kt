@@ -84,6 +84,13 @@ object FujifilmBluetoothConstants {
     /** Name the app identifies itself with; shown by the camera for the paired phone. */
     const val CLIENT_NAME = "GeoShutter"
 
+    /**
+     * Prefix of the camera's own name in NOT4 ([NOTIFICATION_4_UUID]), readable on the
+     * X100VI as "FUJIFILM-X100VI-" plus four serial characters. The standard GAP device
+     * name only holds the model ("X100VI").
+     */
+    const val CAMERA_NAME_PREFIX = "FUJIFILM-"
+
     /** One subscription step of the secure handshake, in furble's order. */
     data class Subscription(
         val serviceUuid: String,

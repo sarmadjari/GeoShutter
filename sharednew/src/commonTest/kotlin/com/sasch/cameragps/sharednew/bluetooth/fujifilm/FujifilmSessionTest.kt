@@ -75,7 +75,7 @@ class FujifilmSessionTest {
             Fuji.GEOTAG_SYNC_INTERVAL_UUID,
             Fuji.NOTIFICATION_SERVICE_UUID,
             listOf(0x0A, 0x00),
-        )
+        ) + Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) // camera name
         assertEquals(expected, f.transport.steps("F"))
         // The two indication characteristics come first, as in furble.
         assertEquals(
@@ -334,6 +334,27 @@ class FujifilmSessionTest {
         assertEquals(CameraProtocol.FujifilmSecure, f.session("F").protocol)
     }
 
+    @Test
+    fun theCameraNameFromNot4IsStoredUnlessTheCameraWasRenamed() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.devices["F"] = CameraDevice(mac = "F", deviceName = "X100VI")
+        f.dao.devices["G"] =
+            CameraDevice(mac = "G", deviceName = "My Fuji", deviceNameIsCustom = true)
+        f.dao.devices["S"] = CameraDevice(mac = "S", deviceName = "ILCE-1M2")
+
+        f.connect("F", FUJIFILM)
+        f.connect("G", FUJIFILM)
+        f.connect("S", SONY)
+        runCurrent()
+
+        assertEquals("X100VI-1A2B", f.dao.devices.getValue("F").deviceName)
+        assertFalse(f.dao.devices.getValue("F").deviceNameIsCustom)
+        assertEquals("My Fuji", f.dao.devices.getValue("G").deviceName)
+        // Sony cameras keep their pairing name (unchanged behavior).
+        assertEquals("ILCE-1M2", f.dao.devices.getValue("S").deviceName)
+        assertTrue(f.session("F").isLocationReady)
+    }
+
     // ---- fixtures ----
 
     private sealed interface Step {
@@ -354,8 +375,9 @@ class FujifilmSessionTest {
     private class Fixture(scope: CoroutineScope) {
         val source = FakeSource()
         val transport = FakeTransport()
+        val dao = FakeDao()
         val orchestrator =
-            CameraSessionOrchestrator(transport, source, FakeDao(), scope).also { it.start() }
+            CameraSessionOrchestrator(transport, source, dao, scope).also { it.start() }
         val events = mutableListOf<OrchestratorEvent>()
 
         init {
@@ -414,6 +436,7 @@ class FujifilmSessionTest {
         var status = byteArrayOf(0x07, 0x96.toByte(), 0x00, 0x00)
         val failingSubscriptions = mutableSetOf<String>()
         var authErrorsLeft = 0
+        var cameraName = "FUJIFILM-X100VI-1A2B"
 
         /** Keeps read responses back (in flight) until [releaseReads]. */
         var holdReads = false
@@ -491,7 +514,12 @@ class FujifilmSessionTest {
                 BleOperationStatus.Success
             }
             // Sony's config read reports time zone support (byte 4, bit 0x02).
-            val value = if (isStatus) status else byteArrayOf(0, 0, 0, 0, 2)
+            val value = when {
+                isStatus -> status
+                characteristicUuid.equals(Fuji.NOTIFICATION_4_UUID, ignoreCase = true) ->
+                    cameraName.encodeToByteArray() + ByteArray(5)
+                else -> byteArrayOf(0, 0, 0, 0, 2)
+            }
             val event = BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result)
             if (holdReads) heldReads += event else emit(event)
             return true
@@ -539,10 +567,15 @@ class FujifilmSessionTest {
     }
 
     private class FakeDao : CameraDeviceDAO {
-        override suspend fun getAllCameraDevices() = emptyList<CameraDevice>()
+        val devices = mutableMapOf<String, CameraDevice>()
+        override suspend fun getAllCameraDevices() = devices.values.toList()
         override fun observeAllDevices() = flowOf(emptyList<CameraDevice>())
         override suspend fun insertDevice(device: CameraDevice) = Unit
-        override suspend fun setDeviceName(deviceId: String, name: String, isCustom: Boolean) = Unit
+        override suspend fun setDeviceName(deviceId: String, name: String, isCustom: Boolean) {
+            devices[deviceId]?.let {
+                devices[deviceId] = it.copy(deviceName = name, deviceNameIsCustom = isCustom)
+            }
+        }
         override suspend fun getDeviceName(address: String): String? = null
         override suspend fun deleteDevice(device: CameraDevice) = Unit
         override suspend fun setDeviceEnabled(deviceId: String, enabled: Boolean) = Unit

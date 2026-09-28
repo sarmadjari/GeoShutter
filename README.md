@@ -202,9 +202,11 @@ Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera 
 the location itself; remote control and the camera time/area settings are Sony features.
 Geotagging works on an X100VI. Two things behave differently from Sony cameras: the camera
 stays connected while it is switched off (it keeps asking for the location, so the app
-shows it as connected), and after switching it on, reconnecting can take up to a minute or
-two. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details and what is
-still unverified.
+shows it as connected, and there is no Bluetooth signal that tells on from off), and when
+it is switched on it drops the connection; GeoShutter reconnects within about half a
+minute. The camera list shows the camera's own name (for example `X100VI-…`) with the
+model underneath. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details
+and what is still unverified.
 
 ## Build from source
 

@@ -12,6 +12,8 @@ data class BluetoothDeviceInfo(
     val isSaved: Boolean = false,
     /** Android CDM bond state; iOS always true (pairing is part of connecting). */
     val isPaired: Boolean = true,
+    /** Model shown under [name] when it differs, e.g. "X100VI" under "X100VI-1A2B". */
+    val model: String? = null,
 )
 
 enum class BluetoothCapability {

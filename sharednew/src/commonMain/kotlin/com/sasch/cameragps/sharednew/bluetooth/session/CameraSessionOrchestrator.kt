@@ -554,7 +554,10 @@ class CameraSessionOrchestrator(
         // A restarted setup (services changed) reports its own result.
         if (setupGeneration[id] != generation) return
         when (result) {
-            FujifilmHandshakeResult.Success -> handleHandshakeComplete(id)
+            FujifilmHandshakeResult.Success -> {
+                handleHandshakeComplete(id)
+                storeCameraName(id)
+            }
             FujifilmHandshakeResult.PairingRejected -> {
                 log.e { "Pairing retries exhausted for $id" }
                 registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Error) }
@@ -568,6 +571,21 @@ class CameraSessionOrchestrator(
                 registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Error) }
             }
         }
+    }
+
+    /**
+     * Saves the camera's own name (e.g. "X100VI-" plus four serial characters, from
+     * NOT4) for the camera list, unless the user renamed the camera.
+     */
+    private suspend fun storeCameraName(id: String) {
+        val name = fujifilm.readCameraName(id) ?: return
+        runCatching {
+            val device = deviceDao.getAllCameraDevices()
+                .firstOrNull { it.mac.equals(id, ignoreCase = true) } ?: return
+            if (device.deviceNameIsCustom || device.deviceName == name) return
+            deviceDao.setDeviceName(id, name, isCustom = false)
+            log.i { "Camera $id reports the name $name" }
+        }.onFailure { log.w(it, msg = { "Could not store the name of $id" }) }
     }
 
     private fun handleFujifilmNotification(event: BleTransportEvent.CharacteristicChanged) {

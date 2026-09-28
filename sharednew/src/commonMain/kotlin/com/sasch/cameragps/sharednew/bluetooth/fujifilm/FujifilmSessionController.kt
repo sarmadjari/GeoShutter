@@ -121,6 +121,24 @@ internal class FujifilmSessionController(
         return FujifilmHandshakeResult.Success
     }
 
+    /**
+     * The camera's own name from NOT4, e.g. "X100VI-1A2B" (the "FUJIFILM-" prefix is
+     * dropped), or null when it can't be read.
+     */
+    suspend fun readCameraName(identifier: String): String? {
+        val id = identifier.uppercase()
+        val result = port.execute(
+            id,
+            BleOperation.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID),
+        )
+        val value = (result as? BleOperationResult.Success)?.value ?: return null
+        return value.decodeToString()
+            .substringBefore('\u0000')
+            .trim()
+            .removePrefix(Fuji.CAMERA_NAME_PREFIX)
+            .takeIf { name -> name.isNotEmpty() && name.all { it.code in 32..126 } }
+    }
+
     /** Interpret a notification or indication from a Fujifilm camera. */
     fun onCharacteristicChanged(
         identifier: String,

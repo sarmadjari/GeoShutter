@@ -42,6 +42,11 @@ data class DeviceListItem(
     val locationDisabledByCamera: Boolean = false,
     /** False for cameras without Bluetooth remote support in the app (Fujifilm). */
     val remoteSupported: Boolean = true,
+    /**
+     * The stored name when nobody renamed the camera: the pairing name, or the camera's
+     * own Bluetooth name once it reported one (Fujifilm).
+     */
+    val reportedName: String? = null,
 )
 
 /**
@@ -64,6 +69,8 @@ class DeviceListViewModel(dataSource: DeviceListDataSource) : ViewModel() {
                 identifier = identifier,
                 customName = persisted?.takeIf { it.deviceNameIsCustom }?.deviceName
                     ?.takeUnless { it.isBlank() },
+                reportedName = persisted?.takeUnless { it.deviceNameIsCustom }?.deviceName
+                    ?.takeUnless { it.isBlank() || it == "N/A" },
                 isAlwaysOnEnabled = persisted?.alwaysOnEnabled == true,
                 isTransmissionActive =
                     session?.isLocationReady == true && transmissionActive,
