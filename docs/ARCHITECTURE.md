@@ -20,7 +20,7 @@ those names appear throughout this document.
 | `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, StoreKit, Sentry). |
 | `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "GeoShutter", bundle ID `com.saschl.cameragps`, iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
 | `website/` | Astro static site | — | Landing page (upstream deploys it to alphagps.app). |
-| `tools/` | Scripts | — | Screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
+| `tools/` | Scripts | — | App icon generator, screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
 
 Root Gradle project name: `CameraGps`. Dependency versions: `gradle/libs.versions.toml`.
 

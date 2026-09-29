@@ -338,7 +338,7 @@ cd website && npm ci && npm run dev    # local preview; npm run build writes web
 | [`website/`](website) | Astro landing page |
 | [`fastlane/metadata/android/`](fastlane/metadata/android) | F-Droid store metadata |
 | [`localization/ios/`](localization/ios) | XLIFF files for translating the iOS permission texts on Weblate |
-| [`tools/`](tools) | App Store screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer |
+| [`tools/`](tools) | App icon generator, App Store screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer |
 | [`.github/workflows/`](.github/workflows) | APK release on `v*` tags, website deployment |
 
 ## Documentation
@@ -350,7 +350,8 @@ cd website && npm ci && npm run dev    # local preview; npm run build writes web
 - [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md): the Fujifilm protocol, its
   sources, verification status and research plan.
 - [privacy.md](privacy.md): privacy policy of the published Alpha GPS app.
-- Tool guides: [App Store screenshots](tools/app_store/README.md),
+- Tool guides: [app icon](tools/app_icon/README.md),
+  [App Store screenshots](tools/app_store/README.md),
   [iOS localization](tools/ios_localization/README.md),
   [Sony camera simulator](tools/sony_camera_sim/README.md),
   [intervalometer](tools/sony_shutter/README.md).

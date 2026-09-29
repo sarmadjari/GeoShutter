@@ -7,6 +7,7 @@
       "size": "1024x1024"
     },
     {
+      "filename": "icon-dark.png",
       "appearances": [
         {
           "appearance": "luminosity",
@@ -18,6 +19,7 @@
       "size": "1024x1024"
     },
     {
+      "filename": "icon-tinted.png",
       "appearances": [
         {
           "appearance": "luminosity",
