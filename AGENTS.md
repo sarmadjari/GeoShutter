@@ -132,6 +132,12 @@ python3 -m unittest discover -s tools/ios_localization -v
 
 - `adb` is `~/Library/Android/sdk/platform-tools/adb`. Install:
   `adb install -r app/build/outputs/apk/gplay/debug/app-gplay-debug.apk`.
+- Phone settings for installing over USB (all working on this phone): Developer options (tap
+  *Build number* seven times in About phone → Software information), *USB debugging* on,
+  the Mac allowed with *Always allow from this computer*, and Samsung's *Auto Blocker* off
+  (Security and privacy), which blocks USB commands. The USB mode doesn't matter:
+  *No data transfer* (`sec_charging`) works. It is a foldable: `adb shell screencap`
+  needs `-d <display id>` (cover and inner screen).
 - Shared-code logs (KmLogging) reach logcat with class tags: `CameraSessionOrchestrator`,
   `FujifilmSessionController`, `BleSessionCoordinator`, `BleOperationQueue`,
   `LocationTransmissionManager`. System side: `CDM_DevicePresenceProcessor` (presence
