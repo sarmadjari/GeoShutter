@@ -1,10 +1,11 @@
 import Foundation
 
-/// GeoShutter's status for the widget and the Control Center control. The app writes it
-/// into the app group as JSON (`IosWidgetBridge` and `StatusSnapshot` in the shared
-/// Kotlin code) whenever it changes; the widget extension can't run the app's code.
-struct WidgetStatus: Codable, Equatable {
-    struct Camera: Codable, Equatable, Identifiable {
+/// GeoShutter's status for the widget, the Control Center control and the Live Activity
+/// (whose content state it is). The app writes it into the app group as JSON
+/// (`IosWidgetBridge` and `StatusSnapshot` in the shared Kotlin code) whenever it changes;
+/// the widget extension can't run the app's code.
+nonisolated struct WidgetStatus: Codable, Hashable {
+    struct Camera: Codable, Hashable, Identifiable {
         let id: String
         let name: String
         /// Brand and model, e.g. "Fujifilm X100VI"; nil when unknown or the same as the name.
@@ -23,6 +24,8 @@ struct WidgetStatus: Codable, Equatable {
     /// Shown instead of the cameras when none is saved.
     let emptyText: String
     let cameras: [Camera]
+    /// The app's *Live Activity* switch; nil when an older version wrote the status.
+    var liveActivity: Bool? = nil
 
     static let appGroup = "group.com.sarmadjari.geoshutter"
     static let key = "status"
@@ -32,6 +35,22 @@ struct WidgetStatus: Codable, Equatable {
         guard let json = UserDefaults(suiteName: appGroup)?.string(forKey: key),
               let data = json.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(WidgetStatus.self, from: data)
+    }
+
+    /// The Live Activity shows while GeoShutter is on, has cameras and the switch is on.
+    var showsLiveActivity: Bool { enabled && liveActivity == true && !cameras.isEmpty }
+
+    /// The Live Activity's content: the cameras it has room for, well within the 4 KB
+    /// ActivityKit allows.
+    var forLiveActivity: WidgetStatus {
+        WidgetStatus(
+            enabled: enabled,
+            sending: sending,
+            headline: headline,
+            emptyText: emptyText,
+            cameras: Array(cameras.prefix(LiveActivityLayout.maxCameras)),
+            liveActivity: liveActivity
+        )
     }
 }
 

@@ -12,6 +12,7 @@ internal object IosAppPreferences {
     private const val keyAutoScanEnabled = "ios.autoScanEnabled"
     private const val keyTransmissionNotifications = "ios.transmissionNotifications"
     private const val keyHapticsEnabled = "ios.hapticsEnabled"
+    private const val keyLiveActivityEnabled = "ios.liveActivityEnabled"
     private const val keyDonationHintLastShown = "ios.donationHintLastShown"
     private const val keyDonationHintShownTimes = "ios.donationHintShownTimes"
     private const val keyForceDonationDialogOnNextStart = "ios.forceDonationDialogOnNextStart"
@@ -75,6 +76,15 @@ internal object IosAppPreferences {
 
     fun setHapticsEnabled(enabled: Boolean) {
         defaults.setBool(enabled, forKey = keyHapticsEnabled)
+    }
+
+    /** GeoShutter's Live Activity (Lock Screen and Dynamic Island), on by default. */
+    fun isLiveActivityEnabled(): Boolean = defaults.objectForKey(keyLiveActivityEnabled)?.let {
+        defaults.boolForKey(keyLiveActivityEnabled)
+    } ?: true
+
+    fun setLiveActivityEnabled(enabled: Boolean) {
+        defaults.setBool(enabled, forKey = keyLiveActivityEnabled)
     }
 
     fun isTransmissionNotificationsEnabled(): Boolean =

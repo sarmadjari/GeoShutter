@@ -151,6 +151,11 @@ Android builds:
    5 minutes, so it can be up to 5 minutes behind the app. A camera that drops for a few
    seconds, as a Sony camera in power save does about every minute, keeps its state on the
    widget.
+   The **Live Activity** shows the same status on the Lock Screen and in the Dynamic
+   Island and follows changes within seconds (a camera that drops counts as away after
+   30 s). It shows while GeoShutter is on. iOS lets it start only when you open the app
+   or switch GeoShutter on with the control, and ends it after 8 hours, so opening the
+   app starts it again. Turn it off with *Live Activity* in Settings.
 5. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
    cameras** step so iOS can manage them; iOS usually finishes it within seconds without
    further questions. All settings carry over and no new pairing is needed.

@@ -3,21 +3,30 @@ import WidgetKit
 import sharedKit
 
 /// Connects the shared Kotlin code with the widget extension: the app writes GeoShutter's
-/// status into the app group (`IosWidgetBridge`), and these reloads make the home-screen
-/// widget and the Control Center control read it again.
+/// status into the app group (`IosWidgetBridge`), and then the home-screen widget and the
+/// Control Center control read it again and the Live Activity gets it (`LiveActivities`).
 enum WidgetBridge {
     static func install() {
-        IosWidgetBridge.shared.install { reload() }
+        IosWidgetBridge.shared.install { statusChanged() }
+        let center = NotificationCenter.default
         // Leaving the app reloads too, which iOS allows while no camera is connected. While
         // one is, it reloads at most every 5 minutes and catches up then (see
         // IosStatusPublisher).
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.willResignActiveNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            reload()
+        center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { reload() }
         }
+        // Only an open app may start a Live Activity.
+        center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { LiveActivities.sync(renewIfOld: true) }
+        }
+        center.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { LiveActivities.endBeforeTermination() }
+        }
+    }
+
+    private static func statusChanged() {
+        reload()
+        LiveActivities.sync()
     }
 
     private static func reload() {

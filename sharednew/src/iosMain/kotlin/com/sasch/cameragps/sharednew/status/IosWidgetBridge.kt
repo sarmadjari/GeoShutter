@@ -23,9 +23,10 @@ import org.jetbrains.compose.resources.getString
 import platform.Foundation.NSUserDefaults
 
 /**
- * The iPhone widget and Control Center control live in the GeoShutterWidgets extension,
- * which can't run the app's code: the app writes GeoShutter's status as JSON into the app
- * group they share, and Swift installs the WidgetKit reloads here at launch.
+ * The iPhone widget, Control Center control and Live Activity live in the
+ * GeoShutterWidgets extension, which can't run the app's code: the app writes GeoShutter's
+ * status as JSON into the app group they share, and Swift installs the hook here at launch
+ * that reloads the widget and control and updates the Live Activity (ActivityKit).
  */
 object IosWidgetBridge {
     const val APP_GROUP = "group.com.sarmadjari.geoshutter"
@@ -33,7 +34,7 @@ object IosWidgetBridge {
 
     private var reload: (() -> Unit)? = null
 
-    /** Called by the Swift app at launch: reloads the widget timelines and the controls. */
+    /** Called by the Swift app at launch: reloads the widget and control, updates the Live Activity. */
     fun install(reload: () -> Unit) {
         this.reload = reload
     }
@@ -63,6 +64,8 @@ internal class IosStatusPublisher(
     private val devices: StateFlow<List<BluetoothDeviceInfo>>,
     private val sessions: StateFlow<Map<String, CameraSession>>,
     private val transmitting: StateFlow<Boolean>,
+    /** The *Live Activity* switch, written with the status for the Swift side. */
+    private val liveActivity: StateFlow<Boolean>,
 ) {
     private val log = logging()
     private var texts: StatusTexts? = null
@@ -94,7 +97,7 @@ internal class IosStatusPublisher(
     private fun publish(status: GeoShutterStatus) {
         val texts = texts ?: return
         published = status
-        IosWidgetBridge.publish(statusSnapshot(status, texts).toJson())
+        IosWidgetBridge.publish(statusSnapshot(status, texts, liveActivity.value).toJson())
     }
 
     private suspend fun loadTexts() = StatusTexts(

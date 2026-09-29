@@ -158,6 +158,7 @@ internal fun CameraGpsIosApp(
     val migrationInProgress by bluetoothController.migrationInProgress.collectAsState()
     val transmissionNotificationsEnabled by bluetoothController.transmissionNotificationsEnabled.collectAsState()
     val transmissionNotificationsPermissionDenied by bluetoothController.transmissionNotificationsPermissionDenied.collectAsState()
+    val liveActivityEnabled by bluetoothController.liveActivityEnabled.collectAsState()
 
     val dialogs = rememberIosAppDialogState(
         isDeviceScreen = currentScreen == IosScreen.Devices,
@@ -329,6 +330,8 @@ internal fun CameraGpsIosApp(
                         hapticsEnabled = enabled
                         IosAppPreferences.setHapticsEnabled(enabled)
                     },
+                    liveActivityEnabled = liveActivityEnabled,
+                    onLiveActivityEnabledChange = bluetoothController::setLiveActivityEnabled,
                     sentryEnabled = sentryEnabled,
                     onSentryEnabledChange = onSentryEnabledChange,
                     onChangeLogLevel = { level ->

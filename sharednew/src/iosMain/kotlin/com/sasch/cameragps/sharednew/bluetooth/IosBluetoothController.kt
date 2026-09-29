@@ -185,6 +185,17 @@ object IosBluetoothController : BluetoothController {
         controllerScope.launch { applyAppEnabledState(enabled) }
     }
 
+    /** The *Live Activity* switch: GeoShutter's status on the Lock Screen and in the Dynamic Island. */
+    private val _liveActivityEnabled = MutableStateFlow(IosAppPreferences.isLiveActivityEnabled())
+    val liveActivityEnabled: StateFlow<Boolean> = _liveActivityEnabled
+
+    /** The Swift side starts or ends the Live Activity when the status it reads changes. */
+    fun setLiveActivityEnabled(enabled: Boolean) {
+        IosAppPreferences.setLiveActivityEnabled(enabled)
+        _liveActivityEnabled.value = enabled
+        statusPublisher.publishNow()
+    }
+
     /**
      * Whether the current central is powered on. Exposed for platform UI state;
      * accessory discovery itself is owned by AccessorySetupKit.
@@ -374,6 +385,7 @@ object IosBluetoothController : BluetoothController {
         devices = devices,
         sessions = orchestrator.sessions,
         transmitting = orchestrator.locationManager.isActive,
+        liveActivity = liveActivityEnabled,
     )
 
     init {

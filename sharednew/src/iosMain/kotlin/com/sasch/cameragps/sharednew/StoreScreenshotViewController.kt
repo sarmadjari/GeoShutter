@@ -44,6 +44,8 @@ fun StoreScreenshotViewController(scenario: String): UIViewController {
                     onBackClick = {},
                     onAppEnabledChange = {},
                     onHapticsEnabledChange = {},
+                    liveActivityEnabled = true,
+                    onLiveActivityEnabledChange = {},
                     sentryEnabled = false,
                     onSentryEnabledChange = {},
                     onChangeLogLevel = {},

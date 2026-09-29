@@ -1,9 +1,9 @@
 package com.sasch.cameragps.sharednew.status
 
 /**
- * What the iPhone widget and Control Center control show, written as JSON into the
- * app group they share with the app (their extension can't run the app's code). Texts
- * are localized by the app; the extension only lays them out.
+ * What the iPhone widget, Control Center control and Live Activity show, written as JSON
+ * into the app group they share with the app (their extension can't run the app's code).
+ * Texts are localized by the app; the extension only lays them out.
  */
 data class StatusSnapshot(
     val enabled: Boolean,
@@ -14,6 +14,8 @@ data class StatusSnapshot(
     /** Shown instead of the cameras when none is saved. */
     val emptyText: String,
     val cameras: List<Camera>,
+    /** The app's *Live Activity* switch: whether it shows while GeoShutter is on. */
+    val liveActivity: Boolean = false,
 ) {
     data class Camera(
         val id: String,
@@ -41,7 +43,8 @@ data class StatusSnapshot(
             append(",\"note\":").appendJson(camera.note)
             append('}')
         }
-        append("]}")
+        append("],\"liveActivity\":").append(liveActivity)
+        append('}')
     }
 }
 
@@ -57,7 +60,11 @@ data class StatusTexts(
 )
 
 /** The snapshot of [status], with the Android widget's texts and colors (dot states). */
-fun statusSnapshot(status: GeoShutterStatus, texts: StatusTexts): StatusSnapshot = StatusSnapshot(
+fun statusSnapshot(
+    status: GeoShutterStatus,
+    texts: StatusTexts,
+    liveActivity: Boolean = false,
+): StatusSnapshot = StatusSnapshot(
     enabled = status.enabled,
     sending = status.enabled && status.sending.isNotEmpty(),
     headline = when (status.headline()) {
@@ -89,6 +96,7 @@ fun statusSnapshot(status: GeoShutterStatus, texts: StatusTexts): StatusSnapshot
             },
         )
     },
+    liveActivity = liveActivity,
 )
 
 private fun StringBuilder.appendJson(value: String?): StringBuilder {

@@ -49,6 +49,9 @@
         <item quantity="other">Transmitting location data to %1$d cameras</item>
     </plurals>
 
+    <string name="ios_live_activity_setting">Live Activity</string>
+    <string name="ios_live_activity_description">Show GeoShutter's status on the Lock Screen and in the Dynamic Island while it is on.</string>
+
     <!-- iPhone widget and Control Center control (GeoShutterWidgets extension) -->
     <string name="widget_status_off">Off</string>
     <string name="widget_status_sending">Sending location</string>

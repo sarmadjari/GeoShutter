@@ -35,11 +35,12 @@ The Application uses your device's location only to provide geotagging functiona
 
 To reconnect to your cameras, the Application stores on your device the list of cameras you
 added (their Bluetooth address or iOS identifier, name, and per-camera settings) and its app
-settings. For its home-screen widget and Control Center control (iPhone), the Application also
-stores its current status on your device: whether it is on and each camera's name and connection
-state, without any location. The Application also keeps a technical log on your device, which
-you can view and delete in the app; older entries are removed automatically. The log contains no
-location data.
+settings. For its home-screen widget, Control Center control and Live Activity (iPhone), the
+Application also stores its current status on your device: whether it is on and each camera's name
+and connection state, without any location. The Live Activity shows this status on the Lock Screen,
+where it is visible without unlocking. You can turn it off in the app's settings. The Application
+also keeps a technical log on your device, which you can view and delete in the app; older entries
+are removed automatically. The log contains no location data.
 This data is not sent anywhere; the only exception is the error reporting described below, if you
 enable it.
 

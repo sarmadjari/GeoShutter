@@ -92,7 +92,9 @@ python3 -m unittest discover -s tools/ios_localization -v
   iosApp/alphagps.xcodeproj -scheme alphagps -configuration Debug -destination
   'generic/platform=iOS Simulator' -derivedDataPath /tmp/gs_ios_build ARCHS=arm64
   CODE_SIGNING_ALLOWED=NO build`; then `xcrun simctl install`/`launch` (a screen can be
-  shown directly with `SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT=<scenario>`, e.g. `pairing`).
+  shown directly with `SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT=<scenario>`, e.g. `pairing`,
+  `widgets` or `liveactivity`, which also starts a Live Activity with sample content;
+  `simctl io screenshot` doesn't capture the Dynamic Island's content).
 - **On the maintainer's iPhone** (15 Pro Max, iOS 27, UDID `00008130-00044C883693803A`,
   Developer Mode on; paid team `3653BRXND8`, set in the untracked `Local.xcconfig`;
   verified 2026-09-29): with the same environment, `xcodebuild … -destination
@@ -362,6 +364,16 @@ effect after a new deployment.
   with the status symbols. Swift in a widget extension; the app publishes its status as
   JSON into the app group `group.com.sarmadjari.geoshutter`; the control's intent is a
   `LiveActivityIntent`, so it runs in the app. Not tested on a device (§8).
+- 2026-09-29: **iPhone Live Activity** (Lock Screen and Dynamic Island), because iOS
+  reloads the widget at most every 5 minutes while the app is connected to a camera (§8).
+  The maintainer chose it **on by default with a *Live Activity* switch in Settings**. It
+  shows while GeoShutter is on (also "Waiting" between connections): iOS lets an app start
+  one only while it is open or from a `LiveActivityIntent`, so ending it on every
+  disconnect would lose it until the app is opened. Opening the app replaces one older
+  than 2 hours (iOS ends it after 8); switching GeoShutter off or quitting the app ends
+  it. Same content and colors as the widget (navy card, coral symbol, a dot per camera),
+  the same settled status (2 s, 30 s for a drop). The *Transmission notification* setting
+  stays as it was.
 - 2026-09-29: **Fujifilm on iOS** (the maintainer asked for parity; no iPhone to test
   with, so it is built and unit-tested only). Design: the AccessorySetupKit picker gets a
   second item for Fujifilm (`0x04D8`) **without** the picker's own Bluetooth pairing, so the
@@ -741,3 +753,16 @@ effect after a new deployment.
   `publishDelayMs`); the settle reload (built on the wrong guess that iOS skips close
   reloads) is gone. `IosStatusTest` replays the α1 II pattern in virtual time. Verified
   on the iPhone: no writes during the α1 II's gaps, the 5-minute reload showed it sending.
+- 2026-09-29 (night): **iPhone Live Activity** (§7, the maintainer chose it after the
+  widget's 5-minute limit, on by default with a switch). Kotlin: `liveActivity` in
+  `StatusSnapshot`/JSON, `IosAppPreferences.isLiveActivityEnabled`,
+  `IosBluetoothController.setLiveActivityEnabled`, a Settings row with en/de strings.
+  Swift: `GeoShutterActivityAttributes` (content state `WidgetStatus`, now `nonisolated`
+  and `Hashable`), `LiveActivityViews`, `GeoShutterLiveActivity` in the extension,
+  `LiveActivities` in the app (sync on every status write, renew on opening, end on
+  quitting), `NSSupportsLiveActivities`. Verified: JVM 240 and iOS 285 tests, simulator
+  build without warnings, the Lock Screen card and a real Live Activity started in the
+  simulator (`liveactivity`), and a device build installed on the iPhone, whose status JSON
+  carries `"liveActivity":true`. Still to check on the iPhone: the Lock Screen and Dynamic
+  Island with the cameras, starting from the control while the app is in the background,
+  and the renewal after 2 hours.

@@ -13,8 +13,11 @@ struct ContentView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         #if DEBUG && targetEnvironment(simulator)
         if let scenario = ProcessInfo.processInfo.environment["ALPHA_GPS_SCREENSHOT"] {
-            if scenario == "widgets" {
-                return UIHostingController(rootView: WidgetPreviewScreen())
+            if scenario == "widgets" || scenario == "liveactivity" {
+                if scenario == "liveactivity" {
+                    LiveActivities.startPreview(.preview)
+                }
+                return UIHostingController(rootView: WidgetPreviewScreen(liveActivityFirst: scenario == "liveactivity"))
             }
             return StoreScreenshotViewControllerKt.StoreScreenshotViewController(scenario: scenario)
         }

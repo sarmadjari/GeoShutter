@@ -43,6 +43,8 @@ import cameragps.sharednew.generated.resources.ios_transmission_notifications_de
 import cameragps.sharednew.generated.resources.ios_transmission_notifications_description
 import cameragps.sharednew.generated.resources.ios_transmission_notifications_open_settings
 import cameragps.sharednew.generated.resources.ios_transmission_notifications_setting
+import cameragps.sharednew.generated.resources.ios_live_activity_description
+import cameragps.sharednew.generated.resources.ios_live_activity_setting
 import cameragps.sharednew.generated.resources.log_level
 import cameragps.sharednew.generated.resources.log_settings
 import cameragps.sharednew.generated.resources.settings
@@ -80,6 +82,8 @@ internal fun IosSettingsScreen(
     onBackClick: () -> Unit,
     onAppEnabledChange: (Boolean) -> Unit,
     onHapticsEnabledChange: (Boolean) -> Unit,
+    liveActivityEnabled: Boolean,
+    onLiveActivityEnabledChange: (Boolean) -> Unit,
     sentryEnabled: Boolean,
     onSentryEnabledChange: (Boolean) -> Unit,
     onChangeLogLevel: (LogLevel) -> Unit,
@@ -141,6 +145,12 @@ internal fun IosSettingsScreen(
                             .padding(vertical = 4.dp),
                     )
                 }
+                SharedToggleRow(
+                    title = stringResource(Res.string.ios_live_activity_setting),
+                    description = stringResource(Res.string.ios_live_activity_description),
+                    checked = liveActivityEnabled,
+                    onCheckedChange = onLiveActivityEnabledChange,
+                )
                 SharedToggleRow(
                     title = stringResource(Res.string.haptic_feedback),
                     description = stringResource(Res.string.haptic_feedback_description),

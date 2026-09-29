@@ -79,8 +79,17 @@ class StatusSnapshotTest {
         assertEquals(
             "{\"enabled\":true,\"sending\":false,\"headline\":\"Waiting\"," +
                 "\"emptyText\":\"Say \\\"hi\\\"\\\\\\n\",\"cameras\":[{\"id\":\"ID\",\"name\":\"α1 II\"," +
-                "\"model\":null,\"state\":\"away\",\"note\":null}]}",
+                "\"model\":null,\"state\":\"away\",\"note\":null}],\"liveActivity\":false}",
             json,
         )
+    }
+
+    @Test
+    fun theLiveActivitySwitchTravelsWithTheStatus() {
+        val status = GeoShutterStatus(true, listOf(camera("A", CameraState.Sending)))
+        assertFalse(statusSnapshot(status, texts).liveActivity)
+        val snapshot = statusSnapshot(status, texts, liveActivity = true)
+        assertTrue(snapshot.liveActivity)
+        assertTrue(snapshot.toJson().endsWith("],\"liveActivity\":true}"))
     }
 }

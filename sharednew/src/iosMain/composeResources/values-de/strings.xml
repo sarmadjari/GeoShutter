@@ -49,6 +49,9 @@
         <item quantity="other">Standortdaten werden an %1$d Kameras übertragen</item>
     </plurals>
 
+    <string name="ios_live_activity_setting">Live-Aktivität</string>
+    <string name="ios_live_activity_description">Zeigt den Status von GeoShutter auf dem Sperrbildschirm und in der Dynamic Island, solange GeoShutter eingeschaltet ist.</string>
+
     <!-- iPhone widget and Control Center control (GeoShutterWidgets extension) -->
     <string name="widget_status_off">Aus</string>
     <string name="widget_status_sending">Sendet Standort</string>
