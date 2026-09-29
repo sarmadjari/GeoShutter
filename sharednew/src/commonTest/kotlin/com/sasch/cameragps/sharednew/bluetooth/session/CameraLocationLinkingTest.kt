@@ -28,6 +28,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.TimeSource
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants as Sony
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -740,6 +741,60 @@ class CameraLocationLinkingTest {
         f.orchestrator.shutdownAll()
     }
 
+    /**
+     * The α1 II with Cnct. while Power OFF on (iPhone, 2026-09-30): power save ended the
+     * connection a minute after each setup and the phone had it back 10 s later, waking it.
+     */
+    @Test
+    fun aSonyCameraWokenAfterEachPowerSaveDropIsNoticed() = runTest {
+        val f = Fixture(backgroundScope, testScheduler.timeSource)
+        repeat(3) {
+            f.connect("A")
+            runCurrent()
+            assertTrue(f.session("A").isLocationReady)
+            advanceTimeBy(59_500)
+            f.drop("A")
+            runCurrent()
+            advanceTimeBy(10_000)
+            runCurrent()
+        }
+        assertEquals(setOf("A"), f.orchestrator.wakeLoops.value)
+
+        // Back within seconds: still the loop.
+        f.connect("A")
+        runCurrent()
+        advanceTimeBy(59_500)
+        f.drop("A")
+        runCurrent()
+        assertEquals(setOf("A"), f.orchestrator.wakeLoops.value)
+
+        // Not back after the drop: the camera stays asleep now.
+        advanceTimeBy(SonyWakeLoopDetector.MAX_RECONNECT.inWholeMilliseconds + 1)
+        runCurrent()
+        assertEquals(emptySet(), f.orchestrator.wakeLoops.value)
+        f.orchestrator.shutdownAll()
+    }
+
+    @Test
+    fun keepingTheCameraAwakeClearsTheWakeLoop() = runTest {
+        val f = Fixture(backgroundScope, testScheduler.timeSource)
+        repeat(3) {
+            f.connect("A")
+            runCurrent()
+            advanceTimeBy(59_500)
+            f.drop("A")
+            runCurrent()
+            advanceTimeBy(10_000)
+            runCurrent()
+        }
+        assertEquals(setOf("A"), f.orchestrator.wakeLoops.value)
+        f.dao.keepAwakeEnabled = true
+        f.connect("A")
+        runCurrent()
+        assertEquals(emptySet(), f.orchestrator.wakeLoops.value)
+        f.orchestrator.shutdownAll()
+    }
+
     @Test
     fun sonySendIntervalSpacesPushesAndSlowsTheGps() = runTest {
         val f = Fixture(backgroundScope)
@@ -767,16 +822,22 @@ class CameraLocationLinkingTest {
         f.orchestrator.shutdownAll()
     }
 
-    private class Fixture(scope: CoroutineScope) {
+    private class Fixture(scope: CoroutineScope, timeSource: TimeSource = TimeSource.Monotonic) {
         val source = FakeSource()
         val transport = FakeTransport()
         val dao = FakeDao()
-        val orchestrator =
-            CameraSessionOrchestrator(transport, source, dao, scope).also { it.start() }
+        val orchestrator = CameraSessionOrchestrator(transport, source, dao, scope, timeSource = timeSource)
+            .also { it.start() }
 
         fun connect(id: String) {
             transport.connected.add(id)
             transport.emit(BleTransportEvent.Connected(id))
+        }
+
+        /** The camera ended the connection. */
+        fun drop(id: String) {
+            transport.connected.remove(id)
+            transport.emit(BleTransportEvent.Disconnected(id, null))
         }
 
         fun session(id: String) = orchestrator.registry.get(id)!!

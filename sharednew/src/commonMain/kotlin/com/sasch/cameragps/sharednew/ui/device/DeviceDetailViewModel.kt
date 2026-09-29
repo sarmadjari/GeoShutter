@@ -17,6 +17,9 @@ class DeviceDetailViewModel(
 
     val sessions = cameraSettings.sessions
 
+    /** Sony cameras that GeoShutter keeps waking up; their details show a tip. */
+    val wakeLoops = cameraSettings.wakeLoops
+
     fun refreshCameraSettings(device: String) = cameraSettings.refreshAutoCorrectionSettings(device)
 
     fun setAutoCorrectionSetting(

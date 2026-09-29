@@ -248,7 +248,10 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
   `app/src/main/res`). Most translations came from Alpha GPS's Weblate project
   (`alpha-gps`), which GeoShutter no longer syncs with; edit them here, carefully, and keep
   brand names as they are. Changing English source text leaves translations outdated.
-  The language picker is generated from the `values-*` folders.
+  The language picker is generated from the `values-*` folders. Write apostrophes and
+  quotes plain in `composeResources`: Compose Multiplatform turns `\n` into a line break
+  but shows `\'` and `\"` with the backslash (all such escapes, left from
+  Android-style strings, were removed 2026-09-30). Only `app/src/main/res` (aapt) needs `\'`.
 - Releases: bump Android `versionCode`/`versionName` (`app/build.gradle.kts`) **and** iOS
   `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` (`project.pbxproj`); add a
   `ReleaseNotesCatalog` entry + strings for user-facing changes; optionally an F-Droid
@@ -474,7 +477,8 @@ effect after a new deployment.
   00:14–00:21: the α1 II ended the link 59–60 s after each setup, the phone reconnected
   about 10 s later, seven cycles in seven minutes, and the maintainer saw the camera wake
   each time. Advice (README troubleshooting, Sony's own help guide): set it to Off, which
-  GeoShutter doesn't need on Sony. Not detected in the app.
+  GeoShutter doesn't need on Sony. Detected since 2026-09-30 (`SonyWakeLoopDetector`, the
+  maintainer's choice): the camera's details show a tip.
 - Sony: a switched-off camera is detected only by its ATT error 0x9D (verified on
   Android; iOS maps `CBATTErrorDomain` codes the same way, untested). A camera switched
   off with *Cnct. while Power OFF* on still accepts locations for up to about 1.5 minutes
@@ -782,3 +786,19 @@ effect after a new deployment.
   iPhone with the X100VI and α1 II (2026-09-30, 00:10). Not confirmed separately:
   starting it from the control while the app is in the background, and the renewal after
   2 hours.
+- 2026-09-30 (after midnight): the maintainer saw GeoShutter wake the α1 II again and
+  again. The iPhone log showed the loop (§8): *Cnct. while Power OFF* on (confirmed by the
+  maintainer) keeps the sleeping camera reachable, so each power save drop was followed by
+  a reconnect that woke it. Advice: set it to Off (README troubleshooting). The maintainer
+  chose an in-app tip too: `SonyWakeLoopDetector` (3 equal cycles with reconnects within
+  45 s; cleared by a quiet drop, another length or keep-awake; `TimeSource` injectable),
+  wired into the orchestrator (log lines when a camera enters or leaves the loop),
+  `wakeLoops` on `CameraAutoCorrectionControls`, `WakeLoopTip` in the details' status card
+  (English strings `detail_status_wake_loop_*`). Tests: 7 detector tests, 2 orchestrator
+  tests in `CameraLocationLinkingTest` (virtual time). Verified: JVM 249, app 9 tests, lint
+  0 errors; installed on both phones.
+- 2026-09-30: the simulator preview of the wake loop tip (new debug scenario
+  `ALPHA_GPS_SCREENSHOT=details`: the Sony details with fake data) showed "doesn\'t":
+  Compose Multiplatform keeps `\'` and `\"` literally. Removed all such escapes from the
+  shared strings (English, de, id, ru, ta, vi), which also fixes texts the app already
+  showed with a backslash (FAQ, pairing, background settings).

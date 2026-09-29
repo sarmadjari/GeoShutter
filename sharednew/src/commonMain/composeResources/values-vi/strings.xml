@@ -104,7 +104,7 @@
     <string name="event_sounds_configure_transmission_channel">Configure transmission channel</string>
     <string name="event_sounds_configure_disconnect_channel">Configure ngắt kết nối channel</string>
     <string name="battery_optimization_settings_title">Battery &amp; Nền Cài đặt</string>
-    <string name="battery_optimization_settings_short"><![CDATA[Adjust these Cài đặt if the app doesn\\\'t work reliably in the nền. <b>Note: this will not change the app\\\'s behaviour itself, it will only try to prevent being killed by the OS. Only use if you encounter issues.</b>]]></string>
+    <string name="battery_optimization_settings_short"><![CDATA[Adjust these Cài đặt if the app doesn't work reliably in the nền. <b>Note: this will not change the app's behaviour itself, it will only try to prevent being killed by the OS. Only use if you encounter issues.</b>]]></string>
     <string name="battery_optimization_settings_description">Some manufacturers require additional permissions for nền activity. If the Đầu tiên option does not work, please tap the Mở Cài đặt button. Navigate to the Battery/Power section and try to exclude the App from any optimizations.</string>
     <string name="learn_more">Learn more</string>
     <string name="show_less">Hiện less</string>
@@ -126,11 +126,11 @@
     <string name="faq_connect_camera_question">How do I connect my máy ảnh to the app?</string>
     <string name="faq_connect_camera_answer">1. Make sure your máy ảnh supports Bluetooth connectivity and GPS tagging 2. Bật Bluetooth on your máy ảnh and phone 3. Put your máy ảnh in ghép nối mode, click on the máy ảnh on the main screen and follow the on-screen instructions (both máy ảnh and phone) 4. If this fails, Xóa any ghép nối in the Bluetooth Cài đặt of the phone and máy ảnh. Then try again</string>
     <string name="faq_camera_not_appearing_question">Why isn't my máy ảnh appearing in the list?</string>
-    <string name="faq_camera_not_appearing_answer">• Ensure your máy ảnh is in pairing/Bluetooth mode • Check that your máy ảnh supports the bắt buộc Bluetooth Hồ sơ • Make sure you\\'re within range (typically 10 meters) • Try restarting Bluetooth on your phone</string>
+    <string name="faq_camera_not_appearing_answer">• Ensure your máy ảnh is in pairing/Bluetooth mode • Check that your máy ảnh supports the bắt buộc Bluetooth Hồ sơ • Make sure you're within range (typically 10 meters) • Try restarting Bluetooth on your phone</string>
     <string name="faq_disconnects_question">My máy ảnh is losing kết nối tất cả the thời gian</string>
     <string name="faq_disconnects_answer">Try these solutions: • Keep your phone closer to the máy ảnh • Tắt battery optimization for the app • Check whether your máy ảnh has power-saving modes that affect Bluetooth • Khởi động lại both devices and ghép nối them again if needed</string>
     <string name="faq_enable_service_question">How do I Bật the dịch vụ permanently? It seems to stop after a while</string>
-    <string name="faq_enable_service_answer">Please visit the App Cài đặt and try the options in the Battery &amp; Nền section. Alternatively try the following: To keep GPS data syncing with your máy ảnh: 1. Go to your device\\'s Cài đặt &gt; Apps 2. Tìm \\'GeoShutter\\' in the app list 3. Tap on it and select \\'Battery\\' 4. Choose \\'Don\\'t optimize\\' or \\'Allow nền activity\\' 5. This prevents the system from stopping the GPS dịch vụ You can also access this through the thiết bị details page in the app.</string>
+    <string name="faq_enable_service_answer">Please visit the App Cài đặt and try the options in the Battery &amp; Nền section. Alternatively try the following: To keep GPS data syncing with your máy ảnh: 1. Go to your device's Cài đặt &gt; Apps 2. Tìm 'GeoShutter' in the app list 3. Tap on it and select 'Battery' 4. Choose 'Don't optimize' or 'Allow nền activity' 5. This prevents the system from stopping the GPS dịch vụ You can also access this through the thiết bị details page in the app.</string>
     <string name="faq_camera_not_connecting_question">My máy ảnh does not connect automatically, what can I do?</string>
     <string name="faq_camera_not_connecting_answer">Unfortunately, there might be situations, where the automatic kết nối does not work. If you encounter issues please do the following: On the main screen, tap on your máy ảnh to Mở the details screen. There you have an option to Bật the Always On mode, which will keep the app in the foreground. Otherwise try toggling Bluetooth or Xóa the thiết bị from the app and ghép nối it again.</string>
     <string name="faq_permissions_question">What permissions does the app need?</string>
@@ -210,11 +210,11 @@
     <string name="enableConstantly">Keep đang hoạt động (Always On)</string>
     <string name="enable_remote_control">Bật remote control</string>
     <string name="not_paired_tap_to_pair_again">Not paired, please ghép nối the thiết bị in the Bluetooth Cài đặt</string>
-    <string name="to_pair_with_your_camera_please">To ghép nối with your máy ảnh \\'%1$s\\', please:</string>
+    <string name="to_pair_with_your_camera_please">To ghép nối with your máy ảnh '%1$s', please:</string>
     <string name="_1_turn_on_your_camera">\n1. Turn on your máy ảnh</string>
     <string name="_2_go_to_camera_settings_and_enable_bluetooth_pairing_mode">2. Go to máy ảnh Cài đặt and Bật Bluetooth/Pairing mode</string>
     <string name="_3_make_sure_the_camera_is_discoverable">3. Make sure the máy ảnh is discoverable</string>
-    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nOnce your máy ảnh is ready, tap \\'Continue\\' to start ghép nối.</string>
+    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nOnce your máy ảnh is ready, tap 'Continue' to start ghép nối.</string>
     <string name="android_12_requires_keep_alive">Devices running Android 11 and below must Bật keepalive mode. Tap the thiết bị and Bật the setting</string>
     <string name="always_on_description">Runs the app in the foreground. Useful if the kết nối cannot be established reliably on devices with aggressive battery saving measures (e.g. Xiaomi and probably more)</string>
     <string name="quick_start_feature_title">Quickstart</string>

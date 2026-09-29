@@ -99,7 +99,7 @@
     <string name="location_provider_play_services">Google Play Services (empfohlen)</string>
     <string name="location_provider_platform">Android Platform (LocationManager)</string>
     <string name="location_provider_hint">Falls dein Gerät keine Google Play Services unterstützt oder die Standorterfassung unzuverlässig ist, wechsle zum Platform Provider.</string>
-    <string name="location_provider_restart_required">Schalte die Kamera aus und starte die App neu um die Änderungen durchzuführen. Falls der \"Always On\" Modus aktiv ist, deaktiviere diesen zuerst</string>
+    <string name="location_provider_restart_required">Schalte die Kamera aus und starte die App neu um die Änderungen durchzuführen. Falls der "Always On" Modus aktiv ist, deaktiviere diesen zuerst</string>
     <string name="event_sounds_title">Töne für Übertragungsereignisse</string>
     <string name="event_sounds_description">Spielt kurze Töne für Kamera- und GPS-Ereignisse während der Übertragung.</string>
     <string name="event_sounds_enable_all">Ereignistöne aktivieren</string>
@@ -181,7 +181,7 @@
     <string name="_1_turn_on_your_camera">\n1. Schalte die Kamera ein</string>
     <string name="_2_go_to_camera_settings_and_enable_bluetooth_pairing_mode">2. Gehe in die Einstellungen und schalte den Bluetooth-Kopplungsmodus ein</string>
     <string name="_3_make_sure_the_camera_is_discoverable">3. Gehe in den Kopplungsmodus</string>
-    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nSobald deine Kamera bereit ist, tippe auf \\'Weiter.\\' um das Koppeln zu starten.</string>
+    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nSobald deine Kamera bereit ist, tippe auf 'Weiter.' um das Koppeln zu starten.</string>
     <string name="android_12_requires_keep_alive">Geräte mit Android 11 oder älter müssen den Keepalive-Modus aktivieren. Tippe auf das Gerät und aktiviere die Einstellung</string>
     <string name="always_on_description">Lässt die App im Vordergrund laufen. Nützliich, wenn die Verbindung nicht verlässlich automatisch hergestellt werden kann (z.B. durch aggressive Batteriesparmaßen bei Xiaomi Geräten und möglicherweise weiteren)</string>
     <string name="quick_start_feature_title">Schnellstart</string>

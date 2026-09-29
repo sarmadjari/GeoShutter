@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -87,6 +88,8 @@ import cameragps.sharednew.generated.resources.detail_status_standby
 import cameragps.sharednew.generated.resources.detail_status_sync_off
 import cameragps.sharednew.generated.resources.detail_status_switched_off
 import cameragps.sharednew.generated.resources.detail_status_switched_off_hint
+import cameragps.sharednew.generated.resources.detail_status_wake_loop_hint
+import cameragps.sharednew.generated.resources.detail_status_wake_loop_title
 import cameragps.sharednew.generated.resources.detail_status_sync_off_hint
 import cameragps.sharednew.generated.resources.dialog_ok
 import cameragps.sharednew.generated.resources.enableConstantly
@@ -176,6 +179,7 @@ fun DeviceDetailContent(
 ) {
     val state = viewModel.uiState.collectAsState().value
     val sessions by viewModel.sessions.collectAsState()
+    val wakeLoops by viewModel.wakeLoops.collectAsState()
     val session = sessions[deviceId.uppercase()]
     val cameraReady = session?.phase == BleSessionPhase.Transmitting
     val fujifilm = brand == CameraBrand.Fujifilm ||
@@ -218,6 +222,8 @@ fun DeviceDetailContent(
                     modelLine,
                     deviceId.takeIf { currentPlatform == KotlinPlatform.Android },
                 ).joinToString(" · ").ifEmpty { null },
+                wakeLoop = !fujifilm && state.isDeviceEnabled && !state.isKeepAwakeEnabled &&
+                        deviceId.uppercase() in wakeLoops,
             )
         }
 
@@ -390,9 +396,12 @@ private fun detailStatus(enabled: Boolean, session: CameraSession?): DetailStatu
     else -> DetailStatus.Connecting
 }
 
-/** What the camera is doing now: a colored dot, a short title and one explaining line. */
+/**
+ * What the camera is doing now: a colored dot, a short title and one explaining line, and a
+ * tip when GeoShutter keeps waking a Sony camera ([wakeLoop]).
+ */
 @Composable
-private fun CameraStatusCard(status: DetailStatus, details: String?) {
+private fun CameraStatusCard(status: DetailStatus, details: String?, wakeLoop: Boolean = false) {
     val (color, title, hint) = when (status) {
         DetailStatus.Receiving -> Triple(ReceivingGreen, Res.string.detail_status_receiving, Res.string.detail_status_receiving_hint)
         DetailStatus.Standby -> Triple(StandbyBlue, Res.string.detail_status_standby, Res.string.fujifilm_standby_hint)
@@ -433,6 +442,44 @@ private fun CameraStatusCard(status: DetailStatus, details: String?) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                if (wakeLoop) WakeLoopTip()
+            }
+        }
+    }
+}
+
+/**
+ * The camera falls asleep and GeoShutter wakes it again about every minute, because
+ * Cnct. while Power OFF keeps it reachable while it sleeps.
+ */
+@Composable
+private fun WakeLoopTip() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = AttentionAmber.copy(alpha = 0.14f),
+    ) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Icon(
+                painterResource(Res.drawable.info_24px),
+                contentDescription = null,
+                tint = AttentionAmber,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(Res.string.detail_status_wake_loop_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = stringResource(Res.string.detail_status_wake_loop_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

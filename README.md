@@ -166,7 +166,9 @@ Tap a camera on **My Cameras** to open its details. A status card at the top sho
 the camera is doing, with the same colors as the widget: *Receiving your location*
 (green), *Standby* (blue), *Connecting…* or *Location sync is off* (amber), *Not connected*
 (red), *Switched off* (red; a Sony camera still connected while off) or *Disabled* (grey),
-with the brand, model and (Android) Bluetooth address. The settings follow in groups:
+with the brand, model and (Android) Bluetooth address. When a Sony camera falls asleep and
+GeoShutter wakes it again about every minute (its *Cnct. while Power OFF* is on), the card
+adds a tip on how to stop it. The settings follow in groups:
 **General**, **Location and time**, then **Standby** (Fujifilm) or **Power** and **Remote
 control** (Sony), then **Advanced**. Each setting has a one-line summary; tap ⓘ next to
 its name for the full explanation. Tapping anywhere on a row with a switch toggles it. The
@@ -233,10 +235,10 @@ or *Need help?* below the camera list). The most common fixes:
   camera.
 - **A Sony camera wakes up about every minute**: its *Cnct. while Power OFF* is on
   (MENU → Network → Cnct./Remote Sht.). It keeps the sleeping camera reachable, GeoShutter
-  reconnects, which wakes it, and a minute later it falls asleep again. Set it to Off:
-  GeoShutter doesn't need it on Sony cameras (they take no location while off), and it
-  costs camera battery. To keep a camera ready for tagged photos, turn on *Keep the camera
-  awake* in its details instead.
+  reconnects, which wakes it, and a minute later it falls asleep again. The camera's details
+  show a tip once GeoShutter notices. Set it to Off: GeoShutter doesn't need it on Sony
+  cameras (they take no location while off), and it costs camera battery. To keep a camera
+  ready for tagged photos, turn on *Keep the camera awake* in its details instead.
 - **The first photos after switching a Sony camera on have no location**: a Sony camera
   ends the connection when it is switched on and takes the location only once the phone has
   reconnected, about 10 s later (measured on an α1 II; about 16 s with *Cnct. while Power

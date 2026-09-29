@@ -70,6 +70,8 @@ class CameraSessionOrchestrator(
     isTransmissionAllowed: () -> Boolean = { true },
     /** How long service discovery may take, including the iOS pairing gate. */
     discoveryTimeoutMs: Long = BleOperationQueue.DEFAULT_DISCOVERY_TIMEOUT_MS,
+    /** For [SonyWakeLoopDetector]'s connection lengths; tests pass their virtual time. */
+    timeSource: TimeSource = TimeSource.Monotonic,
 ) : CameraAutoCorrectionControls {
     private val log = logging()
 
@@ -127,6 +129,9 @@ class CameraSessionOrchestrator(
     val events: SharedFlow<OrchestratorEvent> = _events
 
     override val sessions: StateFlow<Map<String, CameraSession>> get() = registry.sessions
+
+    private val wakeLoopDetector = SonyWakeLoopDetector(timeSource)
+    override val wakeLoops: StateFlow<Set<String>> get() = wakeLoopDetector.looping
 
     override fun refreshAutoCorrectionSettings(identifier: String) =
         autoCorrection.refresh(identifier)
@@ -314,6 +319,7 @@ class CameraSessionOrchestrator(
 
             is BleTransportEvent.Disconnected -> {
                 log.i { "Device ${event.identifier} disconnected (status=${event.statusCode})" }
+                if (!isFujifilm(event.identifier)) onSonyDisconnected(event.identifier.uppercase())
                 clearDevice(event.identifier)
                 _events.tryEmit(OrchestratorEvent.DeviceDisconnected(event.identifier.uppercase()))
             }
@@ -549,6 +555,7 @@ class CameraSessionOrchestrator(
             // Accepted the GPS setup: switched on (again).
             sonyCameraOffRetries.remove(id)?.cancel()
             loadSonySendInterval(id)
+            trackWakeLoop(id) { wakeLoopDetector.onReady(id) }
         }
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting, cameraOff = false) }
         locationManager.onDeviceReady(id)
@@ -586,6 +593,8 @@ class CameraSessionOrchestrator(
      */
     private suspend fun updateKeepAwake(id: String) {
         val enabled = runCatching { deviceDao.findKeepAwakeEnabled(id) }.getOrNull() == true
+        // Kept awake, it doesn't go into power save while connected.
+        if (enabled) trackWakeLoop(id) { wakeLoopDetector.forget(id) }
         val session = registry.get(id)
         val wanted = enabled && session != null && session.isLocationReady && !session.cameraOff &&
                 transport.hasCharacteristic(id, SonyBluetoothConstants.CAMERA_CONTROL_UUID)
@@ -611,6 +620,30 @@ class CameraSessionOrchestrator(
                 }
                 delay(SonyBluetoothConstants.KEEP_AWAKE_INTERVAL_MS.milliseconds)
             }
+        }
+    }
+
+    /**
+     * The connection ended. A camera that did it in power save and is set up again within
+     * seconds is being woken by the phone ([SonyWakeLoopDetector]); one that isn't back by
+     * then stays asleep.
+     */
+    private fun onSonyDisconnected(id: String) {
+        trackWakeLoop(id) { wakeLoopDetector.onDisconnected(id) }
+        scope.launch {
+            delay(SonyWakeLoopDetector.MAX_RECONNECT)
+            trackWakeLoop(id) { wakeLoopDetector.onQuiet(id) }
+        }
+    }
+
+    private fun trackWakeLoop(id: String, update: () -> Unit) {
+        val before = id in wakeLoops.value
+        update()
+        val after = id in wakeLoops.value
+        if (after && !before) {
+            log.i { "Camera $id is woken again after every power save drop (Cnct. while Power OFF is on)" }
+        } else if (before && !after) {
+            log.i { "Camera $id is no longer woken after power save" }
         }
     }
 

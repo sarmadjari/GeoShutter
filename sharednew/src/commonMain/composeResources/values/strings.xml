@@ -35,7 +35,7 @@
     <string name="step1_granted">✓ Granted</string>
     <string name="step2_title">Step 2: Background Location Access</string>
     <string name="step2_desc">Allows continuous GPS sync to your camera even when the app is in the background or screen is off.</string>
-    <string name="step2_android10_warning">You\'ll need to select "Allow all the time" in the next dialog</string>
+    <string name="step2_android10_warning">You'll need to select "Allow all the time" in the next dialog</string>
     <string name="step2_grant">Grant Background Location</string>
     <string name="step2_granted">✓ Granted</string>
     <string name="view_logs">View logs</string>
@@ -129,7 +129,7 @@
     <string name="event_sounds_configure_transmission_channel">Configure transmission channel</string>
     <string name="event_sounds_configure_disconnect_channel">Configure disconnect channel</string>
     <string name="battery_optimization_settings_title">Battery &amp; Background Settings</string>
-    <string name="battery_optimization_settings_short"><![CDATA[Adjust these settings if the app doesn\'t work reliably in the background. <b>Note: this will not change the app\'s behaviour itself, it will only try to prevent being killed by the OS. Only use if you encounter issues.</b>]]></string>
+    <string name="battery_optimization_settings_short"><![CDATA[Adjust these settings if the app doesn't work reliably in the background. <b>Note: this will not change the app's behaviour itself, it will only try to prevent being killed by the OS. Only use if you encounter issues.</b>]]></string>
     <string name="battery_optimization_settings_description">Some manufacturers require additional permissions for background activity. If the first option does not work, please tap the "Open Settings" button. Navigate to the Battery/Power section and try to exclude the App from any optimizations.</string>
     <string name="learn_more">Learn more</string>
     <string name="show_less">Show less</string>
@@ -156,11 +156,11 @@
     <string name="faq_connect_camera_question">How do I connect my camera to the app?</string>
     <string name="faq_connect_camera_answer">1. Make sure your camera supports Bluetooth connectivity and GPS tagging\n2. Enable Bluetooth on your camera and phone\n3. Put your camera in pairing mode, click on the camera on the main screen and follow the on-screen instructions (both camera and phone) \n 4. If this fails, remove any pairing in the Bluetooth settings of the phone and camera. Then try again</string>
     <string name="faq_camera_not_appearing_question">Why isn't my camera appearing in the list?</string>
-    <string name="faq_camera_not_appearing_answer">• Ensure your camera is in pairing/Bluetooth mode\n• Check that your camera supports the required Bluetooth profile\n• Make sure you\'re within range (typically 10 meters)\n• Try restarting Bluetooth on your phone</string>
+    <string name="faq_camera_not_appearing_answer">• Ensure your camera is in pairing/Bluetooth mode\n• Check that your camera supports the required Bluetooth profile\n• Make sure you're within range (typically 10 meters)\n• Try restarting Bluetooth on your phone</string>
     <string name="faq_disconnects_question">My camera is losing connection all the time</string>
     <string name="faq_disconnects_answer">Try these solutions:\n• Keep your phone closer to the camera\n• Disable battery optimization for the app\n• Check whether your camera has power-saving modes that affect Bluetooth\n• Restart both devices and pair them again if needed</string>
     <string name="faq_enable_service_question">How do I enable the service permanently? It seems to stop after a while</string>
-    <string name="faq_enable_service_answer">Please visit the App Settings and try the options in the Battery &amp; Background section. Alternatively try the following: \nTo keep GPS data syncing with your camera:\n1. Go to your device\'s Settings &gt; Apps\n2. Find \'GeoShutter\' in the app list\n3. Tap on it and select \'Battery\'\n4. Choose \'Don\'t optimize\' or \'Allow background activity\'\n5. This prevents the system from stopping the GPS service\n\nYou can also access this through the device details page in the app.</string>
+    <string name="faq_enable_service_answer">Please visit the App Settings and try the options in the Battery &amp; Background section. Alternatively try the following: \nTo keep GPS data syncing with your camera:\n1. Go to your device's Settings &gt; Apps\n2. Find 'GeoShutter' in the app list\n3. Tap on it and select 'Battery'\n4. Choose 'Don't optimize' or 'Allow background activity'\n5. This prevents the system from stopping the GPS service\n\nYou can also access this through the device details page in the app.</string>
     <string name="faq_camera_not_connecting_question">My camera does not connect automatically, what can I do?</string>
     <string name="faq_camera_not_connecting_answer">Unfortunately, there might be situations, where the automatic connection does not work. If you encounter issues please do the following:  On the main screen, tap on your camera to open the details screen. There you have an option to enable the "Always On" mode, which will keep the app in the foreground. \nOtherwise try toggling bluetooth or remove the device from the app and associate it again.</string>
     <string name="faq_permissions_question">What permissions does the app need?</string>
@@ -250,11 +250,11 @@
     <string name="enableConstantly">Keep active (Always On)</string>
     <string name="enable_remote_control">Enable remote control</string>
     <string name="not_paired_tap_to_pair_again">Not paired, please pair the device in the bluetooth settings</string>
-    <string name="to_pair_with_your_camera_please">To pair with your camera \'%1$s\', please:</string>
+    <string name="to_pair_with_your_camera_please">To pair with your camera '%1$s', please:</string>
     <string name="_1_turn_on_your_camera">\n1. Turn on your camera</string>
     <string name="_2_go_to_camera_settings_and_enable_bluetooth_pairing_mode">2. Go to camera settings and enable Bluetooth/Pairing mode</string>
     <string name="_3_make_sure_the_camera_is_discoverable">3. Make sure the camera is discoverable</string>
-    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nOnce your camera is ready, tap \'Continue\' to start pairing.</string>
+    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nOnce your camera is ready, tap 'Continue' to start pairing.</string>
     <string name="android_12_requires_keep_alive">Devices running Android 11 and below must enable keepalive mode. Tap the device and enable the setting</string>
     <string name="always_on_description">Runs the app in the foreground. Useful if the connection cannot be established reliably on devices with aggressive battery saving measures (e.g. Xiaomi and probably more)</string>
     <string name="quick_start_feature_title">Quickstart</string>
@@ -364,6 +364,8 @@
     <string name="detail_status_away_hint">Connects automatically when the camera is switched on nearby.</string>
     <string name="detail_status_switched_off">Switched off</string>
     <string name="detail_status_switched_off_hint">The camera stays connected because Cnct. while Power OFF is on, but takes no location until you switch it on. With that setting off, the location reaches it a few seconds sooner after switching on, and the camera saves battery.</string>
+    <string name="detail_status_wake_loop_title">The camera keeps waking up</string>
+    <string name="detail_status_wake_loop_hint">It falls asleep (power save), but Cnct. while Power OFF keeps it reachable, so GeoShutter reconnects and wakes it again about every minute, which drains its battery. Set Cnct. while Power OFF to Off on the camera (MENU → Network → Cnct./Remote Sht.). GeoShutter doesn't need it. To keep the camera ready for tagged photos, turn on Keep the camera awake below instead.</string>
     <string name="detail_status_disabled">Disabled</string>
     <string name="detail_status_disabled_hint">This camera is ignored until you enable it below.</string>
     <string name="enable_device_description">Connect and send your location</string>

@@ -155,6 +155,16 @@ pass (`sarnau/sony-camera-protocol`, `Congee/alfa`, `ekutner/camera-gps-link`,
   `04 00 01 00 00` comes about 1 s before); it stops advertising until it is woken, then
   the phone reconnects within a few seconds. Photos right after waking have no location.
   This explains the α1 II's "drops every 1–3 minutes" (§8 of `AGENTS.md`).
+- **Wake loop with *Cnct. while Power OFF* on**: the sleeping camera stays reachable, so
+  the phone reconnects about 10 s after each power save drop and the setup wakes it; it
+  drops again a Power Save Start Time later (iPhone log 2026-09-30: every 70 s).
+  `SonyWakeLoopDetector` (fed by the orchestrator: `onReady` at a Sony handshake,
+  `onDisconnected`, and `onQuiet` 45 s after a drop) flags a camera after three setups in a
+  row that each ended after about the same time (within 15 s, at least 5 s) and were each
+  followed by the next setup within 45 s. A drop without a setup within 45 s, a connection
+  of another length, or *Keep the camera awake* clears it. `CameraAutoCorrectionControls
+  .wakeLoops` → `DeviceDetailViewModel.wakeLoops` → a tip in the details' status card
+  (`WakeLoopTip`): set the camera's *Cnct. while Power OFF* to Off, or keep it awake.
 - **Keep the camera awake** (`CameraDevice.keepAwakeEnabled`, off by default): while
   connected, `CC02` gets `03 08 10 00` every 5 s (`KEEP_AWAKE_COMMAND`,
   `KEEP_AWAKE_INTERVAL_MS`). One write only restarts the power save timer (the screen went

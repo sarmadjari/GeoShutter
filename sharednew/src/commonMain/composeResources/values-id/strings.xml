@@ -80,11 +80,11 @@
     <string name="help_need_more_title">Butuh bantuan lebih lanjut?</string>
     <string name="help_need_more_description">Periksa log aplikasi di menu atas untuk informasi pemecahan masalah, atau tinjau pengaturan perangkat Anda untuk memastikan semua izin telah diberikan.</string>
     <string name="faq_connect_camera_question">Bagaimana cara menghubungkan kamera saya ke aplikasi?</string>
-    <string name="faq_connect_camera_answer">1. Pastikan kamera Anda mendukung konektivitas Bluetooth dan penandaan GPS  \n2. Aktifkan Bluetooth di ponsel Anda  \n3. Ketuk \'Tambah Perangkat Kamera\' untuk memulai proses pemasangan  \n4. Ikuti instruksi di layar untuk memasangkan kamera Anda. Nyalakan ulang kamera setelah proses pemasangan pertama.</string>
+    <string name="faq_connect_camera_answer">1. Pastikan kamera Anda mendukung konektivitas Bluetooth dan penandaan GPS  \n2. Aktifkan Bluetooth di ponsel Anda  \n3. Ketuk 'Tambah Perangkat Kamera' untuk memulai proses pemasangan  \n4. Ikuti instruksi di layar untuk memasangkan kamera Anda. Nyalakan ulang kamera setelah proses pemasangan pertama.</string>
     <string name="faq_camera_not_appearing_question">Mengapa kamera saya tidak muncul di daftar?</string>
     <string name="faq_camera_not_appearing_answer">• Pastikan kamera Anda dalam mode pemasangan/Bluetooth  \n• Periksa bahwa kamera Anda mendukung profil Bluetooth yang diperlukan  \n• Pastikan Anda berada dalam jangkauan (biasanya 10 meter)  \n• Coba nyalakan ulang Bluetooth di ponsel Anda</string>
     <string name="faq_enable_service_question">Bagaimana cara mengaktifkan layanan secara permanen? Tampaknya berhenti setelah beberapa saat</string>
-    <string name="faq_enable_service_answer">Silakan buka Pengaturan Aplikasi dan coba opsi di bagian Baterai &amp; Latar Belakang. Atau coba langkah berikut:  \nUntuk menjaga sinkronisasi data GPS dengan kamera Anda:  \n1. Buka Pengaturan perangkat Anda &gt; Aplikasi  \n2. Temukan \'GeoShutter\' dalam daftar aplikasi  \n3. Ketuk dan pilih \'Baterai\'  \n4. Pilih \'Jangan optimalkan\' atau \'Izinkan aktivitas latar belakang\'  \n5. Ini mencegah sistem menghentikan layanan GPS  \n\nAnda juga dapat mengakses ini melalui halaman detail perangkat di aplikasi.</string>
+    <string name="faq_enable_service_answer">Silakan buka Pengaturan Aplikasi dan coba opsi di bagian Baterai &amp; Latar Belakang. Atau coba langkah berikut:  \nUntuk menjaga sinkronisasi data GPS dengan kamera Anda:  \n1. Buka Pengaturan perangkat Anda &gt; Aplikasi  \n2. Temukan 'GeoShutter' dalam daftar aplikasi  \n3. Ketuk dan pilih 'Baterai'  \n4. Pilih 'Jangan optimalkan' atau 'Izinkan aktivitas latar belakang'  \n5. Ini mencegah sistem menghentikan layanan GPS  \n\nAnda juga dapat mengakses ini melalui halaman detail perangkat di aplikasi.</string>
     <string name="faq_camera_not_connecting_question">Kamera saya tidak terhubung secara otomatis, apa yang bisa saya lakukan?</string>
     <string name="faq_camera_not_connecting_answer">Sayangnya, mungkin ada situasi di mana koneksi otomatis tidak berfungsi. Jika Anda mengalami masalah, lakukan hal berikut: Pada layar utama, ketuk kamera Anda untuk membuka layar detail. Di sana Anda memiliki opsi untuk mengaktifkan mode Selalu Aktif, yang akan menjaga aplikasi tetap di latar depan.  \nJika tidak, coba aktifkan ulang bluetooth atau hapus perangkat dari aplikasi lalu kaitkan kembali.</string>
     <string name="faq_permissions_question">Izin apa saja yang dibutuhkan aplikasi?</string>
@@ -116,11 +116,11 @@
     <string name="battery_optimization_open_app_settings">Buka Pengaturan Aplikasi</string>
     <string name="battery_optimization_open_failed">Gagal membuka pengaturan</string>
     <string name="not_paired_tap_to_pair_again">Belum dipasangkan, silakan pasangkan perangkat di pengaturan bluetooth</string>
-    <string name="to_pair_with_your_camera_please">Untuk memasangkan dengan kamera \'%1$s\', silakan:</string>
+    <string name="to_pair_with_your_camera_please">Untuk memasangkan dengan kamera '%1$s', silakan:</string>
     <string name="_1_turn_on_your_camera">\n1. Nyalakan kamera Anda</string>
     <string name="_2_go_to_camera_settings_and_enable_bluetooth_pairing_mode">2. Buka pengaturan kamera dan aktifkan mode Bluetooth/Pemasangan</string>
     <string name="_3_make_sure_the_camera_is_discoverable">3. Pastikan kamera dapat ditemukan</string>
-    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nSetelah kamera Anda siap, ketuk \'Lanjutkan\' untuk memulai pemasangan.</string>
+    <string name="once_your_camera_is_ready_tap_continue_to_start_pairing">\nSetelah kamera Anda siap, ketuk 'Lanjutkan' untuk memulai pemasangan.</string>
     <string name="android_12_requires_keep_alive">Perangkat yang menjalankan Android 11 ke bawah harus mengaktifkan mode keepalive. Ketuk perangkat dan aktifkan pengaturan</string>
     <string name="always_on_description">Menjalankan aplikasi di latar depan. Berguna jika koneksi tidak dapat dibuat dengan andal pada perangkat dengan langkah penghematan baterai agresif (misalnya Xiaomi dan mungkin lainnya)</string>
     <string name="quick_start_feature_title">Mulai Cepat</string>
@@ -138,7 +138,7 @@
     <string name="language_german">Jerman</string>
     <string name="language_chinese">简体中文</string>
     <string name="how_about_privacy">Bagaimana dengan privasi?</string>
-    <string name="how_about_privacy_answer">Aplikasi tidak mengirimkan data pribadi apa pun kepada pengembang atau pihak ketiga. Semua informasi yang dikumpulkan (data lokasi) hanya digunakan untuk mentransfer koordinat GPS ke kamera yang terhubung dan tidak disimpan secara permanen. Pengumpulan lokasi berhenti segera setelah koneksi ke kamera terputus. Untuk menganalisis masalah dan crash, log anonim dapat dikirim ke layanan pelaporan kesalahan Sentry. Anda dapat menonaktifkan fitur ini kapan saja di pengaturan aplikasi di bawah \"Pengaturan Pelaporan Kesalahan\". Jika Anda memiliki pertanyaan atau kekhawatiran, silakan hubungi kami melalui halaman GitHub yang disebutkan di atas.</string>
+    <string name="how_about_privacy_answer">Aplikasi tidak mengirimkan data pribadi apa pun kepada pengembang atau pihak ketiga. Semua informasi yang dikumpulkan (data lokasi) hanya digunakan untuk mentransfer koordinat GPS ke kamera yang terhubung dan tidak disimpan secara permanen. Pengumpulan lokasi berhenti segera setelah koneksi ke kamera terputus. Untuk menganalisis masalah dan crash, log anonim dapat dikirim ke layanan pelaporan kesalahan Sentry. Anda dapat menonaktifkan fitur ini kapan saja di pengaturan aplikasi di bawah "Pengaturan Pelaporan Kesalahan". Jika Anda memiliki pertanyaan atau kekhawatiran, silakan hubungi kami melalui halaman GitHub yang disebutkan di atas.</string>
     <string name="device_management">Manajemen Perangkat</string>
     <string name="no_devices_found">Tidak ada perangkat ditemukan</string>
     <string name="delete_device">Hapus Perangkat</string>

@@ -2,6 +2,7 @@ package com.sasch.cameragps.sharednew.bluetooth.session
 
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** A setting stored on the camera that the app reads and changes over Bluetooth. */
@@ -81,4 +82,9 @@ interface CameraAutoCorrectionControls {
 
     /** Sony: "Keep the camera awake" changed in the database; apply it now. */
     fun applyKeepAwake(identifier: String) = Unit
+
+    /** Sony cameras that GeoShutter keeps waking up ([SonyWakeLoopDetector]). */
+    val wakeLoops: StateFlow<Set<String>> get() = noWakeLoops
 }
+
+private val noWakeLoops: StateFlow<Set<String>> = MutableStateFlow(emptySet())

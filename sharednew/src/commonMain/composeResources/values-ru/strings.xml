@@ -152,7 +152,7 @@
     <string name="guide_link_location_a6400">Справка Sony: Связь с инф. о полож. (α6400)</string>
     <string name="guide_link_location_zve10">Справка Sony: Связь с инф. о полож. (ZV-E10)</string>
     <string name="guide_repair_title">Камера подключается, но GPS не работает</string>
-    <string name="guide_repair_description">Это часто происходит, если камера ранее настраивалась через Creators\\' App или Imaging Edge Mobile от Sony: телефон уже сопряжен с камерой, поэтому повторный запрос не выводится, но передача координат в GeoShutter при этом не работает. Полное удаление старого сопряжения на обоих устройствах решает эту проблему.</string>
+    <string name="guide_repair_description">Это часто происходит, если камера ранее настраивалась через Creators' App или Imaging Edge Mobile от Sony: телефон уже сопряжен с камерой, поэтому повторный запрос не выводится, но передача координат в GeoShutter при этом не работает. Полное удаление старого сопряжения на обоих устройствах решает эту проблему.</string>
     <string name="guide_repair_step_phone">Удалите камеру из настроек Bluetooth вашего телефона:</string>
     <string name="guide_repair_step_phone_path_android">Настройки → Подключенные устройства (Bluetooth) → ваша камера → Забыть</string>
     <string name="guide_repair_step_phone_path_ios">Настройки → Bluetooth → ⓘ рядом с камерой → Забыть это устройство</string>
@@ -178,7 +178,7 @@
     <string name="pairing_failed_hint_pairing_mode">• Переведите камеру в режим сопряжения: MENU → Сеть → Bluetooth → Сопряжение.</string>
     <string name="pairing_failed_hint_camera_pairing">• Удалите старые сопряжения на камере: MENU → Сеть → Bluetooth → Управл. сопряжен. устр.</string>
     <string name="pairing_failed_hint_phone_pairing">• Удалите камеру из настроек Bluetooth вашего телефона (Настройки → Bluetooth), затем повторите попытку.</string>
-    <string name="scan_timeout_creators_app_hint">Камера не найдена? Убедитесь, что она переведена в режим сопряжения. Если ранее она подключалась через приложения Creators\\' App или Imaging Edge Mobile от Sony, удалите старые настройки связи как в самой камере, так и в списке устройств Bluetooth телефона. Подробнее об этом написано в руководстве по неполадкам.</string>
+    <string name="scan_timeout_creators_app_hint">Камера не найдена? Убедитесь, что она переведена в режим сопряжения. Если ранее она подключалась через приложения Creators' App или Imaging Edge Mobile от Sony, удалите старые настройки связи как в самой камере, так и в списке устройств Bluetooth телефона. Подробнее об этом написано в руководстве по неполадкам.</string>
     <string name="remote_control_hint">На некоторых моделях камер невозможно использовать дистанционное управление одновременно с привязкой местоположения. Если связь или передача GPS прекращается, отключите этот пункт.</string>
     <string name="help_menu_item">Справка</string>
     <string name="associated_devices">Привязанные устройства</string>
