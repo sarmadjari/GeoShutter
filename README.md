@@ -112,8 +112,8 @@ Android builds:
    *X100VI-… is in standby – Location kept up to date for your next photo*, *X100VI-…: location
    sync is off on the camera* or *GeoShutter is on – Waiting for …*. Its **Turn off**
    button switches GeoShutter off. Its icon, like the tile's and the widget's, is the app
-   icon's frame: with the pin while a camera receives your location, empty otherwise. Two
-   optional extras:
+   icon's frame with a pin: filled while a camera receives your location, outlined
+   otherwise. Two optional extras:
    - the **GeoShutter** Quick Settings tile turns GeoShutter on or off;
    - the **GeoShutter** home-screen widget only shows the state: each camera with a dot,
      green (receiving your location), blue (Fujifilm in standby: switched off or asleep,
@@ -145,9 +145,9 @@ Android builds:
    the camera), red (not connected, also while a camera is being set up, as in the app)
    or grey (GeoShutter off). The **GeoShutter**
    control, added to Control Center (or the Lock Screen), turns GeoShutter on or off like
-   *Enable App*. Both show the app icon's frame, with the pin while a camera receives
-   your location. They show what the app last reported; iOS limits how often a widget
-   updates while the app runs in the background.
+   *Enable App*. Both show the app icon's frame with a pin: filled while a camera
+   receives your location, outlined otherwise. They show what the app last reported; iOS
+   limits how often a widget updates while the app runs in the background.
 5. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
    cameras** step so iOS can manage them; iOS usually finishes it within seconds without
    further questions. All settings carry over and no new pairing is needed.

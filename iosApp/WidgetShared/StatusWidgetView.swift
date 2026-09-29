@@ -23,8 +23,8 @@ enum StatusColors {
     }
 }
 
-/// The status symbols, generated from the app icon by tools/app_icon: the frame with the
-/// pin while a camera receives the location, the frame alone otherwise.
+/// The status symbols, generated from the app icon by tools/app_icon: the frame with a
+/// filled pin while a camera receives the location, with an outlined pin otherwise.
 enum StatusSymbol {
     static func name(sending: Bool) -> String {
         sending ? "geoshutter.status.sending" : "geoshutter.status.waiting"

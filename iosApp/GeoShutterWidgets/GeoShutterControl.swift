@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 /// The Control Center (and Lock Screen) control, like Android's Quick Settings tile: on
-/// or off, with the frame and pin while a camera receives the location.
+/// or off, with the frame and a filled pin while a camera receives the location.
 struct GeoShutterControl: ControlWidget {
     static let kind = "com.sarmadjari.geoshutter.control"
 

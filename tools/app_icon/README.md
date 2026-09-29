@@ -29,10 +29,11 @@ Writes:
   (`status-icons.mjs`): the status icons of the notification (status bar), the Quick
   Settings tile and the widget on Android, and of the widget and Control Center control
   on the iPhone, in one color. The symbols use Apple's SF Symbols template (Regular
-  weight in three scales, filled outlines: the frame's strokes are outlined).
-  *Sending*: the frame with the pin, while a camera receives the location. *Waiting*: the
-  frame alone, while GeoShutter waits, a camera is in standby or GeoShutter is off. The
-  frame is drawn a little heavier than in the app icon so it holds up at status-bar size.
+  weight in three scales, filled outlines: the strokes of the frame and of the outlined
+  pin are outlined). *Sending*: the frame with a filled pin, while a camera receives the
+  location. *Waiting*: the frame with an outlined pin (no dot), while GeoShutter waits, a
+  camera is in standby or GeoShutter is off. The frame is drawn a little heavier than in
+  the app icon so it holds up at status-bar size.
 
 To change the icons, edit the shapes and colors in `shapes.mjs` (and the status icons'
 size in `status-icons.mjs`) and run the scripts again; don't edit the generated files by
