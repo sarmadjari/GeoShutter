@@ -349,6 +349,10 @@ needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.
   under that name; after GitHub issues its certificate, turn on *Enforce HTTPS* (Pages
   settings, or `gh api -X PUT repos/sarmadjari/GeoShutter/pages -F https_enforced=true`).
   The link-preview image is an SVG, which most social networks don't show.
+- Fork CI: pushes to `main` have never started a workflow run (not even ones touching
+  `website/**`), while `workflow_dispatch` works. GitHub keeps push-triggered workflows off
+  on forks until they're enabled on the repository's Actions tab. Until then, deploy the
+  website by hand: `gh workflow run "Deploy Website to GitHub Pages" -R sarmadjari/GeoShutter`.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging (EXIF position
@@ -587,4 +591,6 @@ needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.
   website rewritten with a Fujifilm section, F-Droid description, old root `CNAME`,
   `icon.svg` and App Store badge removed. Enabled GitHub Pages (Actions) with the custom
   domain and updated the repository description and homepage. The DNS record is up to the
-  maintainer.
+  maintainer (`sarmad.no` is hosted by Domeneshop, name servers `ns*.hyp.net`). The push
+  didn't start the deploy workflow (see §8), so it was run by hand; the site is deployed
+  and `sarmadjari.github.io/GeoShutter` redirects to the custom domain.

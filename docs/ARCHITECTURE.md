@@ -17,7 +17,7 @@ scheme `alphagps`), so those names appear throughout this document.
 | Module / folder | Kind | Identity | Role |
 |---|---|---|---|
 | `:app` (`app/`) | Android application | namespace `com.saschl.cameragps`, applicationId `com.sarmadjari.geoshutter`, launcher label `GeoShutter` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
-| `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, StoreKit, Sentry). |
+| `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, Sentry; the StoreKit review request lives in the Swift shell). |
 | `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "GeoShutter", bundle ID `com.sarmadjari.geoshutter`, signing team from `Config/Local.xcconfig` (`DEVELOPMENT_TEAM`), iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
 | `website/` | Astro static site | — | Landing page, deployed by `deploy-pages.yml` to GitHub Pages at geoshutter.sarmad.no. |
 | `tools/` | Scripts | — | App icon generator, screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
@@ -461,5 +461,6 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
   `SIGNING_KEY_PASSWORD`, `SIGNING_STORE_PASSWORD` and, optionally, `SENTRY_DSN`,
   `SENTRY_AUTH_TOKEN` plus the variables `SENTRY_ORG`/`SENTRY_PROJECT`.
 - `.github/workflows/deploy-pages.yml`: builds `website/` and deploys it to GitHub
-  Pages on changes under `website/**`.
+  Pages on pushes to `main` that change `website/**`, or when run by hand
+  (`workflow_dispatch`).
 - Renovate (`renovate.json`) keeps dependencies and pinned action digests current.

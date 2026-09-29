@@ -348,7 +348,9 @@ cd website && npm ci && npm run dev    # local preview; npm run build writes web
 Pushes to `main` that change `website/` deploy it to
 [geoshutter.sarmad.no](https://geoshutter.sarmad.no) through GitHub Pages
 (`.github/workflows/deploy-pages.yml`; the custom domain is set in the repository's Pages
-settings and a DNS CNAME record points it to `sarmadjari.github.io`).
+settings and a DNS CNAME record points it to `sarmadjari.github.io`). To deploy by hand,
+run `gh workflow run "Deploy Website to GitHub Pages"` or use *Run workflow* on the
+Actions tab.
 
 ## Repository layout
 
