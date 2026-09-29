@@ -14,8 +14,9 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 - **GeoShutter** (`sarmadjari/GeoShutter`, website https://geoshutter.sarmad.no) is a
   **standalone app** by Sarmad Jari, based on **Alpha GPS** (`Saschl/alpha-gps`, website
   https://alphagps.app), which it credits (README, website, in-app About card). GitHub
-  still lists the repository as a fork. Git remotes: `origin` = this repository,
-  `upstream` = Saschl/alpha-gps (only for reference; see below).
+  still lists the repository as a fork (*Settings → Danger Zone → Leave fork network*
+  would detach it permanently; the maintainer hasn't decided). Git remotes: `origin` = this
+  repository, `upstream` = Saschl/alpha-gps (only for reference; see below).
 - The app sends the phone's GPS position to **Sony** and **Fujifilm** cameras over
   Bluetooth LE (geotagging), syncs date/time/time zone, works as a Bluetooth remote shutter
   for Sony and can change the camera's own location and time settings. Android and iOS,
