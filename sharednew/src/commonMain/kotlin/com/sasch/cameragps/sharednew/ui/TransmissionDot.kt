@@ -23,19 +23,21 @@ fun TransmissionDot(
     isRunning: Boolean,
     modifier: Modifier = Modifier,
     /** Color while running; blue for a camera that is switched off in standby. */
-    runningColor: Color = Color.Green,
+    runningColor: Color = ReceivingGreen,
+    /** Color while not running; amber for a camera connected with location sync off. */
+    idleColor: Color = AwayRed,
 ) {
     Box(
         modifier = modifier
             .size(12.dp), // fixed layout size so nothing moves
         contentAlignment = Alignment.Center
     ) {
-        if (!isRunning) {  // Static red dot when disabled
+        if (!isRunning) {  // Static dot when not sending
             Box(
                 modifier = Modifier
                     .size(8.dp)
                     .background(
-                        color = Color.Red,
+                        color = idleColor,
                         shape = CircleShape
                     )
             )
@@ -68,5 +70,19 @@ fun TransmissionDot(
     }
 }
 
+// Camera status colors, the same as the status widget's.
+
+/** Receiving the location. */
+val ReceivingGreen = Color(0xFF2E9E4A)
+
 /** A camera switched off in standby that still receives the location. */
 val StandbyBlue = Color(0xFF1E88E5)
+
+/** Connecting, or connected without taking the location (location sync off). */
+val AttentionAmber = Color(0xFFE8A317)
+
+/** Not connected. */
+val AwayRed = Color(0xFFD93025)
+
+/** Disabled in the app. */
+val DisabledGrey = Color(0xFF9E9E9E)

@@ -25,6 +25,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun IosDeviceDetailScreen(
     device: BluetoothDeviceInfo,
     onBackClick: () -> Unit,
+    onRemove: () -> Unit,
 ) {
 
     val deviceDao = remember(Unit) { IosBluetoothController.deviceDao }
@@ -103,6 +104,8 @@ internal fun IosDeviceDetailScreen(
             deviceId = device.identifier,
             deviceName = device.name,
             modifier = Modifier.padding(paddingValues),
+            modelLine = device.model,
+            onRemove = onRemove,
             onDeviceEnabledChanged = { enabled ->
                 IosBluetoothController.applyDeviceEnabledState(device.identifier, enabled)
             },

@@ -272,10 +272,20 @@ fork's site. GitHub Pages is not enabled on the fork.
   after switching on is tagged; while every such camera is off the phone's location is
   refreshed about once a minute instead of every 5 s (user's choice over full rate or
   stopping).
-- 2026-09-29: the Fujifilm camera details also offer *Stay connected when switched off*
+- 2026-09-29: the Fujifilm camera details also offer *Stay connected when off*
   (the camera's CONNECT WHILE POWER OFF), *Location updates while on* (the camera's
   request interval, 10 s–8 min, recommended 10 s; the phone's GPS follows it, as in
   Fujifilm's app) and *Location updates in standby* (30 s–5 min, recommended 1 min).
+- 2026-09-29: camera details layout (both platforms): the camera's name as the screen
+  title; a status card first (colored dot, state, one explaining line, brand · model ·
+  Android address); then settings grouped in cards like the Settings screen: *General*,
+  *Location and time* + *Standby* (Fujifilm) or *Date and time* + *Remote control* (Sony),
+  *Advanced*; *Delete Device* last, confirmed with the list's swipe dialog. Rows show a
+  one-line summary; the long explanation sits behind an ⓘ that stays with the title's last
+  word; the whole row toggles its switch. Section headings are small and in the primary
+  color (`SharedSettingsCard`, also used by the Settings screen). One status palette for
+  the app (`ui/TransmissionDot.kt`: green, blue, amber, red, grey), the same as the
+  widget's. Keep new setting texts short (one line in English at phone width).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -329,6 +339,10 @@ fork's site. GitHub Pages is not enabled on the fork.
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
+- The Settings screen still mixes styles: *App Controls* and *Log Settings* are
+  `SharedSettingsCard`s (the log level in a nested surface), the entries below them
+  (*Location Provider*, *Transmission Event Sounds*, …) are plain navigation cards; the
+  in-app texts still say "Alpha GPS" in places (for example the rename hint and Help).
 
 ### Fork status (checked 2026-09-28)
 
@@ -492,3 +506,14 @@ fork's site. GitHub Pages is not enabled on the fork.
   interval follows the most demanding camera (Sony 5 s, Fujifilm its interval, standby its
   standby interval); a stationary phone may get fewer GPS fixes (Google's service). The
   camera settings controller logs values it can't decode.
+- 2026-09-29 (late afternoon): UI/UX pass on the camera details at the maintainer's
+  request ("text not well placed or organized"). Before: titles wrapped letter by letter
+  next to wide slider values, one flat list, *Remove* at the top, the name twice and the
+  app name as the title. Now the layout in §7, shared by Android and iOS (iOS gained
+  *Delete Device*). The camera card's long standby and location-sync-off notes became
+  one-line status lines, and its dot uses the shared palette (amber for location sync
+  off). Fixed on the way: the open camera details closed whenever the activity was
+  recreated (dark mode switch, folding, rotation); the selected camera is now saved by
+  address (`rememberSaveable` in `CameraDeviceManager`). Checked on the SM-F976B in light
+  and dark mode with the X100VI (standby, connecting) and the α1 II (not connected): info
+  dialogs, row toggling, delete dialog (cancelled).

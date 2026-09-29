@@ -519,7 +519,7 @@ and 1 on, readable, writable and notified). The X100VI reads it as two bytes, `0
 while the setting is on; GeoShutter reads and writes it as a uint16, and writing
 `00 00` and `01 00` switched the camera's menu setting off and on (X, 2026-09-29 12:40:39
 and 12:40:50). GeoShutter reads it during setup and shows it in the camera details
-(*Stay connected when switched off*); it doesn't subscribe to it, so a change made in the
+(*Stay connected when off*); it doesn't subscribe to it, so a change made in the
 camera menu shows after the details are opened again.
 
 ### 8.13 Remote shutter (not used)
@@ -574,7 +574,7 @@ Everything in this section was observed on the X100VI (X).
 ### Power off
 
 The setting CONNECT WHILE POWER OFF (MENU/OK → NETWORK/USB SETTING → Bluetooth/SMARTPHONE
-SETTING, or *Stay connected when switched off* in GeoShutter's camera details, 8.12)
+SETTING, or *Stay connected when off* in GeoShutter's camera details, 8.12)
 decides what happens when the camera is switched off. The manual: "Select ON to
 maintain a Bluetooth connection with a smartphone even when the camera is turned off."
 
@@ -639,9 +639,9 @@ built.
 | `sharednew/…/bluetooth/location/LocationTransmissionManager.kt` | answers geotag requests (`onLocationRequested`); Sony cameras get locations pushed; tracks the phone's location only while a ready camera wants it, slowly while every such camera is in standby |
 | `sharednew/…/bluetooth/location/LocationSource.kt`, `app/…/location/FusedLocationSource.kt`, `PlatformLocationSource.kt` | `setUpdateInterval`: the fix interval the location manager needs |
 | `sharednew/…/database/devices/CameraDevice.kt` | `timeSyncEnabled` (database version 7, default on), `locationIntervalS` and `standbyIntervalS` (version 8, defaults 10 and 60) |
-| `sharednew/…/ui/device/DeviceDetailScreen.kt` | camera details for Fujifilm: *Set date, time and time zone*, *Smartphone location sync*, *Location updates while on*, *Stay connected when switched off*, *Location updates in standby* (the intervals as sliders marking the recommended value); Sony-only rows hidden |
+| `sharednew/…/ui/device/DeviceDetailScreen.kt` | camera details: a status card (standby blue, location sync off amber), then for Fujifilm the groups *Location and time* (*Smartphone location sync*, *Location updates while on*, *Set date, time and time zone*) and *Standby* (*Stay connected when off*, *Location updates in standby*); the intervals are sliders marking the recommended value; Sony-only rows hidden |
 | `sharednew/…/status/GeoShutterStatus.kt`, `app/…/status/` | states shown in the notification, tile and widget: a silent Fujifilm camera is "Connecting", one with location sync off "Location sync off" (amber), one switched off or asleep in standby "Standby" (blue) |
-| `sharednew/…/ui/devicelist/` | the camera card: blue dot and a note for a camera in standby, a note for location sync off |
+| `sharednew/…/ui/devicelist/` | the camera card: blue dot and *Standby · location kept up to date* for a camera in standby, amber dot and *Location sync is off on the camera* for location sync off |
 | `app/…/service/transport/AndroidBleTransport.kt` | direct connections with three retries before `autoConnect`, `reconnect()`, characteristic lookup by service, indications for indication-only characteristics, writes with response |
 | `app/…/utils/DeviceAssociationUtils.kt` | companion-device chooser filter on `0x04D8` |
 | `app/…/service/CameraDeviceCompanionService.kt` | direct connection when a camera appears; keeps a connected camera that stops advertising |

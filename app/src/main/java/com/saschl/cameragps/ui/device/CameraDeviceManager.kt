@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -94,9 +95,9 @@ fun CameraDeviceManager(
     }
     val adapter = context.getSystemService<BluetoothManager>()?.adapter
     val locationManager = context.getSystemService<LocationManager>()
-    var selectedDevice by remember {
-        mutableStateOf<AssociatedDeviceCompat?>(null)
-    }
+    // Saved by address, so a camera's details stay open when the activity is recreated
+    // (dark mode, folding or rotating the phone).
+    var selectedAddress by rememberSaveable { mutableStateOf<String?>(null) }
 
     val activity = LocalActivity.current
 
@@ -114,6 +115,8 @@ fun CameraDeviceManager(
             }
         )
     }
+    // The list state is refreshed on every resume; no IPC during composition.
+    val selectedDevice = associatedDevices.find { it.address == selectedAddress }
 
     var isBluetoothEnabled by remember {
         mutableStateOf(adapter?.isEnabled == true)
@@ -292,7 +295,7 @@ fun CameraDeviceManager(
                         associatedDevices =
                             deviceManager.getAssociatedDevices(adapter)
                     }
-                    selectedDevice = null
+                    selectedAddress = null
                 }
         }
 
@@ -330,7 +333,7 @@ fun CameraDeviceManager(
                         },
                         onConnect = { device ->
                             if (!SCREENSHOT_MODE) {
-                                selectedDevice = device
+                                selectedAddress = device.address
                             }
                         },
                         onDisassociate = disassociateDevice,
@@ -342,20 +345,15 @@ fun CameraDeviceManager(
                 }
             } else {
                 EnhancedLocationPermissionBox {
-                // The list state is refreshed on every resume; no IPC during composition.
-                associatedDevices
-                    .find { it.address == selectedDevice?.address }?.id?.let {
-
                     DeviceDetailScreen(
-                                device = selectedDevice!!,
-                                deviceManager = deviceManager,
-                                associationId = it,
+                        device = selectedDevice,
+                        deviceManager = deviceManager,
+                        associationId = selectedDevice.id,
                         onDisassociate = disassociateDevice,
-                                onClose = { selectedDevice = null },
-                                onHelpClick = onHelpClick
-                            )
-                        }
-                    }
+                        onClose = { selectedAddress = null },
+                        onHelpClick = onHelpClick
+                    )
+                }
             }
         }
         if (isReviewFlowActive) {

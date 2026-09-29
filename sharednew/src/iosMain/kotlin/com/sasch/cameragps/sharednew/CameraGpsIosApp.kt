@@ -304,6 +304,12 @@ internal fun CameraGpsIosApp(
                     IosDeviceDetailScreen(
                         device = selectedDevice,
                         onBackClick = { currentScreen = IosScreen.Devices },
+                        onRemove = {
+                            currentScreen = IosScreen.Devices
+                            scope.launch {
+                                bluetoothController.forgetDevice(selectedDevice.identifier)
+                            }
+                        },
                     )
                 }
             }

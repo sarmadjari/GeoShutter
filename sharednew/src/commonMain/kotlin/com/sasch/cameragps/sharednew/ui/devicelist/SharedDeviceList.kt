@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -48,6 +47,8 @@ import cameragps.sharednew.generated.resources.Res
 import cameragps.sharednew.generated.resources.android_12_requires_keep_alive
 import cameragps.sharednew.generated.resources.camera_24px
 import cameragps.sharednew.generated.resources.cancel
+import cameragps.sharednew.generated.resources.card_status_standby
+import cameragps.sharednew.generated.resources.card_status_sync_off
 import cameragps.sharednew.generated.resources.connected
 import cameragps.sharednew.generated.resources.delete
 import cameragps.sharednew.generated.resources.delete_24px
@@ -56,8 +57,6 @@ import cameragps.sharednew.generated.resources.delete_device_confirmation
 import cameragps.sharednew.generated.resources.enable_pairing_mode_continue
 import cameragps.sharednew.generated.resources.enable_pairing_mode_message
 import cameragps.sharednew.generated.resources.enable_pairing_mode_title
-import cameragps.sharednew.generated.resources.fujifilm_standby_hint
-import cameragps.sharednew.generated.resources.fujifilm_location_sync_off_hint
 import cameragps.sharednew.generated.resources.guide_open_button
 import cameragps.sharednew.generated.resources.keyboard_arrow_right_24px
 import cameragps.sharednew.generated.resources.location_linking_disabled_by_camera
@@ -71,6 +70,9 @@ import cameragps.sharednew.generated.resources.transmission_active
 import cameragps.sharednew.generated.resources.transmission_inactive
 import cameragps.sharednew.generated.resources.trigger_shutter
 import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
+import com.sasch.cameragps.sharednew.ui.AttentionAmber
+import com.sasch.cameragps.sharednew.ui.AwayRed
+import com.sasch.cameragps.sharednew.ui.ReceivingGreen
 import com.sasch.cameragps.sharednew.ui.ShutterPulseIcon
 import com.sasch.cameragps.sharednew.ui.StandbyBlue
 import com.sasch.cameragps.sharednew.ui.TransmissionDot
@@ -131,32 +133,13 @@ fun SharedDeviceList(
     }
 
     deviceToDelete?.let { device ->
-        AlertDialog(
-            onDismissRequest = { deviceToDelete = null },
-            title = { Text(stringResource(Res.string.delete_device)) },
-            text = {
-                Text(
-                    stringResource(Res.string.delete_device_confirmation, device.name)
-                )
+        DeleteDeviceDialog(
+            name = device.name,
+            onConfirm = {
+                onDelete(device)
+                deviceToDelete = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete(device)
-                        deviceToDelete = null
-                    }
-                ) {
-                    Text(
-                        text = stringResource(Res.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deviceToDelete = null }) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            },
+            onDismiss = { deviceToDelete = null },
         )
     }
 
@@ -216,6 +199,33 @@ fun SharedDeviceList(
             }
         }
     }
+}
+
+/** Confirms deleting a saved camera; shared by the list's swipe and the details screen. */
+@Composable
+internal fun DeleteDeviceDialog(
+    name: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.delete_device)) },
+        text = { Text(stringResource(Res.string.delete_device_confirmation, name)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = stringResource(Res.string.delete),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -406,17 +416,18 @@ private fun DeviceCard(
                             stringResource(Res.string.location_linking_disabled_by_camera)
 
                         item?.locationSyncOff == true ->
-                            stringResource(Res.string.fujifilm_location_sync_off_hint)
+                            stringResource(Res.string.card_status_sync_off)
 
                         item?.inStandby == true ->
-                            stringResource(Res.string.fujifilm_standby_hint)
+                            stringResource(Res.string.card_status_standby)
 
                         isTransmissionActive -> stringResource(Res.string.transmission_active)
                         else -> stringResource(Res.string.transmission_inactive)
                     }
                     TransmissionDot(
                         isTransmissionActive,
-                        runningColor = if (item?.inStandby == true) StandbyBlue else Color.Green,
+                        runningColor = if (item?.inStandby == true) StandbyBlue else ReceivingGreen,
+                        idleColor = if (item?.locationSyncOff == true) AttentionAmber else AwayRed,
                         modifier = Modifier.semantics {
                             contentDescription = transmissionStatusDescription
                         }
@@ -451,20 +462,6 @@ private fun DeviceCard(
                     Text(stringResource(Res.string.guide_open_button))
                 }
             }
-            if (item?.locationSyncOff == true) {
-                Text(
-                    text = stringResource(Res.string.fujifilm_location_sync_off_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            if (item?.inStandby == true) {
-                Text(
-                    text = stringResource(Res.string.fujifilm_standby_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             if (showKeepAliveHint && item?.isAlwaysOnEnabled == false) {
                 Text(
                     text = stringResource(Res.string.android_12_requires_keep_alive),
@@ -473,6 +470,10 @@ private fun DeviceCard(
                 )
             }
             val statusText = when {
+                // Fujifilm: short status lines; the camera's details explain them.
+                item?.locationSyncOff == true -> stringResource(Res.string.card_status_sync_off)
+                item?.inStandby == true -> stringResource(Res.string.card_status_standby)
+
                 // Remote-active needs no extra text: the shutter button says it all.
                 device.isConnected && (isRemoteFeatureActive || item?.remoteSupported == false) ->
                     stringResource(Res.string.connected)
@@ -488,10 +489,10 @@ private fun DeviceCard(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (device.isConnected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    color = when {
+                        item?.locationSyncOff == true -> MaterialTheme.colorScheme.error
+                        device.isConnected || item?.inStandby == true -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
             }
