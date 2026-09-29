@@ -25,13 +25,13 @@
         <item quantity="other">Location sync is off on %1$d cameras</item>
     </plurals>
     <string name="status_sync_off_short">Location sync off</string>
-    <string name="status_camera_off_one">%1$s is off</string>
-    <plurals name="status_camera_off_many">
-        <item quantity="one">%1$d camera is off</item>
-        <item quantity="other">%1$d cameras are off</item>
+    <string name="status_standby_one">%1$s is in standby</string>
+    <plurals name="status_standby_many">
+        <item quantity="one">%1$d camera is in standby</item>
+        <item quantity="other">%1$d cameras are in standby</item>
     </plurals>
-    <string name="status_camera_off_text">Location kept up to date for your next photo</string>
-    <string name="status_camera_off_short">Camera off</string>
+    <string name="status_standby_text">Location kept up to date for your next photo</string>
+    <string name="status_standby_short">Standby</string>
     <string name="status_turn_off">Turn off</string>
     <string name="status_off">Off</string>
     <string name="status_waiting_short">Waiting</string>

@@ -586,7 +586,7 @@ class FujifilmSessionTest {
         f.transport.powerKeyState = byteArrayOf(0x00, 0x01) // off, standby
         f.connect("F", FUJIFILM)
         runCurrent()
-        assertTrue(f.session("F").cameraOff)
+        assertTrue(f.session("F").inStandby)
         assertTrue(f.source.active)
         assertTrue(f.source.slow)
 
@@ -599,9 +599,25 @@ class FujifilmSessionTest {
         f.transport.powerKeyState = byteArrayOf(0x01, 0x02)
         f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
         runCurrent()
-        assertFalse(f.session("F").cameraOff)
+        assertFalse(f.session("F").inStandby)
         assertFalse(f.source.slow)
         assertEquals(2, f.transport.geotagWrites("F").size)
+    }
+
+    @Test
+    fun aCameraThatFellAsleepCountsAsStandby() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertFalse(f.session("F").inStandby)
+
+        // Automatic power off: the switch stays on, the camera runs in the background.
+        f.transport.powerKeyState = byteArrayOf(0x01, 0x01)
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+
+        assertTrue(f.session("F").inStandby)
+        assertTrue(f.source.slow)
     }
 
     @Test
@@ -612,7 +628,7 @@ class FujifilmSessionTest {
         f.connect("S", SONY)
         runCurrent()
 
-        assertTrue(f.session("F").cameraOff)
+        assertTrue(f.session("F").inStandby)
         assertFalse(f.source.slow)
     }
 
@@ -622,7 +638,7 @@ class FujifilmSessionTest {
         f.connect("F", FUJIFILM - Fuji.POWER_SWITCH_UUID)
         runCurrent()
 
-        assertFalse(f.session("F").cameraOff)
+        assertFalse(f.session("F").inStandby)
         assertTrue(f.session("F").isLocationReady)
         assertFalse(f.source.slow)
     }

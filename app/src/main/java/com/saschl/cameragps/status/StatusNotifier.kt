@@ -21,7 +21,7 @@ internal data class StatusContent(val title: String, val text: String?, val send
             val sending = status.sending
             val connecting = status.connecting
             val syncOff = status.locationSyncOff
-            val off = status.cameraOff
+            val off = status.standby
             fun names(cameras: List<CameraStatus>) = cameras.joinToString(", ") { it.name }
             return when {
                 sending.size == 1 -> StatusContent(
@@ -52,11 +52,11 @@ internal data class StatusContent(val title: String, val text: String?, val send
 
                 off.isNotEmpty() -> StatusContent(
                     if (off.size == 1) {
-                        context.getString(R.string.status_camera_off_one, off.single().name)
+                        context.getString(R.string.status_standby_one, off.single().name)
                     } else {
-                        context.resources.getQuantityString(R.plurals.status_camera_off_many, off.size, off.size)
+                        context.resources.getQuantityString(R.plurals.status_standby_many, off.size, off.size)
                     },
-                    context.getString(R.string.status_camera_off_text),
+                    context.getString(R.string.status_standby_text),
                     sending = false,
                 )
 

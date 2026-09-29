@@ -2,8 +2,8 @@
 
 > **Status: experimental, Android only.** With a FUJIFILM X100VI (firmware 01.32)
 > GeoShutter geotags photos, sets the camera's date, time and time zone, reads and changes
-> the camera's SMARTPHONE LOCATION SYNC. setting, and keeps a switched-off camera's
-> location up to date in standby. iOS and cameras with the legacy protocol are not
+> the camera's SMARTPHONE LOCATION SYNC. setting, and keeps the location of a camera that
+> is switched off or asleep up to date in standby. iOS and cameras with the legacy protocol are not
 > supported.
 
 This is the reference for the Bluetooth Low Energy protocol GeoShutter uses with Fujifilm
@@ -47,8 +47,8 @@ evidence in this file.
 - The camera's clock and AREA SETTING come from a separate 12-byte time packet, not from
   the geotag packet. The camera applies it only when it has asked for it: on the first
   connection after it is switched on or wakes up.
-- A camera switched off with CONNECT WHILE POWER OFF on stays connected in standby,
-  reports its power switch position, and keeps asking for locations.
+- A camera switched off or asleep with CONNECT WHILE POWER OFF on stays connected in
+  standby, reports that through its power switch value, and keeps asking for locations.
 
 The characteristics GeoShutter uses:
 
@@ -270,7 +270,7 @@ sequenceDiagram
 | 17 | write | sync interval | `0A 00` (10 s) | the camera echoes it as a notification |
 | 18 | write | time packet | `EA 07 09 1C 16 24 37 64 00 00 00 01` | only with the option *Set date, time and time zone* on and the characteristic present; applied only if the camera asked (NOT1) |
 | 19 | read | location sync setting (NOT7) | `01 00` | `00 00`: shown as "Location sync off"; the phone's location isn't used for this camera |
-| 20 | read | power switch | `01 02` on, `00 01` off in standby | off: shown as "Camera off" |
+| 20 | read | power switch | `01 02` awake; `00 01` switched off, `01 01` asleep, both in standby | standby: shown as "Standby" (blue) |
 | | ready | | | location updates start (about once a minute if every camera is off); geotag requests are answered |
 | 21 | read | camera name (NOT4) | "FUJIFILM-X100VI-" and four characters | stored for the camera list |
 
@@ -495,11 +495,15 @@ setup and shows it without "FUJIFILM-", unless the camera was renamed in the app
 |---|---|---|---|
 | `0x0201` | `01 02` | on | while switched on |
 | `0x0200` | `00 02` | off | |
-| `0x0101` | `01 01` | on, in the background | |
-| `0x0100` | `00 01` | off, in the background (standby) | after being switched off with CONNECT WHILE POWER OFF on |
+| `0x0101` | `01 01` | on, in the background | asleep after its automatic power off, switch still on |
+| `0x0100` | `00 01` | off, in the background | after being switched off |
 
-GeoShutter reads it during setup and after every geotag request. A camera that is off is
-shown as "Camera off" (blue) and still gets locations; see [Power off](#power-off).
+(Both background values with CONNECT WHILE POWER OFF on.) The first byte is the switch
+position, the second tells normal operation (`02`) from the background (`01`). GeoShutter
+reads it during setup and after every geotag request: anything but `0x0201` means the
+camera is in standby, shown as "Standby" (blue), and it still gets locations; see
+[Power off](#power-off). An earlier build treated `01 01` as awake and showed a sleeping
+camera as receiving the location (green).
 
 ### 8.12 Remote shutter (not used)
 
@@ -559,18 +563,19 @@ maintain a Bluetooth connection with a smartphone even when the camera is turned
   within 3 s in standby: the power switch read `00 01` (off, in the background), it asked
   for the time (NOT1) and kept asking for the location every 10 s (X, 2026-09-29 10:52).
   On 2026-09-28 it seemed to keep the same link while off (seen for more than 15 minutes).
-  GeoShutter shows such a camera as "Camera off" (blue) and keeps answering, with the
+  GeoShutter shows such a camera as "Standby" (blue) and keeps answering, with the
   phone's location updated about once a minute while no other camera needs it (the
   phone's GPS came on at 11:07:36 and again at 11:08:38 instead of staying on).
+- **Automatic power off (sleep) with the setting on:** the camera kept the connection and
+  kept asking for the location every 10 s; its power switch read `01 01` (on, in the
+  background), also on a new connection while it slept (X, 2026-09-29 12:09–12:17).
 - **Switching on from standby** ended the connection; the first new connection died after
   5 s (`0x08`) and the next one was ready 10 s after switching on, with the power switch
   reading `01 02` and the location at full rate again. A photo taken 2 s after switching on
   already carried the location sent in standby (8.5).
 
-The camera has to be switched off with the power switch for this; how it behaves after
-its automatic power off with the setting on was not checked. Fujifilm's guide lists
-remote control as unavailable while the switch is OFF, and waking from automatic power off
-as possible for remote shooting (M).
+Fujifilm's guide lists remote control as unavailable while the switch is OFF, and waking
+from automatic power off as possible for remote shooting (M).
 
 On 2026-09-28 a diagnostic build found nothing that changed with the power switch: it
 subscribed to the seven notifying characteristics GeoShutter doesn't use (`049ec406`,
@@ -605,15 +610,15 @@ built.
 | File | Role |
 |---|---|
 | `sharednew/…/bluetooth/fujifilm/FujifilmBluetoothConstants.kt` | UUIDs, byte values, subscription lists, client name |
-| `sharednew/…/bluetooth/fujifilm/FujifilmPacketBuilder.kt` | geotag packet, time packet, status acknowledgement, sync interval, power switch (`isPoweredOn`) |
-| `sharednew/…/bluetooth/fujifilm/FujifilmSessionController.kt` | detection, setup (`runHandshake`), `syncTime`, `readPowerOn`, `readCameraName`, notification parsing |
-| `sharednew/…/bluetooth/session/CameraSessionOrchestrator.kt` | runs detection and setup (including the reads before the camera counts as ready), keeps Fujifilm events away from the Sony handlers, decides when to set the time, power switch, silence watchdog, `CameraSession.cameraResponding` and `cameraOff`, camera name; re-evaluates location tracking when a camera's location sync or power switch changes |
+| `sharednew/…/bluetooth/fujifilm/FujifilmPacketBuilder.kt` | geotag packet, time packet, status acknowledgement, sync interval, power switch (`isAwake`) |
+| `sharednew/…/bluetooth/fujifilm/FujifilmSessionController.kt` | detection, setup (`runHandshake`), `syncTime`, `readPowerSwitch`, `readCameraName`, notification parsing |
+| `sharednew/…/bluetooth/session/CameraSessionOrchestrator.kt` | runs detection and setup (including the reads before the camera counts as ready), keeps Fujifilm events away from the Sony handlers, decides when to set the time, power switch, silence watchdog, `CameraSession.cameraResponding` and `inStandby`, camera name; re-evaluates location tracking when a camera's location sync or power switch changes |
 | `sharednew/…/bluetooth/session/CameraAutoCorrectionSetting.kt`, `CameraAutoCorrectionController.kt` | camera-owned settings per brand; `FujifilmLocationSync` (uint16, looked up in its service), read during setup (`readDuringSetup`) |
 | `sharednew/…/bluetooth/location/LocationTransmissionManager.kt` | answers geotag requests (`onLocationRequested`); Sony cameras get locations pushed; tracks the phone's location only while a ready camera wants it, slowly while every such camera is in standby |
 | `sharednew/…/bluetooth/location/LocationSource.kt`, `app/…/location/FusedLocationSource.kt`, `PlatformLocationSource.kt` | `setSlowUpdates`: one fix about every 60 s instead of every 5 s |
 | `sharednew/…/database/devices/CameraDevice.kt` | `timeSyncEnabled`, the per-camera time option (database version 7, default on) |
 | `sharednew/…/ui/device/DeviceDetailScreen.kt` | camera details: *Set date, time and time zone*, *Smartphone location sync* for Fujifilm; Sony-only rows hidden |
-| `sharednew/…/status/GeoShutterStatus.kt`, `app/…/status/` | states shown in the notification, tile and widget: a silent Fujifilm camera is "Connecting", one with location sync off "Location sync off" (amber), one switched off in standby "Camera off" (blue) |
+| `sharednew/…/status/GeoShutterStatus.kt`, `app/…/status/` | states shown in the notification, tile and widget: a silent Fujifilm camera is "Connecting", one with location sync off "Location sync off" (amber), one switched off or asleep in standby "Standby" (blue) |
 | `sharednew/…/ui/devicelist/` | the camera card: blue dot and a note for a camera in standby, a note for location sync off |
 | `app/…/service/transport/AndroidBleTransport.kt` | direct connections with three retries before `autoConnect`, `reconnect()`, characteristic lookup by service, indications for indication-only characteristics, writes with response |
 | `app/…/utils/DeviceAssociationUtils.kt` | companion-device chooser filter on `0x04D8` |
@@ -659,8 +664,8 @@ reason of Fujifilm's app, waking the camera.
 | Time packet | A, T, F (comment) | yes: date, time, AREA SETTING and DAYLIGHT SAVINGS, when the camera asked |
 | The camera asks for the time (NOT1) | A | yes: on the first connection after switching on or waking only |
 | Location sync setting | A | yes: read, written (the menu followed), notified; no requests while off |
-| Power switch | A | yes: `01 02` on, `00 01` off in standby |
-| Standby with CONNECT WHILE POWER OFF on | M, X | yes: reconnects in standby, keeps asking for locations; a photo right after switching on was tagged |
+| Power switch | A | yes: `01 02` awake, `00 01` switched off and `01 01` asleep (standby) |
+| Standby with CONNECT WHILE POWER OFF on | M, X | yes: switched off (reconnects in standby) and asleep (keeps the link); keeps asking for locations; a photo right after switching on was tagged |
 | CONNECT WHILE POWER OFF off | M | yes: switching off ends the connection |
 | Setup on the pairing connection | F, A | yes: accepted 2.3 s after a fresh pairing |
 | Recovery of silent connections | X (the behavior) | unit-tested only |
@@ -677,7 +682,6 @@ reason of Fujifilm's app, waking the camera.
   avoid that (not tried).
 - The power switch in the startup information service of older cameras (`731893f9-…`) was
   not tried.
-- Behavior after the automatic power off (sleep) with CONNECT WHILE POWER OFF on.
 - Only the X100VI with firmware 01.32 was tested.
 - No capture of Fujifilm's app exists (see below).
 

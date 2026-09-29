@@ -118,14 +118,14 @@ class GeoShutterStatusTest {
                     BleSessionPhase.Transmitting,
                     protocol = CameraProtocol.FujifilmSecure,
                     cameraResponding = true,
-                    cameraOff = true,
+                    inStandby = true,
                 ),
             ),
             transmitting = true,
         )
 
-        assertEquals(CameraState.CameraOff, status.cameras.single().state)
-        assertEquals(listOf("BB:02"), status.cameraOff.map { it.id })
+        assertEquals(CameraState.Standby, status.cameras.single().state)
+        assertEquals(listOf("BB:02"), status.standby.map { it.id })
         assertTrue(status.sending.isEmpty())
     }
 

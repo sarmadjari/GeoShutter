@@ -106,7 +106,7 @@ class CameraSessionOrchestrator(
         isTransmissionAllowed = isTransmissionAllowed,
         protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
         wantsLocation = { id -> registry.get(id)?.wantsLocation != false },
-        inStandby = { id -> registry.get(id)?.cameraOff == true },
+        inStandby = { id -> registry.get(id)?.inStandby == true },
     )
 
     /**
@@ -157,7 +157,7 @@ class CameraSessionOrchestrator(
                 .map { sessions ->
                     val ready = sessions.values.filter { it.isLocationReady }
                     ready.filter { !it.wantsLocation }.map { it.identifier }.toSet() to
-                            ready.filter { it.cameraOff }.map { it.identifier }.toSet()
+                            ready.filter { it.inStandby }.map { it.identifier }.toSet()
                 }
                 .distinctUntilChanged()
                 .drop(1)
@@ -338,7 +338,7 @@ class CameraSessionOrchestrator(
                 autoAreaAdjustment = CameraSettingState(),
                 fujifilmLocationSync = CameraSettingState(),
                 cameraResponding = false,
-                cameraOff = false,
+                inStandby = false,
             )
         }
         _events.tryEmit(OrchestratorEvent.DeviceConnected(id))
@@ -702,15 +702,22 @@ class CameraSessionOrchestrator(
     }
 
     /**
-     * Whether the camera is switched off but connected in standby: shown as "Camera off",
-     * still answered, and the phone's location slows down if no other camera needs it.
+     * Whether the camera is in standby (switched off or asleep, still connected): shown as
+     * "Standby", still answered, and the phone's location slows down if no other camera
+     * needs it.
      */
     private suspend fun updateFujifilmPowerState(id: String) {
-        val on = fujifilm.readPowerOn(id) ?: return
+        val value = fujifilm.readPowerSwitch(id) ?: return
+        val hex = value.joinToString(" ") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
+        val awake = FujifilmPacketBuilder.isAwake(value)
+        if (awake == null) {
+            log.d { "Fujifilm camera $id reports an unknown power switch value $hex" }
+            return
+        }
         val session = registry.get(id) ?: return
-        if (session.cameraOff == !on) return
-        log.i { "Fujifilm camera $id is switched ${if (on) "on" else "off (standby)"}" }
-        registry.updateIfPresent(id) { it.copy(cameraOff = !on) }
+        if (session.inStandby == !awake) return
+        log.i { "Fujifilm camera $id is ${if (awake) "awake" else "in standby"} (power switch $hex)" }
+        registry.updateIfPresent(id) { it.copy(inStandby = !awake) }
     }
 
     /**

@@ -266,8 +266,9 @@ fork's site. GitHub Pages is not enabled on the fork.
   SMARTPHONE LOCATION SYNC. setting, like Sony's camera settings.
 - 2026-09-29: a Fujifilm camera with location sync off is shown as "Location sync off"
   (amber, with a note on the camera card) and the phone's location isn't used for it.
-- 2026-09-29: a Fujifilm camera switched off in standby (CONNECT WHILE POWER OFF) is shown
-  as "Camera off" with a **blue** dot and keeps receiving the location, so the first photo
+- 2026-09-29: a Fujifilm camera in standby (switched off or asleep, CONNECT WHILE POWER
+  OFF on) is shown as "Standby" with a **blue** dot and keeps receiving the location, so
+  the first photo
   after switching on is tagged; while every such camera is off the phone's location is
   refreshed about once a minute instead of every 5 s (user's choice over full rate or
   stopping).
@@ -474,3 +475,8 @@ fork's site. GitHub Pages is not enabled on the fork.
 - 2026-09-29 (noon): fresh pairing test passed: GeoShutter connected 30 ms after the bond
   and the setup was accepted on the pairing connection (no refusal). The camera got its
   third Bluetooth address in two days (one per pairing).
+- 2026-09-29 (after noon): the maintainer saw a sleeping X100VI (automatic power off) shown
+  green. Its power switch reads `01 01` (switch on, in the background) while asleep, which
+  the first build treated as awake. Now anything but `01 02` counts as standby; the state
+  and texts are "Standby" (switched off or asleep) instead of "Camera off", and the raw
+  value is logged on changes ("is in standby (power switch 01 01)"). Verified on the camera.

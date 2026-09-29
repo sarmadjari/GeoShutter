@@ -46,9 +46,9 @@ import com.saschl.cameragps.R
 
 /**
  * Home-screen widget, for monitoring only: whether GeoShutter is on, and each saved
- * camera with its name, brand and model and a dot (green sending, blue switched off in
- * standby but still receiving the location, amber connecting or location sync off on the
- * camera, red away, grey while GeoShutter is off). A tap opens the app.
+ * camera with its name, brand and model and a dot (green sending, blue in standby,
+ * switched off or asleep but still receiving the location, amber connecting or location
+ * sync off on the camera, red away, grey while GeoShutter is off). A tap opens the app.
  */
 class StatusWidget : GlanceAppWidget() {
 
@@ -152,7 +152,7 @@ private fun CameraRow(context: Context, camera: CameraStatus, enabled: Boolean) 
                         camera.state == CameraState.Sending -> Sending
                         camera.state == CameraState.Connecting -> Connecting
                         camera.state == CameraState.LocationSyncOff -> Connecting
-                        camera.state == CameraState.CameraOff -> Standby
+                        camera.state == CameraState.Standby -> Standby
                         else -> Away
                     }
                 ),
@@ -182,9 +182,9 @@ private fun CameraRow(context: Context, camera: CameraStatus, enabled: Boolean) 
                     maxLines = 1,
                 )
             }
-            if (enabled && camera.state == CameraState.CameraOff) {
+            if (enabled && camera.state == CameraState.Standby) {
                 Text(
-                    text = context.getString(R.string.status_camera_off_short),
+                    text = context.getString(R.string.status_standby_short),
                     style = TextStyle(fontSize = 12.sp, color = StandbyText),
                     maxLines = 1,
                 )
@@ -198,7 +198,7 @@ private fun summary(context: Context, status: GeoShutterStatus): String = when {
     !status.enabled -> context.getString(R.string.status_off)
     status.sending.isNotEmpty() -> context.getString(R.string.status_sending_short)
     status.connecting.isNotEmpty() -> context.getString(R.string.status_connecting_short)
-    status.cameraOff.isNotEmpty() -> context.getString(R.string.status_camera_off_short)
+    status.standby.isNotEmpty() -> context.getString(R.string.status_standby_short)
     status.locationSyncOff.isNotEmpty() -> context.getString(R.string.status_sync_off_short)
     else -> context.getString(R.string.status_waiting_short)
 }

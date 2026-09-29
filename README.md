@@ -38,8 +38,8 @@ licensed under the [GPL-3.0](LICENSE).
 - **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
   the X100VI, using Fujifilm's own Bluetooth geotagging protocol (the camera asks for the
   location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble);
-  geotagging, setting the date, time and time zone, and keeping a switched-off camera's
-  location up to date in standby work on an X100VI. See
+  geotagging, setting the date, time and time zone, and keeping the location of a camera
+  that is switched off or asleep up to date in standby work on an X100VI. See
   [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
 - **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
   exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
@@ -105,14 +105,14 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    in Settings.
 6. **Status at a glance.** While GeoShutter is on, a notification shows what it is doing:
    *Sending location to X100VI-…* (brand and model underneath), *Connecting to …*,
-   *X100VI-… is off – Location kept up to date for your next photo*, *X100VI-…: location
+   *X100VI-… is in standby – Location kept up to date for your next photo*, *X100VI-…: location
    sync is off on the camera* or *GeoShutter is on – Waiting for …*. Its **Turn off**
    button switches GeoShutter off. Two optional extras:
    - the **GeoShutter** Quick Settings tile turns GeoShutter on or off; its icon fills
      while a camera receives your location;
    - the **GeoShutter** home-screen widget only shows the state: each camera with a dot,
-     green (receiving your location), blue (Fujifilm switched off in standby, still
-     receiving it), amber (connecting, or location sync off on the camera), red (away) or
+     green (receiving your location), blue (Fujifilm in standby: switched off or asleep,
+     still receiving it), amber (connecting, or location sync off on the camera), red (away) or
      grey (GeoShutter off). Tap it to open the app.
 
    Turning GeoShutter on (tile or *Enable App*) connects right away to cameras that are
@@ -228,8 +228,9 @@ Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera 
 the location itself. Remote control is a Sony feature; a Fujifilm camera's details offer
 *Set date, time and time zone* and *Smartphone location sync* instead.
 Geotagging works on an X100VI. With the camera's *CONNECT WHILE POWER OFF* setting on
-(camera menu: NETWORK/USB SETTING → Bluetooth/SMARTPHONE SETTING), a switched-off camera
-stays connected in standby: GeoShutter shows it as *Camera off* (blue) and keeps its
+(camera menu: NETWORK/USB SETTING → Bluetooth/SMARTPHONE SETTING), a camera that is
+switched off or asleep stays connected in standby: GeoShutter shows it as *Standby* (blue)
+and keeps its
 location up to date, refreshing your phone's location about once a minute, so the first
 photo after switching the camera on is tagged right away. With the setting off, the camera
 disconnects when switched off. Switching the camera on drops the connection; GeoShutter

@@ -54,7 +54,7 @@ class StatusTileService : TileService() {
             R.plurals.status_sending_count, status.sending.size, status.sending.size,
         )
         status.connecting.isNotEmpty() -> getString(R.string.status_connecting_short)
-        status.cameraOff.isNotEmpty() -> getString(R.string.status_camera_off_short)
+        status.standby.isNotEmpty() -> getString(R.string.status_standby_short)
         status.locationSyncOff.isNotEmpty() -> getString(R.string.status_sync_off_short)
         else -> getString(R.string.status_waiting_short)
     }

@@ -108,15 +108,17 @@ object FujifilmPacketBuilder {
         byteArrayOf(seconds.toByte(), (seconds shr 8).toByte())
 
     /**
-     * The power switch position from [FujifilmBluetoothConstants.POWER_SWITCH_UUID]:
-     * `true` on, `false` off (also in standby), `null` for anything else.
+     * Whether the camera is awake, from [FujifilmBluetoothConstants.POWER_SWITCH_UUID]
+     * (Fujifilm's app: `0x0201` on, `0x0200` off, `0x0101` on and `0x0100` off "in the
+     * background"). `true` only for `0x0201`; `false` for the others: switched off, or
+     * asleep with the switch still on, in standby; `null` for anything else.
      */
-    fun isPoweredOn(powerKeyState: ByteArray): Boolean? {
-        if (powerKeyState.size < 2) return null
-        val state = (powerKeyState[0].toInt() and 0xFF) or ((powerKeyState[1].toInt() and 0xFF) shl 8)
+    fun isAwake(powerSwitch: ByteArray): Boolean? {
+        if (powerSwitch.size < 2) return null
+        val state = (powerSwitch[0].toInt() and 0xFF) or ((powerSwitch[1].toInt() and 0xFF) shl 8)
         return when (state) {
-            0x0201, 0x0101 -> true
-            0x0200, 0x0100 -> false
+            0x0201 -> true
+            0x0200, 0x0101, 0x0100 -> false
             else -> null
         }
     }

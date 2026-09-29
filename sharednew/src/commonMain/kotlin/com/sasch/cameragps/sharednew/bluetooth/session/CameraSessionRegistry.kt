@@ -40,10 +40,11 @@ data class CameraSession(
      */
     val cameraResponding: Boolean = false,
     /**
-     * Fujifilm: the camera is switched off but stays connected in standby (CONNECT WHILE
-     * POWER OFF). It still asks for locations and keeps the last one for its next photo.
+     * Fujifilm: the camera is switched off or asleep but stays connected in standby
+     * (CONNECT WHILE POWER OFF). It still asks for locations and keeps the last one for
+     * its next photo.
      */
-    val cameraOff: Boolean = false,
+    val inStandby: Boolean = false,
 ) {
     fun autoCorrectionSetting(setting: CameraAutoCorrectionSetting): CameraSettingState =
         when (setting) {

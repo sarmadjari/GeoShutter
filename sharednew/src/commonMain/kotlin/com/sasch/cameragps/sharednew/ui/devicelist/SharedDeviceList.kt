@@ -56,7 +56,7 @@ import cameragps.sharednew.generated.resources.delete_device_confirmation
 import cameragps.sharednew.generated.resources.enable_pairing_mode_continue
 import cameragps.sharednew.generated.resources.enable_pairing_mode_message
 import cameragps.sharednew.generated.resources.enable_pairing_mode_title
-import cameragps.sharednew.generated.resources.fujifilm_camera_off_hint
+import cameragps.sharednew.generated.resources.fujifilm_standby_hint
 import cameragps.sharednew.generated.resources.fujifilm_location_sync_off_hint
 import cameragps.sharednew.generated.resources.guide_open_button
 import cameragps.sharednew.generated.resources.keyboard_arrow_right_24px
@@ -408,15 +408,15 @@ private fun DeviceCard(
                         item?.locationSyncOff == true ->
                             stringResource(Res.string.fujifilm_location_sync_off_hint)
 
-                        item?.cameraOff == true ->
-                            stringResource(Res.string.fujifilm_camera_off_hint)
+                        item?.inStandby == true ->
+                            stringResource(Res.string.fujifilm_standby_hint)
 
                         isTransmissionActive -> stringResource(Res.string.transmission_active)
                         else -> stringResource(Res.string.transmission_inactive)
                     }
                     TransmissionDot(
                         isTransmissionActive,
-                        runningColor = if (item?.cameraOff == true) StandbyBlue else Color.Green,
+                        runningColor = if (item?.inStandby == true) StandbyBlue else Color.Green,
                         modifier = Modifier.semantics {
                             contentDescription = transmissionStatusDescription
                         }
@@ -458,9 +458,9 @@ private fun DeviceCard(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            if (item?.cameraOff == true) {
+            if (item?.inStandby == true) {
                 Text(
-                    text = stringResource(Res.string.fujifilm_camera_off_hint),
+                    text = stringResource(Res.string.fujifilm_standby_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
