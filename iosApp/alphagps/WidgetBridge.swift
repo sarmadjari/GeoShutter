@@ -8,8 +8,9 @@ import sharedKit
 enum WidgetBridge {
     static func install() {
         IosWidgetBridge.shared.install { reload() }
-        // Reloads from the foreground aren't rationed: leaving the app refreshes the
-        // widget, in case iOS skipped a reload while the app was in the background.
+        // Leaving the app reloads too, which iOS allows while no camera is connected. While
+        // one is, it reloads at most every 5 minutes and catches up then (see
+        // IosStatusPublisher).
         NotificationCenter.default.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,

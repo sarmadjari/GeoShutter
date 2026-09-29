@@ -427,15 +427,21 @@ effect after a new deployment.
   pairing information" and the pending connect was re-issued about four times a second
   until the camera was removed in the app; a back-off or a re-pair hint would be better.
 - iOS: the direct connects are Android-only. The iPhone widget and Control Center control
-  (2026-09-29) run on the maintainer's iPhone. The first test showed the α1 II amber on the
-  widget (the one second it was being set up before it was found switched off) while the
-  app showed it red: iOS had skipped the reload that followed. Fixed the same day: a
-  camera being set up counts as not connected (as in the app), only states that lasted
-  2 s are written, a quick second change gets one more reload 10 s later, and leaving the
-  app reloads. Still to check on the device: the control with the app in the background
-  and killed. They show the last status the app wrote (stale after the app is killed);
-  iOS rations background reloads. Signing needs a paid Apple Developer Program team (app
-  group).
+  (2026-09-29) run on the maintainer's iPhone. **While the app is connected to a camera,
+  iOS reloads the widget at most every 5 minutes**, also while the app is open (measured
+  with the device's system log: `chronod` "Throttling bluetooth refresh request; will
+  retry after throttle interval", then "Reloading for prior throttled bluetooth reload
+  request" exactly 5 minutes after the previous reload). No API avoids it; the widget can
+  lag the app by up to 5 minutes, and only a Live Activity would be live. The widget
+  showed the α1 II away (and the waiting icon) while it was sending: the reload had come
+  in one of its power-save gaps. Fixed: a camera that drops keeps its state for 30 s
+  (`publishDelayMs`), a camera being set up counts as not connected (as in the app),
+  only states that lasted 2 s are written, and leaving the app reloads. Still to check
+  on the device: the control with the app in the background and killed. They show the
+  last status the app wrote (stale after the app is killed). Signing needs a paid Apple
+  Developer Program team (app group). To read the system log without root:
+  `pymobiledevice3 syslog live --process-name chronod --match geoshutter` (pip, in a
+  venv).
 - Both platforms: the *Pairing Failed* dialog's hints use Sony's menu path (MENU →
   Network → Bluetooth), also for Fujifilm cameras.
 - Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
@@ -725,3 +731,13 @@ effect after a new deployment.
   exactly (overlay render), lint 0 errors, app tests, a simulator preview of the widget
   symbols, and a device build installed on the iPhone (the Android phone wasn't
   connected).
+- 2026-09-29 (night): the iPhone widget showed the α1 II away with the waiting icon while
+  the app showed it sending. The iPhone's system log (pymobiledevice3, §8) showed why:
+  while the app is connected to a camera, iOS reloads the widget at most every 5 minutes
+  (on a fixed grid, also while the app is open) and reloads a throttled request at the
+  next mark. The α1 II, with *Keep the camera awake* off, dropped about every minute for
+  6 to 12 s (power save) and a reload had come in such a gap. Fix in
+  `IosStatusPublisher`: a camera that drops keeps its state for 30 s (`settled`,
+  `publishDelayMs`); the settle reload (built on the wrong guess that iOS skips close
+  reloads) is gone. `IosStatusTest` replays the α1 II pattern in virtual time. Verified
+  on the iPhone: no writes during the α1 II's gaps, the 5-minute reload showed it sending.

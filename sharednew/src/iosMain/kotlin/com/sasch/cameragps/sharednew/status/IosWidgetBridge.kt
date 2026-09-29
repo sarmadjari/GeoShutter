@@ -13,17 +13,14 @@ import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import platform.Foundation.NSUserDefaults
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.TimeMark
-import kotlin.time.TimeSource
 
 /**
  * The iPhone widget and Control Center control live in the GeoShutterWidgets extension,
@@ -41,27 +38,22 @@ object IosWidgetBridge {
         this.reload = reload
     }
 
-    /** Writes [json] and asks for a reload; false when the status hasn't changed. */
-    internal fun publish(json: String): Boolean {
+    /** Writes [json] and asks for a reload, unless the status hasn't changed. */
+    internal fun publish(json: String) {
         val defaults = NSUserDefaults(suiteName = APP_GROUP)
-        if (defaults.stringForKey(STATUS_KEY) == json) return false
+        if (defaults.stringForKey(STATUS_KEY) == json) return
         defaults.setObject(json, forKey = STATUS_KEY)
-        reload()
-        return true
-    }
-
-    internal fun reload() {
         reload?.invoke()
     }
 }
 
 /**
  * Keeps the widget's status up to date: the saved cameras of the camera list with their
- * state, and whether GeoShutter is on. iOS rations reloads while the app runs in the
- * background and may skip one that follows another closely, which left the widget showing
- * a state that lasted a second. So only settled states are written (after [DEBOUNCE_MS]
- * without change), an unchanged status isn't written again, and a change soon after
- * another gets one more reload [SETTLE_MS] later.
+ * state, and whether GeoShutter is on. While the app is connected to a camera, iOS reloads
+ * the widget at most every 5 minutes, also while the app is open (the system log says
+ * "Throttling bluetooth refresh request"). It keeps the request and reloads at the next
+ * 5-minute mark, and the widget then reads the latest status. So a written status has to
+ * hold for minutes: see [settled]. An unchanged status isn't written again.
  */
 internal class IosStatusPublisher(
     private val scope: CoroutineScope,
@@ -74,10 +66,9 @@ internal class IosStatusPublisher(
 ) {
     private val log = logging()
     private var texts: StatusTexts? = null
-    private var lastWrite: TimeMark? = null
-    private var settleReload: Job? = null
+    /** The status written last. */
+    private var published: GeoShutterStatus? = null
 
-    @OptIn(FlowPreview::class)
     fun start() {
         scope.launch {
             // Again whenever the language changes in the app, which keeps running.
@@ -90,7 +81,7 @@ internal class IosStatusPublisher(
         }
         scope.launch {
             combine(appEnabled, devices, sessions, transmitting, ::iosStatus)
-                .debounce(DEBOUNCE_MS)
+                .settled { published }
                 .collect(::publish)
         }
     }
@@ -102,16 +93,8 @@ internal class IosStatusPublisher(
 
     private fun publish(status: GeoShutterStatus) {
         val texts = texts ?: return
-        if (!IosWidgetBridge.publish(statusSnapshot(status, texts).toJson())) return
-        val previous = lastWrite
-        lastWrite = TimeSource.Monotonic.markNow()
-        if (previous != null && previous.elapsedNow() < SETTLE_MS.milliseconds) {
-            settleReload?.cancel()
-            settleReload = scope.launch {
-                delay(SETTLE_MS)
-                IosWidgetBridge.reload()
-            }
-        }
+        published = status
+        IosWidgetBridge.publish(statusSnapshot(status, texts).toJson())
     }
 
     private suspend fun loadTexts() = StatusTexts(
@@ -123,11 +106,35 @@ internal class IosStatusPublisher(
         waiting = getString(Res.string.widget_status_waiting),
         noCameras = getString(Res.string.widget_no_cameras),
     )
+}
 
-    private companion object {
-        const val DEBOUNCE_MS = 2_000L
-        const val SETTLE_MS = 10_000L
-    }
+/** Changes are written once they have lasted this long. */
+internal const val STATUS_DEBOUNCE_MS = 2_000L
+
+/**
+ * A camera that drops keeps its state this long on the widget: a Sony camera's power save
+ * ends the connection about every minute and the phone reconnects within about 12 s.
+ */
+internal const val CAMERA_DROP_GRACE_MS = 30_000L
+
+/**
+ * The statuses worth writing: settled ones only, and a camera that drops for a moment
+ * doesn't show as away ([publishDelayMs]). [published] is the status written last.
+ */
+@OptIn(FlowPreview::class)
+internal fun Flow<GeoShutterStatus>.settled(published: () -> GeoShutterStatus?): Flow<GeoShutterStatus> =
+    distinctUntilChanged().debounce { publishDelayMs(it, published()) }
+
+/**
+ * How long [status] must last before it is written: [CAMERA_DROP_GRACE_MS] when a camera
+ * that was connected in the [published] status no longer is, so a quick reconnect writes
+ * nothing; [STATUS_DEBOUNCE_MS] otherwise.
+ */
+internal fun publishDelayMs(status: GeoShutterStatus, published: GeoShutterStatus?): Long {
+    if (published == null || published.enabled != status.enabled) return STATUS_DEBOUNCE_MS
+    val connected = published.cameras.filter { it.state != CameraState.Away }.map { it.id }.toSet()
+    val dropped = status.cameras.any { it.id in connected && it.state == CameraState.Away }
+    return if (dropped) CAMERA_DROP_GRACE_MS else STATUS_DEBOUNCE_MS
 }
 
 /**

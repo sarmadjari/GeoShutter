@@ -146,8 +146,11 @@ Android builds:
    or grey (GeoShutter off). The **GeoShutter**
    control, added to Control Center (or the Lock Screen), turns GeoShutter on or off like
    *Enable App*. Both show the app icon's frame with a pin: filled while a camera
-   receives your location, outlined otherwise. They show what the app last reported; iOS
-   limits how often a widget updates while the app runs in the background.
+   receives your location, outlined otherwise. They show what the app last reported.
+   While GeoShutter is connected to a camera, iOS updates the widget at most every
+   5 minutes, so it can be up to 5 minutes behind the app. A camera that drops for a few
+   seconds, as a Sony camera in power save does about every minute, keeps its state on the
+   widget.
 5. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
    cameras** step so iOS can manage them; iOS usually finishes it within seconds without
    further questions. All settings carry over and no new pairing is needed.
