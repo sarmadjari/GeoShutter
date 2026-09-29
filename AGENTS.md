@@ -92,6 +92,13 @@ python3 -m unittest discover -s tools/ios_localization -v
   'generic/platform=iOS Simulator' -derivedDataPath /tmp/gs_ios_build ARCHS=arm64
   CODE_SIGNING_ALLOWED=NO build`; then `xcrun simctl install`/`launch` (a screen can be
   shown directly with `SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT=<scenario>`, e.g. `pairing`).
+- **On the maintainer's iPhone** (15 Pro Max, iOS 27, UDID `00008130-00044C883693803A`,
+  Developer Mode on; paid team `3653BRXND8`, set in the untracked `Local.xcconfig`;
+  verified 2026-09-29): with the same environment, `xcodebuild … -destination
+  'id=<UDID>' -allowProvisioningUpdates -allowProvisioningDeviceRegistration build` (the
+  last flag registered the iPhone in the developer account), then
+  `xcrun devicectl device install app --device <UDID> <…/Debug-iphoneos/alphagps.app>` and
+  `xcrun devicectl device process launch --device <UDID> com.sarmadjari.geoshutter`.
 - Gradle daemon JVM: JetBrains JDK 21, auto-provisioned via
   `gradle/gradle-daemon-jvm.properties`; any JDK 17+ can launch the wrapper.
 - **Machine gotcha:** if Gradle fails with "Value '…' given for org.gradle.java.home Gradle
@@ -688,3 +695,8 @@ effect after a new deployment.
   A code review found the widget texts stayed in the old language after a change in the
   app's language picker (the process keeps running): the publisher now reloads them from
   `appLanguagePreference.selected`.
+- 2026-09-29 (night): installed GeoShutter on the maintainer's iPhone 15 Pro Max over
+  USB-C (Debug build, team 3653BRXND8, app and widget extension with the app group); the
+  iPhone had to have Developer Mode turned on and was registered in the developer account
+  by xcodebuild. First on-device tests of the iPhone app (Fujifilm, widget, control) are
+  up to the maintainer.
