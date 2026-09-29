@@ -301,9 +301,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   second looks redundant.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging (EXIF position
   within 1 m, GPS time in UTC), the date/time/time zone sync, the location sync setting and
-  standby work on an X100VI (firmware 01.32, 2026-09-28/29); open: registration right
-  after pairing, iOS and legacy firmware unsupported, remote Sony-only, the geotag speed
-  field and fix time, the 7-byte local-time fallback. The camera applies the time only
+  standby and registration on the pairing connection work on an X100VI (firmware 01.32,
+  2026-09-28/29); open: iOS and legacy firmware unsupported, remote Sony-only, the geotag
+  speed field and fix time, the 7-byte local-time fallback. Each pairing gives the camera
+  a new Bluetooth address. The camera applies the time only
   when it asked (NOT1, first connection after switching on or waking); writes at other
   times are accepted and ignored, so switching the option on takes effect at the next
   switch-on. The X100VI sometimes stays silent on a connection (no requests, ignores the
@@ -470,3 +471,6 @@ fork's site. GitHub Pages is not enabled on the fork.
   minute; a photo 2 s after switch-on carried the standby location, 1 m from the phone,
   GPS time UTC). CONNECT WHILE POWER OFF off: switching off disconnects. Status count
   strings are plurals now. Tests: 215 JVM, 252 iOS simulator, app tests, lint 0 errors.
+- 2026-09-29 (noon): fresh pairing test passed: GeoShutter connected 30 ms after the bond
+  and the setup was accepted on the pairing connection (no refusal). The camera got its
+  third Bluetooth address in two days (one per pairing).

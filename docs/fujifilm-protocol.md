@@ -190,13 +190,16 @@ presumably until its pairing screen ended: the status read returned `xx 8a 01 00
 `0x13`) about 160 ms after the acknowledgement `xx 8a 01 20`. From then on the status read
 `0c 01 00 00` and the whole setup was accepted. furble and Fujifilm's app run the setup on
 the pairing connection itself (F, A). GeoShutter does the same for a camera the chooser
-saw as Fujifilm (Android 14 and later): it connects right after bonding. This has not been
-tried yet with a fresh pairing.
+saw as Fujifilm (Android 14 and later): it connects right after bonding. With a fresh
+pairing on 2026-09-29 (camera and phone pairings deleted first) the bond completed at
+11:29:42.440, GeoShutter connected 30 ms later, the status read `fc b1 21 00` was
+acknowledged with `fc b1 21 20`, and the whole setup was accepted 2.3 s after connecting,
+while the camera was still in pairing registration; geotag requests followed every 10 s.
 
-**Other apps (X).** FUJIFILM XApp on the same phone shares the phone's bond. After XApp
-paired with the camera, the camera was bonded under a different identity address, and the
-status read returned `ce a6 01 00` instead of `0c 01 00 00`. The camera had to be added
-to GeoShutter again.
+**New address per pairing (X).** Every pairing registration gave the camera a new identity
+address (three pairings, three addresses) and a new status value (`0c 01 00 00`,
+`ce a6 01 00`, `fc b1 21 00`). FUJIFILM XApp on the same phone shares the phone's bond:
+after XApp paired with the camera, the camera had to be added to GeoShutter again.
 
 ## 6. GATT database
 
@@ -311,6 +314,7 @@ byte set to `20`.
 | `07 96 00 00` | `07 96 00 20` | furble's example (F) |
 | `0c 01 00 00` | `0c 01 00 20` | X100VI after its first registration (X) |
 | `ce a6 01 00` | `ce a6 01 20` | X100VI after re-pairing with XApp, 2026-09-29 (X) |
+| `fc b1 21 00` | `fc b1 21 20` | X100VI on the pairing connection of a fresh pairing, 2026-09-29 (X) |
 | `xx 8a 01 00`, `xx 8a 21 00` | `xx 8a 01 20` | unregistered X100VI: the camera dropped the link (X) |
 
 Fujifilm's app calls it the connected device's identification number (A). It reads the
@@ -658,12 +662,11 @@ reason of Fujifilm's app, waking the camera.
 | Power switch | A | yes: `01 02` on, `00 01` off in standby |
 | Standby with CONNECT WHILE POWER OFF on | M, X | yes: reconnects in standby, keeps asking for locations; a photo right after switching on was tagged |
 | CONNECT WHILE POWER OFF off | M | yes: switching off ends the connection |
-| Setup on the pairing connection | F, A | not tried with a fresh pairing |
+| Setup on the pairing connection | F, A | yes: accepted 2.3 s after a fresh pairing |
 | Recovery of silent connections | X (the behavior) | unit-tested only |
 
 ## 13. Known gaps and open questions
 
-- Registration right after bonding is implemented but not tried with a fresh pairing.
 - Why the camera sometimes stays silent is unknown; the recovery is unit-tested only.
 - How TIME DIFFERENCE (HOME/LOCAL) behaves after a time sync, and which city the camera
   picks for an offset.
@@ -703,9 +706,9 @@ the camera clock itself.
 EXIF GPS directory is enough to compare a photo's position and GPS time with the phone
 (`exiftool -gps:all -a -G1 photo.JPG` shows the same). Don't commit photos or coordinates.
 
-**Tests still to do on the camera.** A fresh pairing (registration on the pairing
-connection), TIME DIFFERENCE, a provoked silent connection (watch for the watchdog lines),
-an idle hour in standby, a Sony and a Fujifilm camera together, other Fujifilm models.
+**Tests still to do on the camera.** TIME DIFFERENCE, a provoked silent connection (watch
+for the watchdog lines), an idle hour in standby, a Sony and a Fujifilm camera together,
+other Fujifilm models.
 
 ## Credits and license
 
