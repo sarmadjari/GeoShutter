@@ -231,6 +231,12 @@ or *Need help?* below the camera list). The most common fixes:
 - **The camera starts slowly or its screen stays black**: set *Cnct. while Power OFF* (or
   *Cnct. during Power OFF*) to Off on the camera, or use *Delay connection setup* for that
   camera.
+- **A Sony camera wakes up about every minute**: its *Cnct. while Power OFF* is on
+  (MENU → Network → Cnct./Remote Sht.). It keeps the sleeping camera reachable, GeoShutter
+  reconnects, which wakes it, and a minute later it falls asleep again. Set it to Off:
+  GeoShutter doesn't need it on Sony cameras (they take no location while off), and it
+  costs camera battery. To keep a camera ready for tagged photos, turn on *Keep the camera
+  awake* in its details instead.
 - **The first photos after switching a Sony camera on have no location**: a Sony camera
   ends the connection when it is switched on and takes the location only once the phone has
   reconnected, about 10 s later (measured on an α1 II; about 16 s with *Cnct. while Power

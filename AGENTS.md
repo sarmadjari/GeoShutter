@@ -468,7 +468,13 @@ effect after a new deployment.
   minute. Cause found 2026-09-29: its power save (Power Save Start Time, 1 minute by
   default) ends the connection about 30 s after the screen goes dark, and it comes back
   when woken; photos right after waking get no location. Fixed per camera by *Keep the
-  camera awake* (off by default, the maintainer's choice); otherwise inherent.
+  camera awake* (off by default, the maintainer's choice); otherwise inherent. **With
+  *Cnct. while Power OFF* on, power save becomes a wake loop**: the sleeping camera keeps
+  advertising, the phone reconnects and the setup wakes it. iPhone log 2026-09-30
+  00:14–00:21: the α1 II ended the link 59–60 s after each setup, the phone reconnected
+  about 10 s later, seven cycles in seven minutes, and the maintainer saw the camera wake
+  each time. Advice (README troubleshooting, Sony's own help guide): set it to Off, which
+  GeoShutter doesn't need on Sony. Not detected in the app.
 - Sony: a switched-off camera is detected only by its ATT error 0x9D (verified on
   Android; iOS maps `CBATTErrorDomain` codes the same way, untested). A camera switched
   off with *Cnct. while Power OFF* on still accepts locations for up to about 1.5 minutes
