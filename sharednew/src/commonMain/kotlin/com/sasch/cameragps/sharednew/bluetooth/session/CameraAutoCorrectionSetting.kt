@@ -76,6 +76,9 @@ interface CameraAutoCorrectionControls {
         enabled: Boolean
     )
 
-    /** Fujifilm: the camera's intervals changed in the database; use them now. */
+    /** The camera's location intervals changed in the database; use them now. */
     fun applyLocationIntervals(identifier: String) = Unit
+
+    /** Sony: "Keep the camera awake" changed in the database; apply it now. */
+    fun applyKeepAwake(identifier: String) = Unit
 }

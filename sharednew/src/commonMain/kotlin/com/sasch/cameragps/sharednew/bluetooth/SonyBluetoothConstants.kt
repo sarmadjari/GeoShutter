@@ -21,6 +21,13 @@ object SonyBluetoothConstants {
 
     val TIME_SYNC_CHARACTERISTIC_UUID = "0000cc13-0000-1000-8000-00805f9b34fb"
 
+    /**
+     * CC02: camera control. Takes Creators' App's "auto power off avoidance" command
+     * ([KEEP_AWAKE_COMMAND]); verified on an α1 II: it restarts the camera's power save
+     * timer, so it must be repeated sooner than the shortest Power Save Start Time (10 s).
+     */
+    val CAMERA_CONTROL_UUID = "0000cc02-0000-1000-8000-00805f9b34fb"
+
     val AUTO_TIME_CORRECTION_UUID = "0000dd32-0000-1000-8000-00805f9b34fb"
     val AUTO_AREA_ADJUSTMENT_UUID = "0000dd33-0000-1000-8000-00805f9b34fb"
 
@@ -44,6 +51,19 @@ object SonyBluetoothConstants {
     // ATT error codes indicating a pairing/encryption problem (same values on Android GATT)
     const val ATT_ERROR_INSUFFICIENT_AUTHENTICATION = 5
     const val ATT_ERROR_INSUFFICIENT_ENCRYPTION = 15
+
+    /**
+     * Sony's own ATT error: the operation isn't available in the camera's current state.
+     * A camera switched off with "Cnct. while Power OFF" on refuses the GPS setup and
+     * location writes with it (seen on an α1 II and, per third parties, an α7R V).
+     */
+    const val ATT_ERROR_NOT_AVAILABLE = 0x9D
+
+    /** Auto power off avoidance, written to [CAMERA_CONTROL_UUID] (Creators' App). */
+    val KEEP_AWAKE_COMMAND = byteArrayOf(0x03, 0x08, 0x10, 0x00)
+
+    /** How often [KEEP_AWAKE_COMMAND] is repeated: within the shortest power save time. */
+    const val KEEP_AWAKE_INTERVAL_MS = 5_000L
 
     // GPS enable command bytes
     val GPS_ENABLE_COMMAND = byteArrayOf(0x01)
@@ -73,8 +93,14 @@ object SonyBluetoothConstants {
     /** Remote status payload: focus acquired after a half press. */
     val STATUS_FOCUS_ACQUIRED = byteArrayOf(0x02, 0x3F, 0x20)
 
-    // Location update interval
+    // Location update interval: the periodic send tick and the default for a Sony camera
     const val LOCATION_UPDATE_INTERVAL_MS = 5000L
+
+    /** Seconds between location updates for a Sony camera, as offered in its details. */
+    val SEND_INTERVALS_SECONDS = listOf(5, 10, 15, 20, 30)
+
+    /** Default and recommended: the app's interval before it could be changed. */
+    const val SEND_INTERVAL_SECONDS = 5
 
     // Accuracy threshold for location updates
     const val ACCURACY_THRESHOLD_METERS = 200.0

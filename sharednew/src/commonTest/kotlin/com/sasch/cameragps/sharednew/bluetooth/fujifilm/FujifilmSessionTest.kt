@@ -995,6 +995,16 @@ class FujifilmSessionTest {
         override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
             standbyIntervalS = seconds
         }
+        var sendIntervalS: Int? = null
+        var keepAwakeEnabled: Boolean? = null
+        override suspend fun findSendIntervalS(address: String): Int? = sendIntervalS
+        override suspend fun setSendIntervalS(deviceId: String, seconds: Int) {
+            sendIntervalS = seconds
+        }
+        override suspend fun findKeepAwakeEnabled(address: String): Boolean? = keepAwakeEnabled
+        override suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
+            keepAwakeEnabled = enabled
+        }
     }
 
     private companion object {

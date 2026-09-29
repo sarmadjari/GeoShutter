@@ -35,7 +35,10 @@ data class CameraStatus(
 )
 
 enum class CameraState {
-    /** Not connected (also while the app is still looking for it). */
+    /**
+     * Not connected (also while the app is still looking for it), or a Sony camera that
+     * is switched off but still connected ("Cnct. while Power OFF").
+     */
     Away,
 
     /** Connected and setting up, or waiting for the first location. */
@@ -94,7 +97,8 @@ fun geoShutterStatus(
             name = name,
             model = cameraModelLine(brand, saved.pairingName)?.takeIf { it != name },
             state = when {
-                session == null -> CameraState.Away
+                // Sony, switched off but still connected: as off as a disconnected camera.
+                session == null || session.cameraOff -> CameraState.Away
                 session.isLocationReady && !session.wantsLocation -> CameraState.LocationSyncOff
                 session.isLocationReady && session.inStandby -> CameraState.Standby
                 session.takesLocation && transmitting -> CameraState.Sending

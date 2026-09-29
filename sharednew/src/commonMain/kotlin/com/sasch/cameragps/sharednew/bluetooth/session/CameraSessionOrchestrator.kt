@@ -105,7 +105,7 @@ class CameraSessionOrchestrator(
         scope = scope,
         isTransmissionAllowed = isTransmissionAllowed,
         protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
-        wantsLocation = { id -> registry.get(id)?.wantsLocation != false },
+        wantsLocation = { id -> registry.get(id)?.let { it.wantsLocation && !it.cameraOff } ?: true },
         updateIntervalMsFor = { id ->
             registry.get(id)?.locationUpdateIntervalMs ?: SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
         },
@@ -132,7 +132,11 @@ class CameraSessionOrchestrator(
     override fun applyLocationIntervals(identifier: String) {
         val id = identifier.uppercase()
         val session = registry.get(id) ?: return
-        if (session.protocol != CameraProtocol.FujifilmSecure) return
+        if (session.protocol != CameraProtocol.FujifilmSecure) {
+            // The registry observer applies the new interval to the phone's location.
+            scope.launch { loadSonySendInterval(id) }
+            return
+        }
         scope.launch {
             val before = registry.get(id)?.locationIntervalS
             val intervalS = loadFujifilmIntervals(id)
@@ -150,6 +154,12 @@ class CameraSessionOrchestrator(
     ) =
         autoCorrection.set(identifier, setting, enabled)
 
+    override fun applyKeepAwake(identifier: String) {
+        val id = identifier.uppercase()
+        if (registry.get(id)?.isLocationReady != true || isFujifilm(id)) return
+        scope.launch { updateKeepAwake(id) }
+    }
+
 
     private var started = false
 
@@ -165,16 +175,16 @@ class CameraSessionOrchestrator(
                 handleTransportEvent(event, completedOperation)
             }
         }
-        // A Fujifilm camera's location sync, power switch or intervals changed: the
-        // phone's location is only tracked while a ready camera wants it, as often as the
-        // most demanding one needs.
+        // A Fujifilm camera's location sync, power switch or intervals changed, a Sony
+        // camera's interval changed or it was switched off: the phone's location is only
+        // tracked while a ready camera wants it, as often as the most demanding one needs.
         scope.launch {
             registry.sessions
                 .map { sessions ->
                     val ready = sessions.values.filter { it.isLocationReady }
-                    ready.filter { !it.wantsLocation }.map { it.identifier }.toSet() to
-                            ready.filter { it.wantsLocation }
-                                .map { it.identifier to it.locationUpdateIntervalMs }.toSet()
+                    val wanting = ready.filter { it.wantsLocation && !it.cameraOff }
+                    (ready - wanting.toSet()).map { it.identifier }.toSet() to
+                            wanting.map { it.identifier to it.locationUpdateIntervalMs }.toSet()
                 }
                 .distinctUntilChanged()
                 .drop(1)
@@ -241,6 +251,8 @@ class CameraSessionOrchestrator(
     fun clearDevice(identifier: String) {
         val id = identifier.uppercase()
         forgetFujifilmConnection(id)
+        keepAwakeJobs.remove(id)?.cancel()
+        sonyCameraOffRetries.remove(id)?.cancel()
         autoCorrection.clear(id)
         queue.cancelOperations(id, "session cleared")
         sessionCoordinator.clearSession(id)
@@ -252,6 +264,10 @@ class CameraSessionOrchestrator(
     }
 
     fun shutdownAll() {
+        keepAwakeJobs.values.forEach { it.cancel() }
+        keepAwakeJobs.clear()
+        sonyCameraOffRetries.values.forEach { it.cancel() }
+        sonyCameraOffRetries.clear()
         autoCorrection.clearAll()
         lastFujifilmTimeRequest.clear()
         fujifilmWatchdogs.values.forEach { it.cancel() }
@@ -419,6 +435,11 @@ class CameraSessionOrchestrator(
 
             else -> {
                 resetPairingRetries(id)
+                if (event.attError == SonyBluetoothConstants.ATT_ERROR_NOT_AVAILABLE &&
+                    event.characteristicUuid.lowercase() in SONY_LOCATION_OPERATIONS
+                ) {
+                    onSonyCameraOff(id)
+                }
                 sessionCoordinator.onCharacteristicWrite(
                     id,
                     event.characteristicUuid,
@@ -522,7 +543,12 @@ class CameraSessionOrchestrator(
             return
         }
         log.i { "Handshake complete for $id" }
-        registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting) }
+        if (!isFujifilm(id)) {
+            // Accepted the GPS setup: switched on (again).
+            sonyCameraOffRetries.remove(id)?.cancel()
+            loadSonySendInterval(id)
+        }
+        registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting, cameraOff = false) }
         locationManager.onDeviceReady(id)
 
         // Fujifilm cameras had their settings read during setup; the remote is Sony-only.
@@ -534,8 +560,83 @@ class CameraSessionOrchestrator(
             if (remoteEnabled) {
                 remoteControl.startRemoteStatusMonitoring(id)
             }
+            updateKeepAwake(id)
         }
         _events.tryEmit(OrchestratorEvent.HandshakeCompleted(id))
+    }
+
+    // ---- Sony ----
+
+    private suspend fun loadSonySendInterval(id: String) {
+        val seconds = runCatching { deviceDao.findSendIntervalS(id) }.getOrNull()
+            ?.takeIf { it in SonyBluetoothConstants.SEND_INTERVALS_SECONDS }
+            ?: SonyBluetoothConstants.SEND_INTERVAL_SECONDS
+        registry.updateIfPresent(id) { it.copy(sendIntervalS = seconds) }
+    }
+
+    /** Sony cameras whose power save GeoShutter holds off (the camera's "Keep the camera awake"). */
+    private val keepAwakeJobs = mutableMapOf<String, Job>()
+
+    /**
+     * In power save a Sony camera ends the connection, so photos taken right after waking
+     * it get no location until the phone reconnects. With the option on, the camera gets
+     * Creators' App's auto power off avoidance while it is connected, which keeps it awake.
+     */
+    private suspend fun updateKeepAwake(id: String) {
+        val enabled = runCatching { deviceDao.findKeepAwakeEnabled(id) }.getOrNull() == true
+        val session = registry.get(id)
+        val wanted = enabled && session != null && session.isLocationReady && !session.cameraOff &&
+                transport.hasCharacteristic(id, SonyBluetoothConstants.CAMERA_CONTROL_UUID)
+        if (!wanted) {
+            if (keepAwakeJobs.remove(id)?.also { it.cancel() } != null) {
+                log.i { "No longer keeping $id awake" }
+            }
+            return
+        }
+        if (keepAwakeJobs[id]?.isActive == true) return
+        log.i { "Keeping $id awake while it is connected" }
+        keepAwakeJobs[id] = scope.launch {
+            while (true) {
+                val current = registry.get(id)
+                if (current == null || current.cameraOff) break
+                // A setup restarted meanwhile (the camera changed its services) only pauses it.
+                if (current.isLocationReady) {
+                    port.writeCharacteristic(
+                        id,
+                        SonyBluetoothConstants.CAMERA_CONTROL_UUID,
+                        SonyBluetoothConstants.KEEP_AWAKE_COMMAND,
+                    )
+                }
+                delay(SonyBluetoothConstants.KEEP_AWAKE_INTERVAL_MS.milliseconds)
+            }
+        }
+    }
+
+    /** Switched-off Sony cameras still connected, and their setup retries. */
+    private val sonyCameraOffRetries = mutableMapOf<String, Job>()
+
+    /**
+     * A Sony camera refused the GPS setup or a location with its "not available" error: it
+     * is switched off, but "Cnct. while Power OFF" keeps it connected. It gets no location
+     * (the phone's location stops if no other camera needs it) until it accepts the setup
+     * again. Switching it on ends the connection, which starts a new setup; the retry only
+     * covers a camera that stays connected.
+     */
+    private fun onSonyCameraOff(id: String) {
+        if (isFujifilm(id) || registry.get(id)?.cameraOff != false) return
+        log.i { "Camera $id is switched off (it refuses location); waiting for it to be switched on" }
+        registry.updateIfPresent(id) { it.copy(cameraOff = true) }
+        keepAwakeJobs.remove(id)?.cancel()
+        sonyCameraOffRetries.remove(id)?.cancel()
+        sonyCameraOffRetries[id] = scope.launch {
+            while (true) {
+                delay(SONY_OFF_RETRY_MS.milliseconds)
+                val session = registry.get(id)
+                if (session == null || !session.cameraOff || !transport.isConnected(id)) break
+                log.d { "Checking whether $id was switched on" }
+                sessionCoordinator.beginHandshake(id)
+            }
+        }
     }
 
     // ---- Fujifilm ----
@@ -777,6 +878,16 @@ private val FUJIFILM_SILENCE_TIMEOUT = 15.seconds
 
 // Rediscovery after a services change: up to 8 × (1 s pause + 2.5 s wait) ≈ 28 s.
 // Android's own re-read of a camera's services took up to about 7 s in tests.
+/** Sony: how often a connected, switched-off camera is asked for the GPS setup again. */
+private const val SONY_OFF_RETRY_MS = 30_000L
+
+/** Sony writes a switched-off camera refuses: GPS unlock and lock, and the location. */
+private val SONY_LOCATION_OPERATIONS = setOf(
+    SonyBluetoothConstants.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND,
+    SonyBluetoothConstants.CHARACTERISTIC_ENABLE_LOCK_GPS_COMMAND,
+    SonyBluetoothConstants.CHARACTERISTIC_UUID,
+).map { it.lowercase() }.toSet()
+
 private const val REDISCOVERY_ATTEMPTS = 8
 private const val REDISCOVERY_PAUSE_MS = 1_000L
 private const val REDISCOVERY_WAIT_MS = 2_500L

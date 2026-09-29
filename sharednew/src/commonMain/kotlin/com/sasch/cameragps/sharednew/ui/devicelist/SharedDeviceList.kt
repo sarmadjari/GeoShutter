@@ -48,6 +48,7 @@ import cameragps.sharednew.generated.resources.android_12_requires_keep_alive
 import cameragps.sharednew.generated.resources.camera_24px
 import cameragps.sharednew.generated.resources.cancel
 import cameragps.sharednew.generated.resources.card_status_standby
+import cameragps.sharednew.generated.resources.card_status_switched_off
 import cameragps.sharednew.generated.resources.card_status_sync_off
 import cameragps.sharednew.generated.resources.connected
 import cameragps.sharednew.generated.resources.delete
@@ -421,6 +422,9 @@ private fun DeviceCard(
                         item?.inStandby == true ->
                             stringResource(Res.string.card_status_standby)
 
+                        item?.switchedOff == true ->
+                            stringResource(Res.string.card_status_switched_off)
+
                         isTransmissionActive -> stringResource(Res.string.transmission_active)
                         else -> stringResource(Res.string.transmission_inactive)
                     }
@@ -473,6 +477,8 @@ private fun DeviceCard(
                 // Fujifilm: short status lines; the camera's details explain them.
                 item?.locationSyncOff == true -> stringResource(Res.string.card_status_sync_off)
                 item?.inStandby == true -> stringResource(Res.string.card_status_standby)
+                // Sony, switched off but still connected ("Cnct. while Power OFF").
+                item?.switchedOff == true -> stringResource(Res.string.card_status_switched_off)
 
                 // Remote-active needs no extra text: the shutter button says it all.
                 device.isConnected && (isRemoteFeatureActive || item?.remoteSupported == false) ->
@@ -491,6 +497,7 @@ private fun DeviceCard(
                     fontWeight = FontWeight.SemiBold,
                     color = when {
                         item?.locationSyncOff == true -> MaterialTheme.colorScheme.error
+                        item?.switchedOff == true -> MaterialTheme.colorScheme.onSurfaceVariant
                         device.isConnected || item?.inStandby == true -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },

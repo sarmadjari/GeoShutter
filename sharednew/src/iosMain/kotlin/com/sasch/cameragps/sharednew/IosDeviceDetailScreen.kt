@@ -12,6 +12,7 @@ import cameragps.sharednew.generated.resources.back
 import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController.ensureDeviceRecord
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailContent
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailDataSource
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailViewModel
@@ -74,6 +75,21 @@ internal fun IosDeviceDetailScreen(
         override suspend fun setDeviceName(deviceId: String, name: String) {
             deviceDao.setDeviceName(deviceId.uppercase(), name, isCustom = true)
             IosBluetoothController.refreshDeviceNames()
+        }
+
+        override suspend fun getSendIntervalS(deviceId: String): Int =
+            deviceDao.findSendIntervalS(deviceId.uppercase())
+                ?: SonyBluetoothConstants.SEND_INTERVAL_SECONDS
+
+        override suspend fun setSendIntervalS(deviceId: String, seconds: Int) {
+            deviceDao.setSendIntervalS(deviceId.uppercase(), seconds)
+        }
+
+        override suspend fun isKeepAwakeEnabled(deviceId: String): Boolean =
+            deviceDao.findKeepAwakeEnabled(deviceId.uppercase()) ?: false
+
+        override suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
+            deviceDao.setKeepAwakeEnabled(deviceId.uppercase(), enabled)
         }
     }
     val canRenameInSystem = remember(device.identifier) {

@@ -88,6 +88,22 @@ class DeviceDetailViewModel(
         }
     }
 
+    /** Sony: takes effect at once while the camera is connected. */
+    fun setSendInterval(seconds: Int, device: String) {
+        viewModelScope.launch {
+            stateStore.setSendIntervalS(device, seconds)
+            cameraSettings.applyLocationIntervals(device)
+        }
+    }
+
+    /** Sony: takes effect at once while the camera is connected. */
+    fun setKeepAwakeEnabled(enabled: Boolean, device: String) {
+        viewModelScope.launch {
+            stateStore.setKeepAwakeEnabled(device, enabled)
+            cameraSettings.applyKeepAwake(device)
+        }
+    }
+
     fun setHandshakeDelay(delayMs: Long, device: String) {
         viewModelScope.launch {
             stateStore.setHandshakeDelayMs(device, delayMs)

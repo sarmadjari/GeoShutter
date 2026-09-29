@@ -37,5 +37,14 @@ data class CameraDevice(
     /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
     @ColumnInfo(defaultValue = "60")
     val standbyIntervalS: Int = 60,
+    /** Sony: seconds between the location updates the phone sends while the camera is on. */
+    @ColumnInfo(defaultValue = "5")
+    val sendIntervalS: Int = 5,
+    /**
+     * Sony: keep the camera out of power save while it is connected. In power save the
+     * camera ends the connection, so photos right after waking it get no location.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val keepAwakeEnabled: Boolean = false,
 )
 

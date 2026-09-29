@@ -44,6 +44,8 @@ data class DeviceListItem(
     val locationSyncOff: Boolean = false,
     /** Fujifilm: switched off in standby, still receiving the location. */
     val inStandby: Boolean = false,
+    /** Sony: switched off but still connected ("Cnct. while Power OFF"); no location. */
+    val switchedOff: Boolean = false,
     /** False for cameras without Bluetooth remote support in the app (Fujifilm). */
     val remoteSupported: Boolean = true,
     /**
@@ -83,6 +85,7 @@ class DeviceListViewModel(dataSource: DeviceListDataSource) : ViewModel() {
                 locationSyncOff = session != null && session.isLocationReady && !session.wantsLocation,
                 inStandby = session != null && session.isLocationReady && session.wantsLocation &&
                         session.inStandby,
+                switchedOff = session?.cameraOff == true,
                 remoteSupported = session?.protocol != CameraProtocol.FujifilmSecure,
             )
         }

@@ -91,7 +91,8 @@ AccessorySetupKit descriptor and `NSAccessorySetupBluetoothCompanyIdentifiers`).
 | | `DD32` | read/write one byte `0`/`1`: the camera's *Automatic time correction* setting |
 | | `DD33` | read/write one byte `0`/`1`: the camera's *Automatic area adjustment* setting |
 | `8000CC00-CC00-FFFF-FFFF-FFFFFFFFFFFF` (control) | `CC13` | write: 13-byte date/time sync |
-| | `CC09` | defined but **not used** (it reports Sony-app remote availability, not the Bluetooth remote setting) |
+| | `CC02` | write `03 08 10 00`: Creators' App's auto power off avoidance, sent every 5 s by *Keep the camera awake* (below) |
+| | `CC09` | defined but **not used**: camera status records `[length][16-bit type][value]`; type 1 Wi-Fi state, 2 image transfer available, 3 Creators' App remote shooting available (not the Bluetooth remote setting) |
 | `8000FF00-FF00-FFFF-FFFF-FFFFFFFFFFFF` (remote) | `FF01` | write: button commands |
 | | `FF02` | notify: remote status |
 
@@ -126,6 +127,40 @@ full press `01 09` / release `01 08`, AF-ON `01 15` / release `01 14`.
 Status notifications on `FF02`: `02 3F 20` focus acquired, `02 A0 20` shutter
 active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
 (the only "inactive" value; anything else counts as active).
+
+### Power: switching off, power save, keeping awake
+
+Measured on an α1 II (ILCE-1M2) on 2026-09-29, with third-party sources from a research
+pass (`sarnau/sony-camera-protocol`, `Congee/alfa`, `ekutner/camera-gps-link`,
+`whc2001/ILCE7M3ExternalGps`, Sony's help guides):
+
+- **Switching on ends the connection** (reason 0x13; Sony documents it for *Cnct. while
+  Power OFF*). The camera takes a location only once the phone has reconnected and set
+  it up again: the first tagged photo comes about 10 s after switching on (about 16 s with
+  *Cnct. while Power OFF* on). A photo taken 5 s after switching on had no location, also
+  after locations were sent while it was off, so a Fujifilm-style standby isn't possible.
+- **Switched off with *Cnct. while Power OFF* on**, the camera stays connected or
+  reconnects. For a while it still accepts location writes; then it refuses `DD30`,
+  `DD31` and `DD11` with Sony's ATT error **0x9D** ("not available in the current state";
+  `ATT_ERROR_NOT_AVAILABLE`). The orchestrator marks the session `cameraOff`
+  (`onSonyCameraOff`): shown as *Switched off*, no location, the phone's location stops if
+  no other camera needs it, and the GPS setup is retried every 30 s in case the camera
+  was switched on without dropping the link. With the setting off the camera goes silent.
+  The setting is meant for image transfer, costs camera battery, and can't be read or
+  changed over GATT (only seen in the advertising data).
+- **Power save**: after its *Power Save Start Time* (1 minute by default) the camera turns
+  its screen off and, about 30 s later, ends the connection (a `CC09` Wi-Fi-state record
+  `04 00 01 00 00` comes about 1 s before); it stops advertising until it is woken, then
+  the phone reconnects within a few seconds. Photos right after waking have no location.
+  This explains the α1 II's "drops every 1–3 minutes" (§8 of `AGENTS.md`).
+- **Keep the camera awake** (`CameraDevice.keepAwakeEnabled`, off by default): while
+  connected, `CC02` gets `03 08 10 00` every 5 s (`KEEP_AWAKE_COMMAND`,
+  `KEEP_AWAKE_INTERVAL_MS`). One write only restarts the power save timer (the screen went
+  dark a minute after a single write), hence the repeat, within the shortest Power Save
+  Start Time. Verified: no drops and the screen stayed on for over 4 minutes.
+- **Power state in the advertising data** (not used): manufacturer data tag `0x21`, bit
+  `0x40` camera on, bit `0x80` *Cnct. while Power OFF* on (per whc2001, ekutner; not
+  verified here). `CC10` notifies the battery level (4-byte percentage per battery).
 
 ## 4. Connection lifecycle (shared)
 
@@ -163,8 +198,9 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
 5. **Ready** (`handleHandshakeComplete`): iOS first checks that the camera is still
    enabled (`shouldRemainConnected`); then the phase becomes `Transmitting`, the
    location manager starts (or immediately sends a cached fix), `DD32`/`DD33` are
-   read, remote monitoring starts if *Enable remote control* is on, and
-   `HandshakeCompleted` is emitted (Android then drops the connection priority
+   read, remote monitoring starts if *Enable remote control* is on, a Sony camera's send
+   interval (`sendIntervalS`) is loaded and *Keep the camera awake* starts if it is on,
+   and `HandshakeCompleted` is emitted (Android then drops the connection priority
    back to balanced).
 6. **Auth errors** (ATT 5 / 15) on any step are retried per `PairingRetryPolicy`
    (3 retries, 3 s apart; Android retries the first one immediately). When they
@@ -197,17 +233,20 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
   (`CameraSession.wantsLocation`); a geotag request still starts updates. The source
   delivers fixes as often as the most demanding ready camera that wants locations needs
   (`CameraSession.locationUpdateIntervalMs` → `LocationSource.setUpdateInterval`): a Sony
-  camera every 5 s, a Fujifilm camera at its sync interval (`locationIntervalS`, default
-  10 s), or at its standby interval (`standbyIntervalS`, default 60 s) while it is
-  switched off or asleep in standby (`CameraSession.inStandby`); never more often than
-  every 5 s. The orchestrator calls `updateTracking` whenever a ready camera's location
-  sync, standby state or intervals change.
+  camera at its send interval (`sendIntervalS`, default 5 s), a Fujifilm camera at its
+  sync interval (`locationIntervalS`, default 10 s), or at its standby interval
+  (`standbyIntervalS`, default 60 s) while it is switched off or asleep in standby
+  (`CameraSession.inStandby`); never more often than every 5 s. A Sony camera that is
+  switched off but still connected (`CameraSession.cameraOff`, below) wants no location.
+  The orchestrator calls `updateTracking` whenever a ready camera's location sync, standby
+  or switched-off state or intervals change.
 - Stale fixes (older than 30 s) are ignored: iOS checks every fix, Android checks
   the initial/last-known seed fix, and a fix cached from a previous session is
   discarded when it is older than 30 s. A new fix replaces the current one unless
   it is more than 200 m less accurate *and* not more than 30 s newer.
-- The first usable fix is sent immediately; afterwards the latest fix is re-sent
-  to every ready camera every **5 s** (`LOCATION_UPDATE_INTERVAL_MS`). A tick
+- The first usable fix is sent immediately; afterwards a tick every **5 s**
+  (`LOCATION_UPDATE_INTERVAL_MS`) re-sends the latest fix to every ready Sony camera
+  whose own interval is up (whole ticks: 5 s every tick, 15 s every third). A tick
   without any fix emits `LocationUnavailable` (Android: "location invalid" sound).
 - Sources: Android `gplay` = `SwitchingLocationSource` (Play Services fused
   provider with high accuracy, 5 s interval and 2 m minimum distance, or the
@@ -331,12 +370,13 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 
 - Room database shared by both platforms (`sharednew/.../database/LogDatabase.kt`,
   bundled SQLite driver), file `log_database` (Android database directory) /
-  `Documents/log_database.db` (iOS). Version 8, auto-migrations 1→8, schemas
+  `Documents/log_database.db` (iOS). Version 9, auto-migrations 1→9, schemas
   exported to `sharednew/schemas/` (commit the new schema JSON with every change).
   - `camera_devices`: `mac` (PK), `deviceEnabled`, `alwaysOnEnabled`,
     `deviceName`, `deviceNameIsCustom`, `remoteControlEnabled`,
     `handshakeDelayMs`, `timeSyncEnabled` (Fujifilm, default on; version 7),
-    `locationIntervalS` and `standbyIntervalS` (Fujifilm, defaults 10 and 60 s; version 8).
+    `locationIntervalS` and `standbyIntervalS` (Fujifilm, defaults 10 and 60 s; version 8),
+    `sendIntervalS` and `keepAwakeEnabled` (Sony, defaults 5 s and off; version 9).
   - `log_entries`: the in-app log, written by `LogRepository`: one write at a time in
     call order, database failures dropped (logging must never crash the app, e.g. while
     the iOS file is still protected before the first unlock), and every 50 inserts the

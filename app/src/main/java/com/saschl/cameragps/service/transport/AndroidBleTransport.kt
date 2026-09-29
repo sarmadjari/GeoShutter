@@ -446,6 +446,7 @@ class AndroidBleTransport(
                     gatt.device.address.uppercase(),
                     uuid,
                     statusOf(status),
+                    attError = status.takeIf { it != BluetoothGatt.GATT_SUCCESS },
                 )
             )
         }

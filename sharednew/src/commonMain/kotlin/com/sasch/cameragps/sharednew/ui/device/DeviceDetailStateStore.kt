@@ -1,5 +1,6 @@
 package com.sasch.cameragps.sharednew.ui.device
 
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,14 @@ interface DeviceDetailDataSource {
     /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
     suspend fun getStandbyIntervalS(deviceId: String): Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS
     suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) = Unit
+
+    /** Sony: seconds between the location updates the phone sends while the camera is on. */
+    suspend fun getSendIntervalS(deviceId: String): Int = SonyBluetoothConstants.SEND_INTERVAL_SECONDS
+    suspend fun setSendIntervalS(deviceId: String, seconds: Int) = Unit
+
+    /** Sony: keep the camera out of power save while it is connected (default off). */
+    suspend fun isKeepAwakeEnabled(deviceId: String): Boolean = false
+    suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) = Unit
 }
 
 interface DeviceDetailServiceActions {
@@ -50,6 +59,8 @@ data class DeviceDetailToggleState(
     val isTimeSyncEnabled: Boolean = true,
     val locationIntervalS: Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
     val standbyIntervalS: Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS,
+    val sendIntervalS: Int = SonyBluetoothConstants.SEND_INTERVAL_SECONDS,
+    val isKeepAwakeEnabled: Boolean = false,
 )
 
 class DeviceDetailStateStore(
@@ -71,6 +82,8 @@ class DeviceDetailStateStore(
                 isTimeSyncEnabled = dataSource.isTimeSyncEnabled(normalized),
                 locationIntervalS = dataSource.getLocationIntervalS(normalized),
                 standbyIntervalS = dataSource.getStandbyIntervalS(normalized),
+                sendIntervalS = dataSource.getSendIntervalS(normalized),
+                isKeepAwakeEnabled = dataSource.isKeepAwakeEnabled(normalized),
             )
         }
     }
@@ -126,6 +139,20 @@ class DeviceDetailStateStore(
         dataSource.ensureDeviceExists(normalized)
         dataSource.setStandbyIntervalS(normalized, seconds)
         _uiState.update { it.copy(standbyIntervalS = seconds) }
+    }
+
+    suspend fun setSendIntervalS(deviceId: String, seconds: Int) {
+        val normalized = deviceId.uppercase()
+        dataSource.ensureDeviceExists(normalized)
+        dataSource.setSendIntervalS(normalized, seconds)
+        _uiState.update { it.copy(sendIntervalS = seconds) }
+    }
+
+    suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
+        val normalized = deviceId.uppercase()
+        dataSource.ensureDeviceExists(normalized)
+        dataSource.setKeepAwakeEnabled(normalized, enabled)
+        _uiState.update { it.copy(isKeepAwakeEnabled = enabled) }
     }
 
     suspend fun setDeviceName(deviceId: String, name: String) {

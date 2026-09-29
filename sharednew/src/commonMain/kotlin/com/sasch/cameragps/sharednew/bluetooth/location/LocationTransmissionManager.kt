@@ -35,8 +35,9 @@ sealed interface LocationEvent {
  * send-to-ready-sessions. Unifies the former Android
  * `LocationTransmissionCoordinator` and iOS `IosLocationTransmissionManager`.
  *
- * Sony cameras get the location pushed every [SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS];
- * Fujifilm cameras ask for it ([onLocationRequested]) and only get answers.
+ * Sony cameras get the location pushed, each at its own interval ([updateIntervalMsFor],
+ * checked every [SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS]); Fujifilm cameras ask
+ * for it ([onLocationRequested]) and only get answers.
  *
  * All packet sends go through [port] (the queue-backed [BleGattPort]) so they
  * are serialized with every other BLE operation.
@@ -51,8 +52,9 @@ class LocationTransmissionManager(
     private val isTransmissionAllowed: () -> Boolean = { true },
     private val protocolFor: (String) -> CameraProtocol = { CameraProtocol.Sony },
     /**
-     * False while a ready camera wants no location (Fujifilm with location sync off).
-     * The phone's location is only tracked while some ready camera wants it.
+     * False while a ready camera wants no location (Fujifilm with location sync off, a
+     * switched-off Sony camera). The phone's location is only tracked while some ready
+     * camera wants it, and only such cameras get it pushed.
      */
     private val wantsLocation: (String) -> Boolean = { true },
     /**
@@ -87,6 +89,9 @@ class LocationTransmissionManager(
     /** Cameras that asked for a location before one could be sent. */
     private val pendingRequests = mutableSetOf<String>()
 
+    /** Periodic ticks since each push-based (Sony) camera last got a location. */
+    private val ticksSincePush = mutableMapOf<String, Int>()
+
     /**
      * A device finished its handshake: make sure tracking runs and give the
      * camera a cached fix immediately instead of waiting for the next tick
@@ -120,6 +125,7 @@ class LocationTransmissionManager(
     /** Drop state kept for [identifier] (it disconnected). */
     fun forgetDevice(identifier: String) {
         pendingRequests -= identifier.uppercase()
+        ticksSincePush -= identifier.uppercase()
     }
 
     /**
@@ -188,7 +194,7 @@ class LocationTransmissionManager(
                 val current = latest
                 if (current != null) {
                     log.d { "Periodic timer – sending location to ready sessions" }
-                    runCatching { sendToPushSessions(current) }
+                    runCatching { sendToPushSessions(current, onTick = true) }
                         .onFailure { log.e(it, msg = { "Error sending location" }) }
                 } else {
                     log.w { "Periodic timer – no location available to send" }
@@ -211,6 +217,7 @@ class LocationTransmissionManager(
         _isActive.value = false
         hasSessionLocation = false
         pendingRequests.clear()
+        ticksSincePush.clear()
     }
 
     private fun onNewLocation(location: GeoLocation) {
@@ -237,7 +244,7 @@ class LocationTransmissionManager(
 
     private fun sendImmediateIfCached(identifier: String) {
         if (!isTransmissionAllowed()) return
-        if (identifier !in readySessions()) return
+        if (identifier !in readySessions() || !wantsLocation(identifier)) return
         latest?.let {
             if (hasSessionLocation || isFreshFix(it)) {
                 sendToDevice(identifier, it)
@@ -247,8 +254,23 @@ class LocationTransmissionManager(
 
     private fun isPushBased(identifier: String) = protocolFor(identifier) == CameraProtocol.Sony
 
-    private fun sendToPushSessions(location: GeoLocation) {
-        readySessions().filter(::isPushBased).forEach { sendToDevice(it, location) }
+    /**
+     * Push [location] to the Sony cameras that want it; [onTick], only to those whose own
+     * interval is up (a whole number of ticks, at least one).
+     */
+    private fun sendToPushSessions(location: GeoLocation, onTick: Boolean = false) {
+        readySessions().filter { isPushBased(it) && wantsLocation(it) }.forEach { id ->
+            if (onTick) {
+                val needed = (updateIntervalMsFor(id) / SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS)
+                    .toInt().coerceAtLeast(1)
+                val ticks = ticksSincePush[id]?.plus(1) ?: needed
+                if (ticks < needed) {
+                    ticksSincePush[id] = ticks
+                    return@forEach
+                }
+            }
+            sendToDevice(id, location)
+        }
     }
 
     /** Answer requests of ready cameras once a fix exists; others keep waiting. */
@@ -273,6 +295,7 @@ class LocationTransmissionManager(
                     location.longitude,
                     PlatformTimeZoneInfo(),
                 )
+                ticksSincePush[identifier] = 0
                 port.writeCharacteristic(identifier, SonyBluetoothConstants.CHARACTERISTIC_UUID, packet)
             }
 

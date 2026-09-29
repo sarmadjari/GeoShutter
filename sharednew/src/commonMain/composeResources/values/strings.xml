@@ -336,7 +336,7 @@
     <string name="fujifilm_time_sync_hint">When the camera is switched on or wakes up and connects, set its clock, time zone (AREA SETTING) and daylight saving time to your phone's. The camera accepts the time only then, so turning this on takes effect the next time the camera is switched on.</string>
     <string name="fujifilm_location_sync">Smartphone location sync</string>
     <string name="fujifilm_standby_hint">The camera is switched off or asleep. Its location is kept up to date, so your next photo is tagged right away.</string>
-    <string name="fujifilm_location_interval">Location updates while on</string>
+    <string name="location_interval">Location updates while on</string>
     <string name="fujifilm_location_interval_hint">How often the camera asks for your location while it is on; your phone's GPS follows. Every 10 s (recommended) keeps tags accurate while you move, with little difference in battery up to about 30 s. Longer intervals save battery on long outings, but a photo can get a location that many seconds old. Takes effect at once while the camera is connected.</string>
     <string name="fujifilm_connect_while_off">Stay connected when off</string>
     <string name="fujifilm_connect_while_off_hint">The camera's CONNECT WHILE POWER OFF setting. When it is on, the camera stays connected in standby when it is switched off or falls asleep, and GeoShutter keeps its location up to date, so the first photo after switching it on is tagged right away. Uses a little more camera battery. This changes the setting on the connected camera.</string>
@@ -355,9 +355,9 @@
     <!-- Camera details: sections, status and short setting descriptions. -->
     <string name="detail_section_general">General</string>
     <string name="detail_section_location">Location and time</string>
-    <string name="detail_section_time">Date and time</string>
     <string name="detail_section_standby">Standby</string>
     <string name="detail_section_remote">Remote control</string>
+    <string name="detail_section_power">Power</string>
     <string name="detail_section_advanced">Advanced</string>
     <string name="detail_status_receiving">Receiving your location</string>
     <string name="detail_status_receiving_hint">Your photos are tagged with your phone's location.</string>
@@ -368,6 +368,8 @@
     <string name="detail_status_connecting_hint">Setting up the connection with the camera.</string>
     <string name="detail_status_away">Not connected</string>
     <string name="detail_status_away_hint">Connects automatically when the camera is switched on nearby.</string>
+    <string name="detail_status_switched_off">Switched off</string>
+    <string name="detail_status_switched_off_hint">The camera stays connected because Cnct. while Power OFF is on, but takes no location until you switch it on. With that setting off, the location reaches it a few seconds sooner after switching on, and the camera saves battery.</string>
     <string name="detail_status_disabled">Disabled</string>
     <string name="detail_status_disabled_hint">This camera is ignored until you enable it below.</string>
     <string name="enable_device_description">Connect and send your location</string>
@@ -378,12 +380,17 @@
     <string name="fujifilm_location_sync_short">Tag photos with your location</string>
     <string name="fujifilm_time_sync_short">When the camera is switched on</string>
     <string name="fujifilm_connect_while_off_short">Tag the first photo right away</string>
+    <string name="sony_location_interval_hint">How often your phone sends its location to the camera while it is on. Every 5 s (recommended) keeps tags accurate while you move. The camera keeps using the last location for about a minute, so longer intervals still tag every photo, only with an older position, and save a little phone battery. Takes effect at once.</string>
+    <string name="sony_keep_awake">Keep the camera awake</string>
+    <string name="sony_keep_awake_short">No power save while connected</string>
+    <string name="sony_keep_awake_hint">After its Power Save Start Time (1 minute by default) the camera goes into power save and ends the Bluetooth connection, so photos taken right after waking it get no location for a few seconds. With this on, the camera doesn't go into power save while it is connected, like with Sony's own app, so the connection stays up and every photo is tagged. The camera uses more battery because its screen stays on until you switch it off. Takes effect at once while the camera is connected.</string>
     <string name="interval_recommendation">Recommended: %1$s</string>
     <string name="interval_short_seconds">%1$d s</string>
     <string name="interval_short_minutes">%1$d min</string>
     <!-- Camera list: one-line status under a camera's name. -->
     <string name="card_status_standby">Standby · location kept up to date</string>
     <string name="card_status_sync_off">Location sync is off on the camera</string>
+    <string name="card_status_switched_off">Switched off</string>
 
     <!-- In-app release notes. -->
     <string name="whats_new_title">What’s new</string>

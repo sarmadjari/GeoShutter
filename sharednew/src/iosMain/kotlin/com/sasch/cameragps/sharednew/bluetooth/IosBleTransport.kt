@@ -335,7 +335,10 @@ internal class IosBleTransport(
                 log.e { "BLE write failed for $sharedUuid: ${error.localizedDescription} ${error.code}" }
             }
             eventChannel.trySend(
-                BleTransportEvent.CharacteristicWritten(id, sharedUuid, statusOf(error))
+                BleTransportEvent.CharacteristicWritten(
+                    id, sharedUuid, statusOf(error),
+                    attError = error?.takeIf { it.domain == CBATTErrorDomain }?.code?.toInt(),
+                )
             )
         }
 
@@ -467,6 +470,7 @@ internal class IosBleTransport(
             SonyBluetoothConstants.CHARACTERISTIC_ENABLE_LOCK_GPS_COMMAND,
             SonyBluetoothConstants.CHARACTERISTIC_LOCATION_ENABLED_IN_CAMERA,
             SonyBluetoothConstants.TIME_SYNC_CHARACTERISTIC_UUID,
+            SonyBluetoothConstants.CAMERA_CONTROL_UUID,
             SonyBluetoothConstants.AUTO_TIME_CORRECTION_UUID,
             SonyBluetoothConstants.AUTO_AREA_ADJUSTMENT_UUID,
             SonyBluetoothConstants.REMOTE_CHARACTERISTIC_UUID,

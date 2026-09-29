@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cameragps.sharednew.generated.resources.Res
 import cameragps.sharednew.generated.resources.back
 import cameragps.sharednew.generated.resources.help_menu_item
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.database.LogDatabase
 import com.sasch.cameragps.sharednew.database.devices.CameraDevice
@@ -108,6 +109,20 @@ private fun createAndroidDataSource(dao: CameraDeviceDAO): DeviceDetailDataSourc
 
         override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
             dao.setStandbyIntervalS(deviceId, seconds)
+        }
+
+        override suspend fun getSendIntervalS(deviceId: String) =
+            dao.findSendIntervalS(deviceId) ?: SonyBluetoothConstants.SEND_INTERVAL_SECONDS
+
+        override suspend fun setSendIntervalS(deviceId: String, seconds: Int) {
+            dao.setSendIntervalS(deviceId, seconds)
+        }
+
+        override suspend fun isKeepAwakeEnabled(deviceId: String) =
+            dao.findKeepAwakeEnabled(deviceId) ?: false
+
+        override suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
+            dao.setKeepAwakeEnabled(deviceId, enabled)
         }
     }
 }

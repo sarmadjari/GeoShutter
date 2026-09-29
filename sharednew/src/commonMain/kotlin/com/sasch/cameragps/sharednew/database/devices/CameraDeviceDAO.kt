@@ -86,4 +86,16 @@ interface CameraDeviceDAO {
 
     @Query("UPDATE camera_devices SET standbyIntervalS = :seconds WHERE mac = UPPER(:deviceId)")
     suspend fun setStandbyIntervalS(deviceId: String, seconds: Int)
+
+    @Query("SELECT sendIntervalS FROM camera_devices WHERE mac = UPPER(:address)")
+    suspend fun findSendIntervalS(address: String): Int?
+
+    @Query("UPDATE camera_devices SET sendIntervalS = :seconds WHERE mac = UPPER(:deviceId)")
+    suspend fun setSendIntervalS(deviceId: String, seconds: Int)
+
+    @Query("SELECT keepAwakeEnabled FROM camera_devices WHERE mac = UPPER(:address)")
+    suspend fun findKeepAwakeEnabled(address: String): Boolean?
+
+    @Query("UPDATE camera_devices SET keepAwakeEnabled = :enabled WHERE mac = UPPER(:deviceId)")
+    suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean)
 }

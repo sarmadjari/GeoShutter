@@ -296,6 +296,13 @@ fork's site. GitHub Pages is not enabled on the fork.
   languages, iOS home screen). Help links go to this repository (README, Issues) instead
   of Saschl's old repository and personal e-mail; donations stay with Saschl and say so
   (user's choice over removing them or leaving the links).
+- 2026-09-29: Sony features after hardware tests on the α1 II (the maintainer chose all
+  four offered): *Keep the camera awake* per camera (**off by default**: Sony's power save
+  and camera battery as before), *Location updates while on* for Sony (5–30 s, default and
+  recommended 5 s, the old fixed value), a switched-off camera still connected through
+  *Cnct. while Power OFF* shown as *Switched off* (red) with no location, and faster
+  reconnects (none found; see §8). A Fujifilm-style standby isn't possible on Sony (it
+  drops the connection when switched on and ignores locations sent while off).
 - 2026-09-29: new app icon, the maintainer's pick of five concepts: camera focus
   brackets (white) around a coral location pin with a white dot, on a deep navy gradient
   (#1F2A3C → #0B111C, pin #FF5A4E). Android: adaptive icon with a one-color themed layer;
@@ -345,9 +352,19 @@ fork's site. GitHub Pages is not enabled on the fork.
 - iOS: the camera-name/model line, the direct connects and the status tile/widget are
   Android-only so far.
 - Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
-  minute, and is back 5–35 s later; seen in every session on 2026-09-28 since the first
-  test, before the status and turn-on changes. Probably the camera's power save; not
-  investigated. Each drop costs a reconnect and setup (about 4 s).
+  minute. Cause found 2026-09-29: its power save (Power Save Start Time, 1 minute by
+  default) ends the connection about 30 s after the screen goes dark, and it comes back
+  when woken; photos right after waking get no location. Fixed per camera by *Keep the
+  camera awake* (off by default, the maintainer's choice); otherwise inherent.
+- Sony: a switched-off camera is detected only by its ATT error 0x9D (verified on
+  Android; iOS maps `CBATTErrorDomain` codes the same way, untested). A camera switched
+  off with *Cnct. while Power OFF* on still accepts locations for up to about 1.5 minutes
+  before it refuses them, so it shows as receiving until then. The camera simulator
+  (`tools/sony_camera_sim`) has neither `CC02` nor the 0x9D refusal. The advertising power
+  bits (docs/ARCHITECTURE.md §3, Power) are not used.
+- Sony reconnect speed: after switching on, the α1 II needs about 12 s until it can be
+  connected, then about 3 s of setup, most of it Android re-reading its services after the
+  camera's Service Changed indication (inherent). No safe way to shorten it was found.
 - An X100VI that is on but lost its connection more than about half a minute ago no
   longer advertises, so turning GeoShutter on can't reach it until it is woken or switched
   off and on (see `docs/fujifilm-protocol.md`, Camera behavior).
@@ -541,3 +558,15 @@ fork's site. GitHub Pages is not enabled on the fork.
   Checked on the SM-F976B: app drawer icon, splash screen, Help screen; `actool` compiles
   the iOS catalog without warnings. The old themed icon was a plain disc (its monochrome
   layer reused the full-color foreground).
+- 2026-09-29 (late afternoon): Sony power investigation with the maintainer's α1 II and a
+  research pass. A probe build (not committed; `files/sony-probe.diff` in the session
+  folder) logged the α1 II's full GATT (services BB00, CC00 with cc02–ccb0, DD00, EE00,
+  FF00) and every notification while switching off/on and idling. Findings in
+  docs/ARCHITECTURE.md §3 (Power). Built: keep-awake (`CC02` `03 08 10 00` every 5 s),
+  Sony send interval (database v9: `sendIntervalS`, `keepAwakeEnabled`), switched-off
+  detection (ATT 0x9D → `CameraSession.cameraOff`, retried every 30 s), UI rows in the
+  Sony details (*Location and time*, *Power*) and a *Switched off* status. Verified on the
+  camera: keep-awake held the connection over 2 minutes with the screen on; 15 s interval
+  applied at once; switching off with *Cnct. while Power OFF* on showed *Switched off* and
+  stopped the Sony location; switching on reconnected and resumed. The maintainer's α1 II
+  was left with keep-awake off and 5 s; *Cnct. while Power OFF* was turned on for the test.

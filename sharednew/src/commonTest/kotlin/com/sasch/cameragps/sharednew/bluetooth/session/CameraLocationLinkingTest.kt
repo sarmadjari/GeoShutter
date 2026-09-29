@@ -641,6 +641,132 @@ class CameraLocationLinkingTest {
         assertTrue(f.transport.remoteWrites().isEmpty())
     }
 
+    @Test
+    fun switchedOffSonyCameraGetsNoLocationUntilItAcceptsTheSetupAgain() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.switchedOff = true
+        f.connect("A")
+        runCurrent()
+        assertTrue(f.session("A").cameraOff)
+        assertFalse(f.session("A").takesLocation)
+        f.fix()
+        runCurrent()
+        assertTrue(f.transport.locationWrites().isEmpty())
+        assertFalse(f.source.active)
+
+        // Still connected and switched on: the next check finds it accepting the setup.
+        f.transport.switchedOff = false
+        advanceTimeBy(30_001)
+        runCurrent()
+        assertFalse(f.session("A").cameraOff)
+        assertTrue(f.session("A").isLocationReady)
+        assertTrue(f.source.active)
+        f.fix()
+        runCurrent()
+        assertTrue(f.transport.locationWrites().isNotEmpty())
+        f.orchestrator.shutdownAll()
+    }
+
+    @Test
+    fun sonyCameraSwitchedOffWhileSendingStopsTheLocationAndTheGps() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("A")
+        runCurrent()
+        f.fix()
+        runCurrent()
+        assertTrue(f.transport.locationWrites().isNotEmpty())
+        assertTrue(f.source.active)
+
+        f.transport.switchedOff = true
+        advanceTimeBy(5_001)
+        runCurrent()
+        assertTrue(f.session("A").cameraOff)
+        val writes = f.transport.locationWrites().size
+        advanceTimeBy(20_000)
+        runCurrent()
+        assertEquals(writes, f.transport.locationWrites().size)
+        assertFalse(f.source.active)
+        f.orchestrator.shutdownAll()
+    }
+
+    @Test
+    fun keepAwakeRepeatsTheAvoidanceCommandOnlyWhileEnabled() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("A")
+        runCurrent()
+        advanceTimeBy(20_000)
+        runCurrent()
+        assertTrue(f.transport.keepAwakeWrites().isEmpty())
+
+        f.dao.keepAwakeEnabled = true
+        f.orchestrator.applyKeepAwake("A")
+        runCurrent()
+        assertEquals(1, f.transport.keepAwakeWrites().size)
+        assertTrue(f.transport.keepAwakeWrites().all { (_, op) ->
+            (op as BleOperation.Write).value.contentEquals(Sony.KEEP_AWAKE_COMMAND)
+        })
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertEquals(3, f.transport.keepAwakeWrites().size)
+
+        f.dao.keepAwakeEnabled = false
+        f.orchestrator.applyKeepAwake("A")
+        runCurrent()
+        val writes = f.transport.keepAwakeWrites().size
+        advanceTimeBy(20_000)
+        runCurrent()
+        assertEquals(writes, f.transport.keepAwakeWrites().size)
+        f.orchestrator.shutdownAll()
+    }
+
+    @Test
+    fun keepAwakeStartsWithTheSessionAndStopsWhenTheCameraIsSwitchedOff() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.keepAwakeEnabled = true
+        f.connect("A")
+        runCurrent()
+        assertEquals(1, f.transport.keepAwakeWrites().size)
+
+        f.fix()
+        runCurrent()
+        f.transport.switchedOff = true
+        advanceTimeBy(5_001)
+        runCurrent()
+        assertTrue(f.session("A").cameraOff)
+        val writes = f.transport.keepAwakeWrites().size
+        advanceTimeBy(20_000)
+        runCurrent()
+        assertEquals(writes, f.transport.keepAwakeWrites().size)
+        f.orchestrator.shutdownAll()
+    }
+
+    @Test
+    fun sonySendIntervalSpacesPushesAndSlowsTheGps() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.sendIntervalS = 15
+        f.connect("A")
+        runCurrent()
+        assertEquals(15, f.session("A").sendIntervalS)
+        assertEquals(15_000L, f.source.intervalMs)
+        f.fix()
+        runCurrent()
+        val first = f.transport.locationWrites().size
+        advanceTimeBy(30_001)
+        runCurrent()
+        assertEquals(first + 2, f.transport.locationWrites().size)
+
+        // Changed in the camera's details: applied at once.
+        f.dao.sendIntervalS = 5
+        f.orchestrator.applyLocationIntervals("A")
+        runCurrent()
+        assertEquals(5_000L, f.source.intervalMs)
+        val before = f.transport.locationWrites().size
+        advanceTimeBy(15_001)
+        runCurrent()
+        assertEquals(before + 3, f.transport.locationWrites().size)
+        f.orchestrator.shutdownAll()
+    }
+
     private class Fixture(scope: CoroutineScope) {
         val source = FakeSource()
         val transport = FakeTransport()
@@ -673,6 +799,10 @@ class CameraLocationLinkingTest {
         val channel = Channel<GeoLocation>(Channel.UNLIMITED)
         override val locations = channel.receiveAsFlow()
         var active = false
+        var intervalMs = 0L
+        override fun setUpdateInterval(intervalMs: Long) {
+            this.intervalMs = intervalMs
+        }
         override fun start(): Boolean {
             active = true; return true
         }
@@ -702,6 +832,9 @@ class CameraLocationLinkingTest {
         var holdReads = false
         var holdLocationWrites = false
         var holdGpsUnlockWrites = false
+
+        /** A Sony camera switched off with "Cnct. while Power OFF": refuses location (0x9D). */
+        var switchedOff = false
         fun emit(event: BleTransportEvent) {
             channel.trySend(event)
         }
@@ -712,6 +845,10 @@ class CameraLocationLinkingTest {
 
         fun remoteWrites() = operations.filter { (_, op) ->
             op is BleOperation.Write && op.characteristicUuid == Sony.REMOTE_CHARACTERISTIC_UUID
+        }
+
+        fun keepAwakeWrites() = operations.filter { (_, op) ->
+            op is BleOperation.Write && op.characteristicUuid == Sony.CAMERA_CONTROL_UUID
         }
 
         override fun isConnected(identifier: String) = identifier in connected
@@ -779,12 +916,22 @@ class CameraLocationLinkingTest {
 
         fun completeWrite(id: String, uuid: String) =
             emit(
-                BleTransportEvent.CharacteristicWritten(
+                if (switchedOff && uuid in refusedWhileOff) {
+                    BleTransportEvent.CharacteristicWritten(
+                        id, uuid, BleOperationStatus.Failure, attError = Sony.ATT_ERROR_NOT_AVAILABLE,
+                    )
+                } else BleTransportEvent.CharacteristicWritten(
                     id, uuid,
                     if (failRemoteWrites && uuid == Sony.REMOTE_CHARACTERISTIC_UUID)
                         BleOperationStatus.Failure else BleOperationStatus.Success
                 )
             )
+
+        private val refusedWhileOff = setOf(
+            Sony.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND,
+            Sony.CHARACTERISTIC_ENABLE_LOCK_GPS_COMMAND,
+            Sony.CHARACTERISTIC_UUID,
+        )
 
         override fun initiateSubscribe(
             identifier: String,
@@ -838,6 +985,16 @@ class CameraLocationLinkingTest {
         override suspend fun findStandbyIntervalS(address: String): Int? = standbyIntervalS
         override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
             standbyIntervalS = seconds
+        }
+        var sendIntervalS: Int? = null
+        var keepAwakeEnabled: Boolean? = null
+        override suspend fun findSendIntervalS(address: String): Int? = sendIntervalS
+        override suspend fun setSendIntervalS(deviceId: String, seconds: Int) {
+            sendIntervalS = seconds
+        }
+        override suspend fun findKeepAwakeEnabled(address: String): Boolean? = keepAwakeEnabled
+        override suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
+            keepAwakeEnabled = enabled
         }
     }
 }

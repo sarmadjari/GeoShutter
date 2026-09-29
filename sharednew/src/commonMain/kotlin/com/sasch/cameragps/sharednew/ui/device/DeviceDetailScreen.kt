@@ -72,9 +72,9 @@ import cameragps.sharednew.generated.resources.delete_device
 import cameragps.sharednew.generated.resources.detail_section_advanced
 import cameragps.sharednew.generated.resources.detail_section_general
 import cameragps.sharednew.generated.resources.detail_section_location
+import cameragps.sharednew.generated.resources.detail_section_power
 import cameragps.sharednew.generated.resources.detail_section_remote
 import cameragps.sharednew.generated.resources.detail_section_standby
-import cameragps.sharednew.generated.resources.detail_section_time
 import cameragps.sharednew.generated.resources.detail_status_away
 import cameragps.sharednew.generated.resources.detail_status_away_hint
 import cameragps.sharednew.generated.resources.detail_status_connecting
@@ -85,6 +85,8 @@ import cameragps.sharednew.generated.resources.detail_status_receiving
 import cameragps.sharednew.generated.resources.detail_status_receiving_hint
 import cameragps.sharednew.generated.resources.detail_status_standby
 import cameragps.sharednew.generated.resources.detail_status_sync_off
+import cameragps.sharednew.generated.resources.detail_status_switched_off
+import cameragps.sharednew.generated.resources.detail_status_switched_off_hint
 import cameragps.sharednew.generated.resources.detail_status_sync_off_hint
 import cameragps.sharednew.generated.resources.dialog_ok
 import cameragps.sharednew.generated.resources.enableConstantly
@@ -94,7 +96,6 @@ import cameragps.sharednew.generated.resources.enable_remote_control
 import cameragps.sharednew.generated.resources.fujifilm_connect_while_off
 import cameragps.sharednew.generated.resources.fujifilm_connect_while_off_hint
 import cameragps.sharednew.generated.resources.fujifilm_connect_while_off_short
-import cameragps.sharednew.generated.resources.fujifilm_location_interval
 import cameragps.sharednew.generated.resources.fujifilm_location_interval_hint
 import cameragps.sharednew.generated.resources.fujifilm_location_sync
 import cameragps.sharednew.generated.resources.fujifilm_location_sync_hint
@@ -117,6 +118,7 @@ import cameragps.sharednew.generated.resources.interval_recommended
 import cameragps.sharednew.generated.resources.interval_seconds
 import cameragps.sharednew.generated.resources.interval_short_minutes
 import cameragps.sharednew.generated.resources.interval_short_seconds
+import cameragps.sharednew.generated.resources.location_interval
 import cameragps.sharednew.generated.resources.location_linking_disabled_by_camera
 import cameragps.sharednew.generated.resources.remote_control_hint
 import cameragps.sharednew.generated.resources.remote_control_short
@@ -125,7 +127,12 @@ import cameragps.sharednew.generated.resources.rename_camera_label
 import cameragps.sharednew.generated.resources.rename_camera_save
 import cameragps.sharednew.generated.resources.rename_camera_title
 import cameragps.sharednew.generated.resources.setting_info
+import cameragps.sharednew.generated.resources.sony_keep_awake
+import cameragps.sharednew.generated.resources.sony_keep_awake_hint
+import cameragps.sharednew.generated.resources.sony_keep_awake_short
+import cameragps.sharednew.generated.resources.sony_location_interval_hint
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraAutoCorrectionSetting
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
@@ -259,7 +266,7 @@ fun DeviceDetailContent(
                     )
                     RowDivider()
                     IntervalSetting(
-                        title = stringResource(Res.string.fujifilm_location_interval),
+                        title = stringResource(Res.string.location_interval),
                         infoText = stringResource(Res.string.fujifilm_location_interval_hint),
                         choices = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVALS_SECONDS,
                         recommended = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
@@ -299,8 +306,18 @@ fun DeviceDetailContent(
                 }
             }
         } else {
-            item(key = "time") {
-                SharedSettingsCard(title = stringResource(Res.string.detail_section_time)) {
+            item(key = "location") {
+                SharedSettingsCard(title = stringResource(Res.string.detail_section_location)) {
+                    IntervalSetting(
+                        title = stringResource(Res.string.location_interval),
+                        infoText = stringResource(Res.string.sony_location_interval_hint),
+                        choices = SonyBluetoothConstants.SEND_INTERVALS_SECONDS,
+                        recommended = SonyBluetoothConstants.SEND_INTERVAL_SECONDS,
+                        selected = state.sendIntervalS,
+                        enabled = controlsEnabled,
+                        onSelected = { viewModel.setSendInterval(it, deviceId) },
+                    )
+                    RowDivider()
                     CameraSetting(
                         CameraAutoCorrectionSetting.Time,
                         Res.string.auto_time_correction,
@@ -313,6 +330,18 @@ fun DeviceDetailContent(
                         Res.string.auto_area_adjustment,
                         Res.string.auto_area_adjustment_short,
                         Res.string.auto_area_adjustment_hint,
+                    )
+                }
+            }
+            item(key = "power") {
+                SharedSettingsCard(title = stringResource(Res.string.detail_section_power)) {
+                    SwitchRow(
+                        title = stringResource(Res.string.sony_keep_awake),
+                        description = stringResource(Res.string.sony_keep_awake_short),
+                        infoText = stringResource(Res.string.sony_keep_awake_hint),
+                        checked = state.isKeepAwakeEnabled,
+                        enabled = controlsEnabled,
+                        onCheckedChange = { enabled -> viewModel.setKeepAwakeEnabled(enabled, deviceId) },
                     )
                 }
             }
@@ -348,11 +377,12 @@ fun DeviceDetailContent(
 
 // ---- Status ----
 
-private enum class DetailStatus { Disabled, Receiving, Standby, SyncOff, LinkingOff, Connecting, Away }
+private enum class DetailStatus { Disabled, Receiving, Standby, SyncOff, LinkingOff, Connecting, SwitchedOff, Away }
 
 private fun detailStatus(enabled: Boolean, session: CameraSession?): DetailStatus = when {
     !enabled -> DetailStatus.Disabled
     session == null -> DetailStatus.Away
+    session.cameraOff -> DetailStatus.SwitchedOff
     session.isLocationReady && !session.wantsLocation -> DetailStatus.SyncOff
     session.isLocationReady && session.locationDisabledByCamera -> DetailStatus.LinkingOff
     session.isLocationReady && session.inStandby -> DetailStatus.Standby
@@ -369,6 +399,7 @@ private fun CameraStatusCard(status: DetailStatus, details: String?) {
         DetailStatus.SyncOff -> Triple(AttentionAmber, Res.string.detail_status_sync_off, Res.string.detail_status_sync_off_hint)
         DetailStatus.LinkingOff -> Triple(AttentionAmber, Res.string.detail_status_sync_off, Res.string.location_linking_disabled_by_camera)
         DetailStatus.Connecting -> Triple(AttentionAmber, Res.string.detail_status_connecting, Res.string.detail_status_connecting_hint)
+        DetailStatus.SwitchedOff -> Triple(AwayRed, Res.string.detail_status_switched_off, Res.string.detail_status_switched_off_hint)
         DetailStatus.Away -> Triple(AwayRed, Res.string.detail_status_away, Res.string.detail_status_away_hint)
         DetailStatus.Disabled -> Triple(DisabledGrey, Res.string.detail_status_disabled, Res.string.detail_status_disabled_hint)
     }

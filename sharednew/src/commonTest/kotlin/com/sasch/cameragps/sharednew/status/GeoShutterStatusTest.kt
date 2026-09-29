@@ -130,6 +130,21 @@ class GeoShutterStatusTest {
     }
 
     @Test
+    fun aSonyCameraSwitchedOffButStillConnectedIsAway() {
+        fun state(phase: BleSessionPhase) = geoShutterStatus(
+            enabled = true,
+            savedCameras = listOf(sony),
+            devices = emptyList(),
+            sessions = mapOf("AA:01" to CameraSession("AA:01", phase, cameraOff = true)),
+            transmitting = true,
+        ).cameras.single().state
+
+        // Refused the GPS setup, or a location while it was sending.
+        assertEquals(CameraState.Away, state(BleSessionPhase.EnablingGps))
+        assertEquals(CameraState.Away, state(BleSessionPhase.Transmitting))
+    }
+
+    @Test
     fun aSilentFujifilmCameraIsStillConnecting() {
         fun status(responding: Boolean) = geoShutterStatus(
             enabled = true,

@@ -71,6 +71,8 @@ sealed interface BleTransportEvent {
         override val identifier: String,
         val characteristicUuid: String,
         val status: BleOperationStatus,
+        /** The ATT error of a failed write, when the platform reports one. */
+        val attError: Int? = null,
     ) : BleTransportEvent
 
     /** A notification subscription change completed (Android: CCCD descriptor write). */

@@ -18,9 +18,10 @@ licensed under the [GPL-3.0](LICENSE).
 
 ## What it does
 
-- **Geotagging**: sends your position to every connected camera every 5 seconds, using
-  the same Bluetooth location-linking feature as Sony's Imaging Edge Mobile and Creators'
-  App. Location is only used while a camera is connected.
+- **Geotagging**: sends your position to every connected camera, by default every 5
+  seconds (per camera, up to every 30 s for Sony), using the same Bluetooth
+  location-linking feature as Sony's Imaging Edge Mobile and Creators' App. Location is
+  only used while a camera is connected and switched on.
 - **Time sync**: sets the camera's date and time when it connects, and adds time zone and
   daylight-saving information to each position when the camera supports it. On Fujifilm
   cameras it also sets the time zone (AREA SETTING) and daylight saving time.
@@ -32,8 +33,9 @@ licensed under the [GPL-3.0](LICENSE).
   location.
 - **Remote shutter**: one tap runs a full half-press → focus → shutter → release cycle,
   driven by the camera's status messages.
-- **Per-camera settings**: rename, enable/disable, remote control, a connection-setup
-  delay for slow-starting cameras, and the camera's own *Automatic time correction* and
+- **Per-camera settings**: rename, enable/disable, remote control, how often the location
+  is updated, keeping a Sony camera awake while it is connected, a connection-setup delay
+  for slow-starting cameras, and the camera's own *Automatic time correction* and
   *Automatic area adjustment* settings.
 - **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
 - **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
@@ -141,12 +143,13 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
 Tap a camera on **My Cameras** to open its details. A status card at the top shows what
 the camera is doing, with the same colors as the widget: *Receiving your location*
 (green), *Standby* (blue), *Connecting…* or *Location sync is off* (amber), *Not connected*
-(red) or *Disabled* (grey), with the brand, model and (Android) Bluetooth address. The
-settings follow in groups: **General**, then **Location and time** and **Standby**
-(Fujifilm) or **Date and time** and **Remote control** (Sony), then **Advanced**. Each
-setting has a one-line summary; tap ⓘ next to its name for the full explanation. Tapping
-anywhere on a row with a switch toggles it. The camera list shows the same states in
-short: *Standby · location kept up to date* or *Location sync is off on the camera*.
+(red), *Switched off* (red; a Sony camera still connected while off) or *Disabled* (grey),
+with the brand, model and (Android) Bluetooth address. The settings follow in groups:
+**General**, **Location and time**, then **Standby** (Fujifilm) or **Power** and **Remote
+control** (Sony), then **Advanced**. Each setting has a one-line summary; tap ⓘ next to
+its name for the full explanation. Tapping anywhere on a row with a switch toggles it. The
+camera list shows the same states in short: *Standby · location kept up to date*,
+*Location sync is off on the camera* or *Switched off*.
 
 | Setting | What it does |
 |---|---|
@@ -156,9 +159,11 @@ short: *Standby · location kept up to date* or *Location sync is off on the cam
 | Enable remote control | Sony. Watches the camera's Bluetooth remote. When the camera allows remote control (camera menu *Bluetooth Rmt Ctrl*), a **Trigger remote shutter** button appears on the camera card. |
 | Delay connection setup | Waits 1–10 s (default: off) after the camera connects before the GPS setup starts. Try it if the camera starts slowly or its screen stays black. |
 | Automatic time correction, Automatic area adjustment | Sony. Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
+| Location updates while on (Sony) | How often your phone sends its location to the camera (5 s to 30 s). **Every 5 s is recommended** and the default; the camera keeps using the last location for about a minute, so longer intervals still tag every photo, only with an older position. |
+| Keep the camera awake | Sony, off by default. A Sony camera goes into power save after its *Power Save Start Time* (1 minute by default) and then ends the Bluetooth connection, so photos taken right after waking it get no location for a few seconds. With this on, GeoShutter sends the camera the same "stay awake" message as Sony's own app every 5 s while it is connected: the connection stays up and every photo is tagged, but the camera uses more battery because its screen stays on until you switch it off. Tested on an α1 II. |
 | Set date, time and time zone | Fujifilm, Android, on by default. When the camera is switched on or wakes up and connects, sets its clock, time zone (AREA SETTING) and daylight saving time to the phone's. The camera accepts the time only then, so turning this on takes effect the next time you switch the camera on. |
 | Smartphone location sync | Fujifilm, Android. Reads and changes the camera's SMARTPHONE LOCATION SYNC. setting; while it is off the camera doesn't ask for the location, and GeoShutter doesn't use your phone's location for it. The camera must be connected. |
-| Location updates while on | Fujifilm, Android. How often the camera asks for your location while it is on (10 s to 8 min); your phone's GPS follows. **Every 10 s is recommended**: accurate tags while you move, with little battery difference up to about 30 s. |
+| Location updates while on (Fujifilm) | Fujifilm, Android. How often the camera asks for your location while it is on (10 s to 8 min); your phone's GPS follows. **Every 10 s is recommended**: accurate tags while you move, with little battery difference up to about 30 s. |
 | Stay connected when off | Fujifilm, Android. Reads and changes the camera's CONNECT WHILE POWER OFF setting (see below). The camera must be connected. |
 | Location updates in standby | Fujifilm, Android. How often your phone refreshes its location while the camera is in standby (30 s to 5 min). **Every minute is recommended**: the first photo after switching on gets a location at most about a minute old, and the GPS can rest in between. |
 
@@ -204,6 +209,12 @@ or *Need help?* below the camera list). The most common fixes:
 - **The camera starts slowly or its screen stays black**: set *Cnct. while Power OFF* (or
   *Cnct. during Power OFF*) to Off on the camera, or use *Delay connection setup* for that
   camera.
+- **The first photos after switching a Sony camera on have no location**: a Sony camera
+  ends the connection when it is switched on and takes the location only once the phone has
+  reconnected, about 10 s later (measured on an α1 II; about 16 s with *Cnct. while Power
+  OFF* on, which is meant for image transfer and brings no benefit for geotagging). Photos
+  right after waking it from power save are affected the same way; *Keep the camera awake*
+  avoids that.
 - **"Pairing Failed" dialog**: put the camera into pairing mode, delete old pairings on
   the camera and in the phone's Bluetooth settings, then add it again.
 

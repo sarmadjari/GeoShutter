@@ -52,6 +52,13 @@ data class CameraSession(
     val locationIntervalS: Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
     /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
     val standbyIntervalS: Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS,
+    /**
+     * Sony: switched off but still connected ("Cnct. while Power OFF" on). It refuses the
+     * GPS setup and location writes until it is switched on, which ends the connection.
+     */
+    val cameraOff: Boolean = false,
+    /** Sony: seconds between the location updates the phone sends while the camera is on. */
+    val sendIntervalS: Int = SonyBluetoothConstants.SEND_INTERVAL_SECONDS,
 ) {
     fun autoCorrectionSetting(setting: CameraAutoCorrectionSetting): CameraSettingState =
         when (setting) {
@@ -70,19 +77,20 @@ data class CameraSession(
 
     /**
      * Ready and taking locations. A Fujifilm camera only asks once it responds (see
-     * [cameraResponding]) and while its location sync is on.
+     * [cameraResponding]) and while its location sync is on; a Sony camera not while it
+     * is switched off ([cameraOff]).
      */
     val takesLocation: Boolean
-        get() = isLocationReady && wantsLocation &&
+        get() = isLocationReady && wantsLocation && !cameraOff &&
                 (protocol != CameraProtocol.FujifilmSecure || cameraResponding)
 
     /**
-     * How often this camera needs a fresh fix from the phone: Sony every few seconds, a
-     * Fujifilm camera as often as it asks, or its standby interval while in standby.
+     * How often this camera needs a fresh fix from the phone: a Sony camera at its send
+     * interval, a Fujifilm camera as often as it asks, or its standby interval in standby.
      */
     val locationUpdateIntervalMs: Long
         get() = when {
-            protocol != CameraProtocol.FujifilmSecure -> SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
+            protocol != CameraProtocol.FujifilmSecure -> sendIntervalS * 1000L
             inStandby -> standbyIntervalS * 1000L
             else -> locationIntervalS * 1000L
         }
