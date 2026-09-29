@@ -1,3 +1,4 @@
+import UIKit
 import WidgetKit
 import sharedKit
 
@@ -6,10 +7,21 @@ import sharedKit
 /// widget and the Control Center control read it again.
 enum WidgetBridge {
     static func install() {
-        IosWidgetBridge.shared.install {
-            WidgetCenter.shared.reloadAllTimelines()
-            ControlCenter.shared.reloadAllControls()
+        IosWidgetBridge.shared.install { reload() }
+        // Reloads from the foreground aren't rationed: leaving the app refreshes the
+        // widget, in case iOS skipped a reload while the app was in the background.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            reload()
         }
+    }
+
+    private static func reload() {
+        WidgetCenter.shared.reloadAllTimelines()
+        ControlCenter.shared.reloadAllControls()
     }
 }
 

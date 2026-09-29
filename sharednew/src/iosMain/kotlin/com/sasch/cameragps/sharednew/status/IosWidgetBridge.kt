@@ -13,12 +13,17 @@ import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import platform.Foundation.NSUserDefaults
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 /**
  * The iPhone widget and Control Center control live in the GeoShutterWidgets extension,
@@ -36,10 +41,16 @@ object IosWidgetBridge {
         this.reload = reload
     }
 
-    internal fun publish(json: String) {
+    /** Writes [json] and asks for a reload; false when the status hasn't changed. */
+    internal fun publish(json: String): Boolean {
         val defaults = NSUserDefaults(suiteName = APP_GROUP)
-        if (defaults.stringForKey(STATUS_KEY) == json) return
+        if (defaults.stringForKey(STATUS_KEY) == json) return false
         defaults.setObject(json, forKey = STATUS_KEY)
+        reload()
+        return true
+    }
+
+    internal fun reload() {
         reload?.invoke()
     }
 }
@@ -47,7 +58,10 @@ object IosWidgetBridge {
 /**
  * Keeps the widget's status up to date: the saved cameras of the camera list with their
  * state, and whether GeoShutter is on. iOS rations reloads while the app runs in the
- * background, so an unchanged status isn't written again.
+ * background and may skip one that follows another closely, which left the widget showing
+ * a state that lasted a second. So only settled states are written (after [DEBOUNCE_MS]
+ * without change), an unchanged status isn't written again, and a change soon after
+ * another gets one more reload [SETTLE_MS] later.
  */
 internal class IosStatusPublisher(
     private val scope: CoroutineScope,
@@ -60,6 +74,8 @@ internal class IosStatusPublisher(
 ) {
     private val log = logging()
     private var texts: StatusTexts? = null
+    private var lastWrite: TimeMark? = null
+    private var settleReload: Job? = null
 
     @OptIn(FlowPreview::class)
     fun start() {
@@ -86,7 +102,16 @@ internal class IosStatusPublisher(
 
     private fun publish(status: GeoShutterStatus) {
         val texts = texts ?: return
-        IosWidgetBridge.publish(statusSnapshot(status, texts).toJson())
+        if (!IosWidgetBridge.publish(statusSnapshot(status, texts).toJson())) return
+        val previous = lastWrite
+        lastWrite = TimeSource.Monotonic.markNow()
+        if (previous != null && previous.elapsedNow() < SETTLE_MS.milliseconds) {
+            settleReload?.cancel()
+            settleReload = scope.launch {
+                delay(SETTLE_MS)
+                IosWidgetBridge.reload()
+            }
+        }
     }
 
     private suspend fun loadTexts() = StatusTexts(
@@ -100,11 +125,16 @@ internal class IosStatusPublisher(
     )
 
     private companion object {
-        const val DEBOUNCE_MS = 300L
+        const val DEBOUNCE_MS = 2_000L
+        const val SETTLE_MS = 10_000L
     }
 }
 
-/** The camera list's saved cameras, named as there, with their state. */
+/**
+ * The camera list's saved cameras, named as there, with their state. A camera still being
+ * set up counts as not connected, as in the app's camera list: that takes seconds, which
+ * the widget can't follow.
+ */
 internal fun iosStatus(
     enabled: Boolean,
     devices: List<BluetoothDeviceInfo>,
@@ -114,6 +144,8 @@ internal fun iosStatus(
     enabled = enabled,
     cameras = devices.filter { it.isSaved }.map { device ->
         val id = device.identifier.uppercase()
-        CameraStatus(id, device.name, device.model, cameraState(sessions[id], transmitting))
+        val state = cameraState(sessions[id], transmitting)
+            .takeUnless { it == CameraState.Connecting } ?: CameraState.Away
+        CameraStatus(id, device.name, device.model, state)
     },
 )

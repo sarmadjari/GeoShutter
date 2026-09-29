@@ -43,7 +43,8 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
 - Cameras: **Sony** and **Fujifilm** with the secure Bluetooth protocol, on Android and
   iOS (tested on the X100VI with Android; other XApp cameras untested; Fujifilm on iOS
-  since 2026-09-29, built and unit-tested but not yet tested on an iPhone). The Fujifilm code started as a
+  since 2026-09-29: a first test on the maintainer's iPhone paired, registered and set up
+  the X100VI, geotags from the iPhone not checked yet). The Fujifilm code started as a
   port of furble and was extended from an analysis of Fujifilm's app; geotagging and the
   date/time/time zone sync work on an X100VI. `docs/fujifilm-protocol.md` is the protocol
   reference. It was developed on the branch `feature/fujifilm-support`.
@@ -412,21 +413,26 @@ effect after a new deployment.
   far. Look for "stays silent after setup" in logcat to see it act. The camera ends the
   next connection about 20 s after the phone closed one; Fujifilm's app writes a
   disconnect reason first (not tried).
-- iOS: Fujifilm support (2026-09-29) is built, unit-tested (iOS simulator suite) and the
-  app builds for the simulator, but it has not run with a camera. To check first on an
-  iPhone: the picker lists the camera, iOS shows the pairing request and the camera
-  registers on that connection (status `xx xx xx 00` acknowledged, geotag requests every
-  10 s), standby and requests with the app in the background, and Service Changed handling
-  (`didModifyServices`, new for Sony too). If registration fails, the camera refuses the
-  phone for about 4.5 minutes after pairing (see the protocol doc, Pairing and
-  registration).
+- iOS, first on-device test (2026-09-29, iPhone 15 Pro Max, iOS 27, from the app's log):
+  the X100VI paired, registered and was set up on the app's first connection, with the
+  time, NOT4 name and standby states; the α1 II paired in the picker, was set up in about
+  a second, and a switched-off α1 II (*Cnct. while Power OFF*) was detected by ATT 0x9D
+  (157) as on Android. iOS reported `didModifyServices` with an empty list on the α1 II
+  (ignored). Still to check: geotags in the photos from the iPhone, the time applied by the
+  X100VI, long standby in the background, the watchdog's reconnect. An iPhone that still
+  had an old pairing with the α1 II (the camera had deleted it) failed with "Peer removed
+  pairing information" and the pending connect was re-issued about four times a second
+  until the camera was removed in the app; a back-off or a re-pair hint would be better.
 - iOS: the direct connects are Android-only. The iPhone widget and Control Center control
-  (2026-09-29) are built and checked in the simulator (`ALPHA_GPS_SCREENSHOT=widgets`
-  preview; the app's JSON decoded by the Swift model) but not on a device: to check there,
-  add both, toggle the control with the app in the background and killed, and watch the
-  widget follow cameras connecting. They show the last status the app wrote (stale after
-  the app is killed); iOS rations background reloads. Signing needs a paid Apple
-  Developer Program team (app group).
+  (2026-09-29) run on the maintainer's iPhone. The first test showed the α1 II amber on the
+  widget (the one second it was being set up before it was found switched off) while the
+  app showed it red: iOS had skipped the reload that followed. Fixed the same day: a
+  camera being set up counts as not connected (as in the app), only states that lasted
+  2 s are written, a quick second change gets one more reload 10 s later, and leaving the
+  app reloads. Still to check on the device: the control with the app in the background
+  and killed. They show the last status the app wrote (stale after the app is killed);
+  iOS rations background reloads. Signing needs a paid Apple Developer Program team (app
+  group).
 - Both platforms: the *Pairing Failed* dialog's hints use Sony's menu path (MENU →
   Network → Bluetooth), also for Fujifilm cameras.
 - Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
@@ -700,3 +706,9 @@ effect after a new deployment.
   iPhone had to have Developer Mode turned on and was registered in the developer account
   by xcodebuild. First on-device tests of the iPhone app (Fujifilm, widget, control) are
   up to the maintainer.
+- 2026-09-29 (night): first on-device test of the iPhone app (logs copied from the app's
+  container with `xcrun devicectl device copy from --domain-type appDataContainer
+  --domain-identifier com.sarmadjari.geoshutter --source Documents/log_database.db`, plus
+  `-wal`/`-shm`, then read with sqlite3). Fujifilm and Sony worked (§8). The widget showed
+  a stale amber state for the switched-off α1 II: fixed (§8, `iosStatus`, debounce 2 s,
+  settle reload, reload on leaving the app; `IosStatusTest`), rebuilt and reinstalled.

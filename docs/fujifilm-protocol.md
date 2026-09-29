@@ -5,9 +5,9 @@
 > the camera's SMARTPHONE LOCATION SYNC. and CONNECT WHILE POWER OFF settings, sets how
 > often the camera asks for the location, and keeps the location of a camera that is
 > switched off or asleep up to date in standby. Other XApp-generation cameras should work
-> but are untested. The iPhone app has the same support, built and unit-tested but not yet
-> tested with a camera (see [iPhone](#iphone)). Cameras with the legacy protocol are not
-> supported.
+> but are untested. The iPhone app has the same support; a first test on an iPhone paired,
+> registered and set up the X100VI (see [iPhone](#iphone)). Cameras with the legacy
+> protocol are not supported.
 
 This is the reference for the Bluetooth Low Energy protocol GeoShutter uses with Fujifilm
 cameras: what the camera offers, every message with its bytes, the order and timing, how
@@ -682,9 +682,17 @@ reason of Fujifilm's app, waking the camera.
 
 ### iPhone
 
-Built and unit-tested, not yet tested with a camera. Detection, setup, the time, the
-camera's settings, standby and the location answers are the same shared code as on
-Android. What is specific to the iPhone:
+First tested on 2026-09-29 with an iPhone 15 Pro Max (iOS 27) and the X100VI (firmware
+01.32), from the app's log (X): after the camera was chosen in the picker, the app's first
+connection paired it (the setup began 8.5 s after connecting, which included confirming
+the code on both), the camera was registered on that connection and accepted the whole
+setup, the time packet was written, NOT4 gave `X100VI-568C`, and the power switch read
+`01 01` (asleep) and `00 01` (switched off) in standby. NOT8 and NOT10 were missing, as on
+Android. Reconnecting after switching the camera on and off took a few attempts that iOS
+reported as "Failed to encrypt the connection", then worked. Geotags written from the
+iPhone are still to be checked in the photos. Detection, setup, the time, the camera's
+settings, standby and the location answers are the same shared code as on Android. What
+is specific to the iPhone:
 
 - **Adding a camera.** The accessory picker (AccessorySetupKit) has a Fujifilm item that
   matches the company ID `0x04D8`. Unlike the Sony item it doesn't ask the picker to pair
@@ -718,9 +726,9 @@ Android. What is specific to the iPhone:
   than its Bluetooth name (`X100VI`), with *Fujifilm X100VI* underneath. The brand comes
   from the picker item the camera was added with.
 
-To verify on an iPhone: adding and registering a camera (the pairing request and the 30 s
-window), geotags and the time sync, standby with the app in the background and the phone
-locked, reconnecting after switching the camera off and on, and the watchdog's reconnect.
+Still to verify on an iPhone: geotags in the photos, the time sync applied by the camera,
+standby over a longer time with the app in the background and the phone locked, and the
+watchdog's reconnect.
 
 ## 12. Verification status
 
@@ -743,8 +751,8 @@ locked, reconnecting after switching the camera off and on, and the watchdog's r
 | Setup on the pairing connection | F, A | yes: accepted 2.3 s after a fresh pairing |
 | Recovery of silent connections | X (the behavior) | unit-tested only |
 
-Everything in this table was verified with Android. Nothing has been tested on an iPhone
-yet ([iPhone](#iphone)).
+Everything in this table was verified with Android. On an iPhone, a first test confirmed
+pairing, registration, setup and standby ([iPhone](#iphone)).
 
 ## 13. Known gaps and open questions
 
@@ -761,9 +769,8 @@ yet ([iPhone](#iphone)).
 - CONNECT WHILE POWER OFF isn't subscribed to: a change made in the camera menu shows in
   GeoShutter once the camera details are opened again.
 - Only the X100VI with firmware 01.32 was tested.
-- The iPhone support is untested: whether iOS shows the pairing request and the camera
-  registers on the app's first connection, and how iOS delivers the camera's geotag
-  requests in the background and in standby.
+- On the iPhone, pairing, registration, setup and standby worked in a first test; geotags
+  in the photos and long standby with the app in the background are unchecked.
 - No capture of Fujifilm's app exists (see below).
 
 ## 14. How to investigate

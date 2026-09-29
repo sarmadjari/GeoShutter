@@ -40,7 +40,8 @@ Android and iPhone), so it installs next to Alpha GPS.
   *Automatic area adjustment* settings.
 - **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
 - **Fujifilm**: cameras of the FUJIFILM XApp generation, tested on the X100VI with
-  Android (the iPhone app has the same support, not yet tested with a camera), using
+  Android (the iPhone app has the same support: a first test paired and set up an
+  X100VI, geotags from the iPhone are still to be checked), using
   Fujifilm's own Bluetooth geotagging protocol: the camera asks for the location
   (every 10 s by default, adjustable), GeoShutter sets its date, time and time zone when
   it is switched on, reads and changes its *Smartphone location sync* and *Connect while
@@ -63,7 +64,7 @@ Android and iPhone), so it installs next to Alpha GPS.
 | System | Android 8.0 (API 26) or later with Bluetooth LE | iOS 18.0 or later (iPhone app) |
 | Automatic background reconnect | Android 12 or later. On Android 8–11, turn on **Always On** for the camera. | yes |
 | Permissions | precise location with "Allow all the time", Nearby devices (Bluetooth), notifications (Android 13+) | location **Always** with **Precise Location**; cameras are added through the iOS accessory picker |
-| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth, or a Fujifilm camera that syncs its location with FUJIFILM XApp (current, secured Bluetooth firmware) | the same (Fujifilm not yet tested on an iPhone) |
+| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth, or a Fujifilm camera that syncs its location with FUJIFILM XApp (current, secured Bluetooth firmware) | the same |
 
 GeoShutter is tested on a Samsung phone with Android 17; Alpha GPS was tested on Android 10,
 12, 13, 15 and 16. Some manufacturers customize Android's background handling, so behavior
@@ -129,7 +130,8 @@ Android builds:
    camera**. iOS shows its accessory picker with nearby Sony and Fujifilm cameras; select
    yours. iOS pairs with a Sony camera right away. A Fujifilm camera is paired when the
    app first connects to it: confirm the code on the iPhone and on the camera (MENU/OK)
-   within 30 seconds. Fujifilm on iPhone is new and not yet tested with a camera.
+   within 30 seconds. Fujifilm on the iPhone is new: a first test paired and set up an
+   X100VI.
 2. When the first camera connects, allow **location access**, choose **Always** when iOS
    offers it (needed for background geotagging) and keep **Precise Location** on. If you
    missed the prompt, the app offers a shortcut to the Settings app.
@@ -139,8 +141,9 @@ Android builds:
    notification while location is being sent.
 4. **Status at a glance.** Add the **GeoShutter** widget to the home screen (small or
    medium): it shows whether GeoShutter is on and each camera with a dot, green
-   (receiving your location), blue (Fujifilm in standby), amber (connecting, or location
-   sync off on the camera), red (away) or grey (GeoShutter off). The **GeoShutter**
+   (receiving your location), blue (Fujifilm in standby), amber (location sync off on
+   the camera), red (not connected, also while a camera is being set up, as in the app)
+   or grey (GeoShutter off). The **GeoShutter**
    control, added to Control Center (or the Lock Screen), turns GeoShutter on or off like
    *Enable App*. Both show the app icon's frame, with the pin while a camera receives
    your location. They show what the app last reported; iOS limits how often a widget
@@ -266,8 +269,9 @@ working or not, are welcome in the
 
 **Fujifilm:** cameras that geotag through FUJIFILM XApp, tested on the X100VI with
 Android; other models with the same app support should work but are untested. The iPhone
-app supports them the same way but hasn't been tested with a camera yet: there the camera
-is paired on the app's first connection, so confirm the code on the iPhone and on the
+app supports them the same way (a first test paired, registered and set up an X100VI;
+geotags from the iPhone are still to be checked): there the camera is paired on the app's
+first connection, so confirm the code on the iPhone and on the
 camera (MENU/OK) within 30 seconds. They need
 firmware with Fujifilm's secured Bluetooth connection (from about July 2025); older
 firmware with the legacy protocol is detected but not supported.
