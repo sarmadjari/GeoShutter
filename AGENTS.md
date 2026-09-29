@@ -263,6 +263,10 @@ effect after a new deployment.
 
 - Ask (with choices) before design decisions: branding, legal texts, repo settings,
   anything user-visible in the app.
+- 2026-09-29: the maintainer asked to remove "AI-looking" characters from the website. Its
+  text uses plain punctuation: no semicolons, no en or em dashes, no arrows, and no colons
+  that join two clauses (write two sentences). Colons that introduce a list or follow a
+  label ("Sony:") are fine. Ask before applying the same sweep to other texts.
 - 2026-09-28: rebrand repository docs to GeoShutter; keep describing the shipped app as
   Alpha GPS; privacy provider/contact remain Saschl; repo/issue/privacy links point to
   `sarmadjari/GeoShutter`; store buttons stay on the Alpha GPS listings; GitHub Issues
