@@ -31,10 +31,10 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
 - Cameras: **Sony** (Android and iOS) and, experimentally on Android, **Fujifilm** with the
-  secure Bluetooth protocol (X100VI and other XApp cameras). The Fujifilm code is ported
-  from furble and not yet verified on hardware; `docs/fujifilm-protocol.md` holds the
-  protocol, its evidence and the research plan. It was developed on the branch
-  `feature/fujifilm-support`.
+  secure Bluetooth protocol (X100VI and other XApp cameras). The Fujifilm code started as a
+  port of furble and was extended from an analysis of Fujifilm's app; geotagging and the
+  date/time/time zone sync work on an X100VI. `docs/fujifilm-protocol.md` is the protocol
+  reference. It was developed on the branch `feature/fujifilm-support`.
 
 ## 2. Repository map
 
@@ -44,7 +44,7 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 | `sharednew/` | KMP module (`com.sasch.cameragps.sharednew`, note `sasch`). `commonMain`: BLE protocol + session orchestration, location transmission, Room DB, shared Compose UI, strings. `iosMain`: the whole iOS app logic. `androidMain`: small platform bits. Tests in `commonTest`, `iosTest`, `androidHostTest`, `androidDeviceTest`. |
 | `iosApp/` | Xcode project `alphagps.xcodeproj` (target/scheme `alphagps`): thin SwiftUI shell, `Info.plist`, `InfoPlist.xcstrings`; `Config/GeoShutter.xcconfig` (base configuration) + untracked `Config/Local.xcconfig`. |
 | `docs/ARCHITECTURE.md` | Deep technical reference (protocol, flows, platform shells, persistence, CI). |
-| `docs/fujifilm-protocol.md` | Fujifilm protocol with furble evidence, verification status, research plan, furble MIT license. |
+| `docs/fujifilm-protocol.md` | Fujifilm protocol reference: UUIDs, setup sequence, every message with its bytes, observed camera behavior, the source of each fact, verification status, how to investigate, furble MIT license. |
 | `website/` | Astro landing page (upstream deploys it to alphagps.app). |
 | `fastlane/metadata/android/en-US/` | F-Droid listing for the `foss` build. |
 | `localization/ios/` | XLIFF for Weblate (iOS permission texts), see `tools/ios_localization`. |
@@ -226,6 +226,7 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 |---|---|
 | `README.md` (GeoShutter-branded) | features, min OS (Android `minSdk` 26, CDM presence needs Android 12+, iOS 18.0), permissions, Add-camera flows, details/settings lists, troubleshooting (mirrors the in-app guide strings `guide_*`), confirmed cameras, build/test commands, repo layout |
 | `docs/ARCHITECTURE.md` | protocol constants and packet layouts, handshake order, timeouts/intervals, class responsibilities, flavors, DB schema, CI |
+| `docs/fujifilm-protocol.md` | everything in `bluetooth/fujifilm/` (UUIDs, packets, setup order, subscriptions), the Fujifilm parts of `CameraSessionOrchestrator` (time sync triggers, silence watchdog), `AndroidBleTransport` connection retries; every hardware observation and its date; keep the evidence tags (F, A, T, M, X) |
 | `privacy.md` (policy of the published Alpha GPS app; provider/contact stay Saschl) | every data flow: location use, on-device data, Sentry opt-in and payload, Google Play services / Apple services. Bump "effective as of" on content changes |
 | `website/src/pages/index.astro` | features, FAQ (also emitted as JSON-LD), min OS versions, confirmed cameras (keep in sync with README), links |
 | `website/public/seo/og-image.svg` | brand text in link previews |
@@ -311,7 +312,7 @@ fork's site. GitHub Pages is not enabled on the fork.
   investigated. Each drop costs a reconnect and setup (about 4 s).
 - An X100VI that is on but lost its connection more than about half a minute ago no
   longer advertises, so turning GeoShutter on can't reach it until it is woken or switched
-  off and on (see `docs/fujifilm-protocol.md`, Link behavior).
+  off and on (see `docs/fujifilm-protocol.md`, Camera behavior).
 - iOS crash reports are not symbolicated automatically: no dSYM upload is set up (options:
   a sentry-cli build phase using an auth token, or Sentry's App Store Connect
   integration).
@@ -440,3 +441,12 @@ fork's site. GitHub Pages is not enabled on the fork.
   the camera drops a connection about 20 s after the phone closed the previous one; added
   a silence watchdog and made the status show a silent Fujifilm camera as connecting.
   208 JVM tests pass (16 new).
+- 2026-09-29 (morning): rewrote `docs/fujifilm-protocol.md` as a structured protocol
+  reference (summary and UUID table, sources with evidence tags, name mapping furble ↔
+  Fujifilm's app, advertising, pairing and registration, GATT database, setup sequence
+  with a diagram and bytes, every message, runtime behavior, observed camera behavior,
+  implementation map, verification status, gaps, how to investigate). Byte examples were
+  recomputed with Python `struct` and match the unit tests; every UUID constant is in the
+  doc and every full UUID in the doc matches a constant or a cited source. Corrected two
+  details on the way: the camera ends the connection after a phone-closed one after 18–21 s
+  (seen four times), and the silent-connection triggers.
