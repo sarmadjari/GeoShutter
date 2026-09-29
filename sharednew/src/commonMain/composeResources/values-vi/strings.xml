@@ -12,7 +12,7 @@
     <string name="permission_bluetooth">Cho phép ứng dụng thiết lập kết nối Bluetooth</string>
     <string name="permission_notifications">Cho phép ứng dụng đăng thông báo</string>
     <string name="step1_title">Bước 1: quyền vị trí và Bluetooth</string>
-    <string name="step1_desc">Cần thiết để kết nối với máy ảnh Sony và truy cập dữ liệu vị trí.</string>
+    <string name="step1_desc">Cần thiết để kết nối với máy ảnh và truy cập dữ liệu vị trí.</string>
     <string name="step1_missing">Thiếu quyền:</string>
     <string name="step1_grant">Cấp quyền vị trí và Bluetooth</string>
     <string name="step1_granted">✓ đã cấp</string>
@@ -35,7 +35,7 @@
     <string name="app_settings">Cài đặt ứng dụng</string>
     <string name="location_bluetooth_access_title">Yêu cầu quyền vị trí và Bluetooth</string>
     <string name="location_bluetooth_access_message">Ứng dụng này cần quyền vị trí và Bluetooth để:</string>
-    <string name="location_bluetooth_benefit_1">• Connect to your Sony máy ảnh via Bluetooth</string>
+    <string name="location_bluetooth_benefit_1">• Kết nối với máy ảnh của bạn qua Bluetooth</string>
     <string name="location_bluetooth_benefit_2">• Access GPS coordinates to sync with your máy ảnh</string>
     <string name="location_bluetooth_benefit_3">• Provide accurate location data for your ảnh</string>
     <string name="grant_permissions_button">Cấp quyền</string>
@@ -62,7 +62,7 @@
     <string name="welcome_title">Welcome to GeoShutter</string>
     <string name="welcome_subtitle">Real-time GPS coordinates for your máy ảnh via Bluetooth</string>
     <string name="welcome_feature_connect_title">Connect Your Máy ảnh</string>
-    <string name="welcome_feature_connect_description">Ghép nối your Sony máy ảnh with your phone via Bluetooth for seamless GPS data transfer</string>
+    <string name="welcome_feature_connect_description">Ghép nối máy ảnh với điện thoại qua Bluetooth để truyền dữ liệu GPS liền mạch</string>
     <string name="welcome_feature_gps_sync_title">Real-time GPS Sync</string>
     <string name="welcome_feature_gps_sync_description">Automatically sync your phone's GPS coordinates to your máy ảnh for accurate gắn thẻ địa lý</string>
     <string name="welcome_feature_device_management_title">Thiết bị Management</string>

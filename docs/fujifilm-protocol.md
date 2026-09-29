@@ -5,7 +5,9 @@
 > the camera's SMARTPHONE LOCATION SYNC. and CONNECT WHILE POWER OFF settings, sets how
 > often the camera asks for the location, and keeps the location of a camera that is
 > switched off or asleep up to date in standby. Other XApp-generation cameras should work
-> but are untested. iOS and cameras with the legacy protocol are not supported.
+> but are untested. The iPhone app has the same support, built and unit-tested but not yet
+> tested with a camera (see [iPhone](#iphone)). Cameras with the legacy protocol are not
+> supported.
 
 This is the reference for the Bluetooth Low Energy protocol GeoShutter uses with Fujifilm
 cameras: what the camera offers, every message with its bytes, the order and timing, how
@@ -173,8 +175,9 @@ characteristic `UTC_TIME_ZONE_UUID`.
 - A registered X100VI advertises only briefly after it is switched on (about 6 to 10 s),
   stops while it is connected, and stops about 30 s after losing a connection (X; see
   [Camera behavior](#10-camera-behavior)).
-- GeoShutter's companion-device chooser (`DeviceAssociationUtils.kt`) filters on the
-  company ID only, so secure and legacy cameras are listed.
+- GeoShutter's companion-device chooser (`DeviceAssociationUtils.kt`) and the iPhone's
+  accessory picker (`IosAccessoryPickerItems.kt`) filter on the company ID only, so secure
+  and legacy cameras are listed.
 
 ## 5. Pairing and registration
 
@@ -192,7 +195,8 @@ presumably until its pairing screen ended: the status read returned `xx 8a 01 00
 `0x13`) about 160 ms after the acknowledgement `xx 8a 01 20`. From then on the status read
 `0c 01 00 00` and the whole setup was accepted. furble and Fujifilm's app run the setup on
 the pairing connection itself (F, A). GeoShutter does the same for a camera the chooser
-saw as Fujifilm (Android 14 and later): it connects right after bonding. With a fresh
+saw as Fujifilm (Android 14 and later): it connects right after bonding. On the iPhone
+the app's first connection pairs and registers the camera ([iPhone](#iphone)). With a fresh
 pairing on 2026-09-29 (camera and phone pairings deleted first) the bond completed at
 11:29:42.440, GeoShutter connected 30 ms later, the status read `fc b1 21 00` was
 acknowledged with `fc b1 21 20`, and the whole setup was accepted 2.3 s after connecting,
@@ -647,6 +651,9 @@ built.
 | `app/…/utils/DeviceAssociationUtils.kt` | companion-device chooser filter on `0x04D8` |
 | `app/…/service/CameraDeviceCompanionService.kt` | direct connection when a camera appears; keeps a connected camera that stops advertising |
 | `app/…/ui/device/CameraDeviceManager.kt` | connects right after pairing a Fujifilm camera |
+| `sharednew/…/iosMain/…/bluetooth/IosAccessoryPickerItems.kt`, `iosApp/alphagps/Info.plist` | iPhone: a picker item for company ID `0x04D8` without the picker's own Bluetooth pairing (see [iPhone](#iphone)); the company ID is declared in `NSAccessorySetupBluetoothCompanyIdentifiers` |
+| `sharednew/…/iosMain/…/bluetooth/IosBleTransport.kt` | iPhone: discovers the Fujifilm services (`FujifilmBluetoothConstants.SERVICE_UUIDS`), characteristic lookup by service, reads the status as the pairing gate, `reconnect()`, Service Changed (`didModifyServices`) |
+| `sharednew/…/iosMain/…/bluetooth/IosLocationSource.kt` | iPhone: ten-metre accuracy and a 10 m distance filter when every camera needs a location only every minute or less often (Core Location has no interval) |
 
 Values:
 
@@ -658,7 +665,7 @@ Values:
 | Silence watchdog | 15 s, repeat the setup; 15 s more, reconnect |
 | Time on NOT1 | at most every 10 s |
 | Phone location updates | as often as the most demanding camera needs: Sony 5 s, Fujifilm its sync interval, or in standby its standby interval (30 s, 1, 2 or 5 min; default 1 min); at least 5 s apart |
-| Operation timeout | 15 s (service discovery 30 s) |
+| Operation timeout | 15 s (service discovery 30 s, on the iPhone 90 s) |
 | Authentication error retries | 3 (first immediately, then after 3 s) |
 
 Tests: `FujifilmPacketBuilderTest.kt` (geotag and time packets against Python
@@ -669,10 +676,51 @@ location tracking, standby and the slow location rate, failures, Sony and Fujifi
 side), `GeoShutterStatusTest.kt`, the notification alerts in `StatusNotificationTest.kt`
 (instrumented).
 
-Not implemented: iOS (the AccessorySetupKit picker lists Sony cameras only), the legacy
-protocol, the remote shutter, the 7-byte local time, the speed field, the fix time in the
+Not implemented: the legacy protocol, the remote shutter, the 7-byte local time, the speed field, the fix time in the
 geotag packet, a choice of sync interval, the application information and the disconnect
 reason of Fujifilm's app, waking the camera.
+
+### iPhone
+
+Built and unit-tested, not yet tested with a camera. Detection, setup, the time, the
+camera's settings, standby and the location answers are the same shared code as on
+Android. What is specific to the iPhone:
+
+- **Adding a camera.** The accessory picker (AccessorySetupKit) has a Fujifilm item that
+  matches the company ID `0x04D8`. Unlike the Sony item it doesn't ask the picker to pair
+  (`bluetoothPairingLE`): the picker would pair on a connection of its own and end it
+  before the app connects, and a camera paired without the setup refused the phone for
+  about four and a half minutes (see [Pairing and registration](#5-pairing-and-registration)).
+  Without it, the app's first connection pairs.
+- **Pairing.** After service discovery the transport reads the status, the first step of
+  the setup anyway, as its pairing gate. The camera asks for encryption, so iOS should show
+  its pairing request with the six-digit code; it has to be confirmed on the iPhone and on
+  the camera (MENU/OK) within 30 s. After pairing iOS should repeat the read, and the
+  setup then runs on the same connection, which registers the camera. A failed pairing is
+  tried once more, 3 s later (a second request), then the app reports *Pairing Failed*.
+  Discovery including pairing may take 90 s on the iPhone; when the queue gives up, the
+  transport stops the gate too (`finishDiscovery`), so no late request or result follows.
+  Sony cameras keep their gate, a subscription, with 3 retries.
+- **Services.** iOS discovers only the services it names: Sony's three and
+  `FujifilmBluetoothConstants.SERVICE_UUIDS` (pairing, configuration, notification, geotag,
+  time, startup information, shutter, and the legacy pairing service for detection).
+  Characteristics are looked up in the service the setup names, because the client name
+  UUID also exists in the legacy pairing service.
+- **Reconnect and Service Changed.** The silence watchdog's reconnect cancels the
+  connection, and the disconnect handling issues a new pending connection. A Service
+  Changed that invalidates one of these services restarts discovery and setup, as on
+  Android.
+- **Location.** Core Location has no update interval. While every camera needs a location
+  only every minute or less often (standby, or a sync interval of 60 s or more), GeoShutter
+  asks for ten-metre accuracy and a 10 m distance filter, otherwise for the best accuracy
+  and 2 m. Every geotag request is still answered with the latest position.
+- **Names.** The camera list shows the name the camera reports (NOT4, `X100VI-…`) rather
+  than its Bluetooth name (`X100VI`), with *Fujifilm X100VI* underneath. The brand comes
+  from the picker item the camera was added with.
+
+To verify on an iPhone: adding and registering a camera (the pairing request and the 30 s
+window), geotags and the time sync, standby with the app in the background and the phone
+locked, reconnecting after switching the camera off and on, and the watchdog's reconnect.
 
 ## 12. Verification status
 
@@ -695,6 +743,9 @@ reason of Fujifilm's app, waking the camera.
 | Setup on the pairing connection | F, A | yes: accepted 2.3 s after a fresh pairing |
 | Recovery of silent connections | X (the behavior) | unit-tested only |
 
+Everything in this table was verified with Android. Nothing has been tested on an iPhone
+yet ([iPhone](#iphone)).
+
 ## 13. Known gaps and open questions
 
 - Why the camera sometimes stays silent is unknown; the recovery is unit-tested only.
@@ -710,6 +761,9 @@ reason of Fujifilm's app, waking the camera.
 - CONNECT WHILE POWER OFF isn't subscribed to: a change made in the camera menu shows in
   GeoShutter once the camera details are opened again.
 - Only the X100VI with firmware 01.32 was tested.
+- The iPhone support is untested: whether iOS shows the pairing request and the camera
+  registers on the app's first connection, and how iOS delivers the camera's geotag
+  requests in the background and in standby.
 - No capture of Fujifilm's app exists (see below).
 
 ## 14. How to investigate

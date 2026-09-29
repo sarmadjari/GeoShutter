@@ -6,7 +6,7 @@
     <string name="permission_bluetooth">Permite a la aplicación establecer conexiones bluetooth</string>
     <string name="permission_notifications">Permite a la aplicación enviarte notificaciones</string>
     <string name="step1_title">Paso 1: Ubicación y Acceso a Bluetooth</string>
-    <string name="step1_desc">Necesario para conectarse a su cámara Sony y acceder a los datos de ubicación.</string>
+    <string name="step1_desc">Necesario para conectarse a su cámara y acceder a los datos de ubicación.</string>
     <string name="step1_missing">Permisos pendientes de conceder:</string>
     <string name="step1_grant">Concede el acceso a la ubicación y al Bluetooth</string>
     <string name="step1_granted">✓ Concedido</string>
@@ -24,7 +24,7 @@
     <string name="app_settings">Configuración de la aplicación</string>
     <string name="location_bluetooth_access_title">Acceso a la Ubicación y al Bluetooth Requerido</string>
     <string name="location_bluetooth_access_message">Esta aplicación necesita permisos de ubicación y de Bluetooth para:</string>
-    <string name="location_bluetooth_benefit_1">• Conecta tu cámara Sony vía Bluetooth</string>
+    <string name="location_bluetooth_benefit_1">• Conecta tu cámara vía Bluetooth</string>
     <string name="location_bluetooth_benefit_2">• Accede a las coordenadas GPS para sincronizarlas con tu cámara</string>
     <string name="location_bluetooth_benefit_3">• Proporciona datos de ubicación precisos para tus fotos</string>
     <string name="grant_permissions_button">Conceder Permisos</string>
@@ -46,7 +46,7 @@
     <string name="welcome_title">Bienvenido a GeoShutter</string>
     <string name="welcome_subtitle">Coordenadas GPS en tiempo real para tu cámara a través de Bluetooth</string>
     <string name="welcome_feature_connect_title">Conectar Tu Cámara</string>
-    <string name="welcome_feature_connect_description">Empareja tu cámara Sony con tu teléfono mediante Bluetooth para transferir datos GPS sin problemas</string>
+    <string name="welcome_feature_connect_description">Empareja tu cámara con tu teléfono mediante Bluetooth para transferir datos GPS sin problemas</string>
     <string name="welcome_feature_gps_sync_title">Sincr. GPS en tiempo real</string>
     <string name="welcome_feature_gps_sync_description">Sincroniza automáticamente las coordenadas GPS de tu teléfono con tu cámara para obtener un geoetiquetado preciso</string>
     <string name="welcome_feature_device_management_title">Gestión de Dispositivos</string>

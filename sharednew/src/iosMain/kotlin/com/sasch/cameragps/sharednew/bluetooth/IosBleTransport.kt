@@ -1,10 +1,12 @@
 package com.sasch.cameragps.sharednew.bluetooth
 
 import com.diamondedge.logging.logging
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.session.PairingRetryPolicy
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationStatus
 import com.sasch.cameragps.sharednew.bluetooth.transport.BlePeripheralTransport
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleTransportEvent
+import com.sasch.cameragps.sharednew.bluetooth.transport.BleUuids
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
@@ -38,9 +40,9 @@ import platform.posix.memcpy
  *
  * Owns the peripheral delegate, the per-peripheral characteristic cache and
  * the two-phase (services → characteristics) discovery including the pairing
- * gate: subscribing to a notifiable characteristic forces iOS to pair before
- * the handshake starts. Everything above (sequencing, retries, session state)
- * lives in the shared orchestrator.
+ * gate: the first operation that needs encryption makes iOS pair before the
+ * setup starts. Everything above (sequencing, retries, session state) lives in
+ * the shared orchestrator.
  *
  * [IosBluetoothController] owns the central manager and calls
  * [attachPeripheral]/[detachPeripheral] from its central delegate.
@@ -53,6 +55,11 @@ internal class IosBleTransport(
     private val pairingPolicy: PairingRetryPolicy = PairingRetryPolicy(),
     /** Pairing gate retries exhausted — the controller should cancel the connection. */
     private val onPairingGateExhausted: (CBPeripheral) -> Unit,
+    /**
+     * Drop the connection so the central connects again ([reconnect]). The controller
+     * cancels it; its disconnect handling issues the new pending connect.
+     */
+    private val onReconnectRequested: (CBPeripheral) -> Unit = {},
 ) : BlePeripheralTransport {
 
     private val log = logging()
@@ -61,19 +68,51 @@ internal class IosBleTransport(
     override val events: Flow<BleTransportEvent> = eventChannel.receiveAsFlow()
 
     private class DiscoveryState {
-        var outstandingServices = 0
+        /** Set by the first services callback; later ones belong to an earlier discovery. */
+        var servicesDiscovered = false
+
+        /**
+         * Services whose characteristics are still outstanding, compared by identity so
+         * late callbacks of an earlier discovery are not counted.
+         */
+        val pendingServices = mutableListOf<CBService>()
         var gating = false
         var gateRetryCount = 0
         var gateCharacteristic: CBCharacteristic? = null
+
+        /** Fujifilm: the gate reads the status instead of subscribing. */
+        var gateByRead = false
     }
 
+    private class DiscoveredCharacteristic(
+        /** Normalized ([BleUuids.normalize]) service UUID. */
+        val serviceUuid: String,
+        /** Normalized ([BleUuids.normalize]) characteristic UUID. */
+        val uuid: String,
+        val characteristic: CBCharacteristic,
+    )
+
     private class PeripheralHandle(val peripheral: CBPeripheral) {
-        /** Shared UUID string (lowercase) → discovered characteristic. */
-        val characteristicsByUuid = mutableMapOf<String, CBCharacteristic>()
+        /** In discovery order; a Fujifilm camera has one UUID in two services. */
+        val characteristics = mutableListOf<DiscoveredCharacteristic>()
         val notifiableCharacteristics = mutableListOf<CBCharacteristic>()
         var discovery: DiscoveryState? = null
         var connectedAnnounced = false
+
+        /** Normalized UUIDs of the reads the queue is waiting for. */
         val pendingReads = mutableSetOf<String>()
+
+        /** Pairing gate reads not answered yet; their values are never notifications. */
+        val gateReads = mutableListOf<CBCharacteristic>()
+
+        /** The characteristic, in [serviceUuid] when given, else in the first service that has it. */
+        fun find(characteristicUuid: String, serviceUuid: String? = null): CBCharacteristic? {
+            val uuid = BleUuids.normalize(characteristicUuid)
+            val service = serviceUuid?.let(BleUuids::normalize)
+            return characteristics.firstOrNull {
+                it.uuid == uuid && (service == null || it.serviceUuid == service)
+            }?.characteristic
+        }
     }
 
     /** Uppercased peripheral UUID string → handle. */
@@ -127,24 +166,33 @@ internal class IosBleTransport(
         handles[identifier.uppercase()]?.peripheral?.state == CBPeripheralStateConnected
 
     override fun hasCharacteristic(identifier: String, characteristicUuid: String): Boolean =
-        handles[identifier.uppercase()]
-            ?.characteristicsByUuid?.containsKey(characteristicUuid.lowercase()) == true
+        handles[identifier.uppercase()]?.find(characteristicUuid) != null
 
     override fun supportsWriteWithResponse(
         identifier: String,
         characteristicUuid: String
     ): Boolean {
         val characteristic = handles[identifier.uppercase()]
-            ?.characteristicsByUuid?.get(characteristicUuid.lowercase()) ?: return false
+            ?.find(characteristicUuid) ?: return false
         return characteristic.properties and CBCharacteristicPropertyWrite != 0uL
     }
 
     override fun finishRead(identifier: String, characteristicUuid: String) {
-        handles[identifier.uppercase()]?.pendingReads?.remove(characteristicUuid.lowercase())
+        handles[identifier.uppercase()]?.pendingReads?.remove(BleUuids.normalize(characteristicUuid))
     }
 
-    // serviceUuid and indication are not needed here: the iOS app only talks to
-    // Sony cameras, and CoreBluetooth picks notifications or indications itself.
+    override fun finishDiscovery(identifier: String) {
+        val handle = handles[identifier.uppercase()] ?: return
+        if (handle.discovery != null) {
+            // Timed out or cancelled: stop the gate, so it neither prompts again nor
+            // reports a late result nobody waits for.
+            log.w { "Discovery of ${identifier.uppercase()} ended before it completed, stopping it" }
+            handle.discovery = null
+        }
+    }
+
+    // CoreBluetooth picks notifications or indications itself, so `indication` is not
+    // needed here.
     override fun initiateWrite(
         identifier: String,
         characteristicUuid: String,
@@ -152,8 +200,7 @@ internal class IosBleTransport(
         serviceUuid: String?,
     ): Boolean {
         val handle = handles[identifier.uppercase()] ?: return false
-        val characteristic =
-            handle.characteristicsByUuid[characteristicUuid.lowercase()] ?: return false
+        val characteristic = handle.find(characteristicUuid, serviceUuid) ?: return false
         handle.peripheral.writeValue(
             data = value.toNSData(),
             forCharacteristic = characteristic,
@@ -164,9 +211,8 @@ internal class IosBleTransport(
 
     override fun initiateRead(identifier: String, characteristicUuid: String, serviceUuid: String?): Boolean {
         val handle = handles[identifier.uppercase()] ?: return false
-        val characteristic =
-            handle.characteristicsByUuid[characteristicUuid.lowercase()] ?: return false
-        handle.pendingReads.add(characteristicUuid.lowercase())
+        val characteristic = handle.find(characteristicUuid, serviceUuid) ?: return false
+        handle.pendingReads.add(BleUuids.normalize(characteristicUuid))
         handle.peripheral.readValueForCharacteristic(characteristic)
         return true
     }
@@ -180,8 +226,7 @@ internal class IosBleTransport(
     ): Boolean {
         val id = identifier.uppercase()
         val handle = handles[id] ?: return false
-        val characteristic =
-            handle.characteristicsByUuid[characteristicUuid.lowercase()] ?: return false
+        val characteristic = handle.find(characteristicUuid, serviceUuid) ?: return false
         if (characteristic.isNotifying == enable) {
             // Already in the requested state — complete the queued operation right away
             eventChannel.trySend(
@@ -197,17 +242,19 @@ internal class IosBleTransport(
 
     override fun initiateDiscoverServices(identifier: String): Boolean {
         val handle = handles[identifier.uppercase()] ?: return false
-        handle.characteristicsByUuid.clear()
+        handle.characteristics.clear()
         handle.notifiableCharacteristics.clear()
         handle.discovery = DiscoveryState()
         log.d { "Initiating service discovery for ${identifier.uppercase()}" }
-        handle.peripheral.discoverServices(
-            listOf(
-                LOCATION_SERVICE_UUID,
-                CONTROL_SERVICE_UUID,
-                REMOTE_SERVICE_UUID,
-            )
-        )
+        handle.peripheral.discoverServices(DISCOVERY_SERVICE_UUIDS)
+        return true
+    }
+
+    override fun reconnect(identifier: String): Boolean {
+        val handle = handles[identifier.uppercase()] ?: return false
+        if (handle.peripheral.state != CBPeripheralStateConnected) return false
+        log.i { "Reconnecting ${identifier.uppercase()}" }
+        onReconnectRequested(handle.peripheral)
         return true
     }
 
@@ -222,8 +269,13 @@ internal class IosBleTransport(
             val id = identifierOf(peripheral)
             val handle = handles[id] ?: return
             val discovery = handle.discovery ?: return
+            if (discovery.servicesDiscovered) {
+                log.d { "Ignoring a services callback of an earlier discovery for $id" }
+                return
+            }
+            discovery.servicesDiscovered = true
 
-            val services = peripheral.services.orEmpty()
+            val services = peripheral.services.orEmpty().filterIsInstance<CBService>()
             log.d { "Discovered ${services.size} services for $id" }
             if (didDiscoverServices != null || services.isEmpty()) {
                 log.e { "Service discovery failed for $id: ${didDiscoverServices?.localizedDescription ?: "no services"}" }
@@ -232,11 +284,11 @@ internal class IosBleTransport(
                 return
             }
 
-            discovery.outstandingServices = services.size
+            discovery.pendingServices.addAll(services)
             services.forEach { service ->
                 peripheral.discoverCharacteristics(
                     characteristicUUIDs = null,
-                    forService = service as CBService,
+                    forService = service,
                 )
             }
         }
@@ -250,19 +302,25 @@ internal class IosBleTransport(
             val id = identifierOf(peripheral)
             val handle = handles[id] ?: return
             val discovery = handle.discovery ?: return
+            val service = didDiscoverCharacteristicsForService
+            if (!discovery.pendingServices.removeAll { it == service }) return
+            if (error != null) {
+                log.w { "Characteristic discovery failed for ${service.UUID.UUIDString} on $id: ${error.localizedDescription}" }
+            }
 
-            didDiscoverCharacteristicsForService.characteristics?.forEach { characteristicAny ->
+            val serviceUuid = BleUuids.normalize(service.UUID.UUIDString)
+            service.characteristics?.forEach { characteristicAny ->
                 val characteristic = characteristicAny as CBCharacteristic
                 log.v {
                     "  Discovered characteristic ${characteristic.UUID}  props=0x${
                         characteristic.properties.toString(16)
                     }"
                 }
-
-                knownCharacteristicUuids.firstOrNull { it.second == characteristic.UUID }
-                    ?.let { (sharedUuid, _) ->
-                        handle.characteristicsByUuid[sharedUuid.lowercase()] = characteristic
-                    }
+                handle.characteristics += DiscoveredCharacteristic(
+                    serviceUuid = serviceUuid,
+                    uuid = BleUuids.normalize(characteristic.UUID.UUIDString),
+                    characteristic = characteristic,
+                )
 
                 val supportsNotify =
                     (characteristic.properties and CBCharacteristicPropertyNotify) != 0uL ||
@@ -272,9 +330,24 @@ internal class IosBleTransport(
                 }
             }
 
-            discovery.outstandingServices--
-            if (discovery.outstandingServices <= 0) {
+            if (discovery.pendingServices.isEmpty()) {
                 startPairingGate(id, handle, discovery)
+            }
+        }
+
+        /**
+         * The camera changed its GATT database (Service Changed): characteristics of the
+         * invalidated services are stale, so the orchestrator discovers and sets up again.
+         */
+        @ObjCSignatureOverride
+        override fun peripheral(peripheral: CBPeripheral, didModifyServices: List<*>) {
+            val id = identifierOf(peripheral)
+            if (handles[id] == null) return
+            val invalidated = didModifyServices.filterIsInstance<CBService>()
+                .map { BleUuids.normalize(it.UUID.UUIDString) }
+            log.i { "Services changed on $id: $invalidated" }
+            if (invalidated.any { it in DISCOVERED_SERVICES }) {
+                eventChannel.trySend(BleTransportEvent.ServicesChanged(id))
             }
         }
 
@@ -285,13 +358,28 @@ internal class IosBleTransport(
             error: NSError?,
         ) {
             val id = identifierOf(peripheral)
-            if (handles[id] == null) return
-            val sharedUuid = sharedUuidFor(didUpdateValueForCharacteristic)
+            val handle = handles[id] ?: return
+            val characteristic = didUpdateValueForCharacteristic
+            val sharedUuid = sharedUuidFor(characteristic)
             log.v { "Value update for $sharedUuid (error=${error?.code} / ${error?.localizedDescription})" }
+
+            val gateReadIndex = handle.gateReads.indexOfFirst { it == characteristic }
+            if (gateReadIndex >= 0) {
+                handle.gateReads.removeAt(gateReadIndex)
+                val discovery = handle.discovery
+                if (discovery != null && discovery.gating && discovery.gateByRead &&
+                    discovery.gateCharacteristic == characteristic
+                ) {
+                    handlePairingGateResult(id, handle, discovery, characteristic, error)
+                } else {
+                    log.d { "Ignoring the answer to an earlier pairing gate read on $id" }
+                }
+                return
+            }
 
             // CoreBluetooth shares this callback between reads and notifications.
             // Track requested reads, including the DD32/DD33 camera settings.
-            val isReadResponse = handles[id]?.pendingReads?.remove(sharedUuid.lowercase()) == true
+            val isReadResponse = handle.pendingReads.remove(BleUuids.normalize(sharedUuid))
             if (isReadResponse) {
                 if (error != null) {
                     log.i { "BLE read failed for $sharedUuid: ${error.domain} ${error.code} ${error.localizedDescription}" }
@@ -300,7 +388,7 @@ internal class IosBleTransport(
                     BleTransportEvent.CharacteristicRead(
                         id,
                         sharedUuid,
-                        didUpdateValueForCharacteristic.value?.toByteArray() ?: ByteArray(0),
+                        characteristic.value?.toByteArray() ?: ByteArray(0),
                         statusOf(error),
                     )
                 )
@@ -311,7 +399,7 @@ internal class IosBleTransport(
                 log.e { "Notification error for $sharedUuid: ${error.localizedDescription}" }
                 return
             }
-            val value = didUpdateValueForCharacteristic.value?.toByteArray() ?: return
+            val value = characteristic.value?.toByteArray() ?: return
             eventChannel.trySend(BleTransportEvent.CharacteristicChanged(id, sharedUuid, value))
         }
 
@@ -352,7 +440,9 @@ internal class IosBleTransport(
             val handle = handles[id] ?: return
             val discovery = handle.discovery
 
-            if (discovery?.gating == true) {
+            if (discovery?.gating == true && !discovery.gateByRead &&
+                discovery.gateCharacteristic == didUpdateNotificationStateForCharacteristic
+            ) {
                 handlePairingGateResult(
                     id, handle, discovery,
                     didUpdateNotificationStateForCharacteristic, error,
@@ -376,11 +466,28 @@ internal class IosBleTransport(
     // ---------------------------------------------------------------------------
 
     /**
-     * Subscribing to a notifiable characteristic forces iOS to pair with the
-     * camera before the handshake. Auth errors are retried per [pairingPolicy];
-     * on success the gate subscription is removed again.
+     * The first operation that needs encryption makes iOS pair with the camera
+     * before the setup starts. Auth errors are retried per [pairingPolicy].
+     *
+     * Sony: subscribing to a notifiable characteristic; on success the gate
+     * subscription is removed again. Fujifilm: reading the status, the first step of
+     * its setup anyway. Subscribing first would change the order the camera expects,
+     * and a camera being added must be set up on the connection that pairs it (its
+     * AccessorySetupKit item leaves pairing to the app for that reason).
      */
     private fun startPairingGate(id: String, handle: PeripheralHandle, discovery: DiscoveryState) {
+        val fujifilmStatus = handle.find(
+            FujifilmBluetoothConstants.STATUS_CHARACTERISTIC_UUID,
+            FujifilmBluetoothConstants.PAIR_SERVICE_UUID,
+        )
+        if (fujifilmStatus != null) {
+            discovery.gating = true
+            discovery.gateByRead = true
+            discovery.gateCharacteristic = fujifilmStatus
+            log.d { "Reading the Fujifilm status to trigger pairing" }
+            readForGate(handle, fujifilmStatus)
+            return
+        }
         val target = handle.notifiableCharacteristics.firstOrNull()
         if (target == null) {
             log.d { "No notifiable characteristic – proceeding without explicit pairing" }
@@ -394,6 +501,11 @@ internal class IosBleTransport(
         handle.peripheral.setNotifyValue(true, forCharacteristic = target)
     }
 
+    private fun readForGate(handle: PeripheralHandle, characteristic: CBCharacteristic) {
+        handle.gateReads += characteristic
+        handle.peripheral.readValueForCharacteristic(characteristic)
+    }
+
     private fun handlePairingGateResult(
         id: String,
         handle: PeripheralHandle,
@@ -403,8 +515,11 @@ internal class IosBleTransport(
     ) {
         if (isAuthenticationError(error)) {
             discovery.gateRetryCount++
-            if (discovery.gateRetryCount > pairingPolicy.maxRetries) {
-                log.e { "Pairing failed after ${pairingPolicy.maxRetries} retries, disconnecting" }
+            // Each Fujifilm attempt is a pairing request the person has to confirm.
+            val maxRetries =
+                if (discovery.gateByRead) FUJIFILM_GATE_RETRIES else pairingPolicy.maxRetries
+            if (discovery.gateRetryCount > maxRetries) {
+                log.e { "Pairing failed after $maxRetries retries, disconnecting" }
                 handle.discovery = null
                 onPairingGateExhausted(handle.peripheral)
                 eventChannel.trySend(BleTransportEvent.ServicesDiscovered(id, success = false))
@@ -412,22 +527,28 @@ internal class IosBleTransport(
             }
             log.d {
                 "Auth error – retrying pairing in ${pairingPolicy.retryDelayMs}ms " +
-                    "(attempt ${discovery.gateRetryCount}/${pairingPolicy.maxRetries})"
+                    "(attempt ${discovery.gateRetryCount}/$maxRetries)"
             }
             scope.launch {
                 delay(pairingPolicy.retryDelayMs)
                 if (handle.discovery === discovery) {
-                    handle.peripheral.setNotifyValue(true, forCharacteristic = characteristic)
+                    if (discovery.gateByRead) {
+                        readForGate(handle, characteristic)
+                    } else {
+                        handle.peripheral.setNotifyValue(true, forCharacteristic = characteristic)
+                    }
                 }
             }
             return
         }
 
         if (error != null) {
-            log.d { "Pairing gate subscription failed (non-auth): ${error.localizedDescription} – continuing" }
+            log.d { "Pairing gate operation failed (non-auth): ${error.localizedDescription} – continuing" }
         } else {
-            log.d { "Pairing gate subscription succeeded – device is paired" }
-            handle.peripheral.setNotifyValue(false, forCharacteristic = characteristic)
+            log.d { "Pairing gate operation succeeded – device is paired" }
+            if (!discovery.gateByRead) {
+                handle.peripheral.setNotifyValue(false, forCharacteristic = characteristic)
+            }
         }
         handle.discovery = null
         eventChannel.trySend(BleTransportEvent.ServicesDiscovered(id, success = true))
@@ -452,18 +573,34 @@ internal class IosBleTransport(
             error.code == SonyBluetoothConstants.ATT_ERROR_INSUFFICIENT_ENCRYPTION.toLong()
     }
 
-    /** Map a CoreBluetooth characteristic back to the shared UUID string. */
-    private fun sharedUuidFor(characteristic: CBCharacteristic): String =
-        knownCharacteristicUuids.firstOrNull { it.second == characteristic.UUID }?.first
-            ?: characteristic.UUID.UUIDString
+    /**
+     * Map a CoreBluetooth characteristic back to the shared UUID string: the Sony
+     * constant it always was, otherwise the normalized UUID (as Android reports it).
+     */
+    private fun sharedUuidFor(characteristic: CBCharacteristic): String {
+        val normalized = BleUuids.normalize(characteristic.UUID.UUIDString)
+        return sonyCharacteristicUuids[normalized] ?: normalized
+    }
 
     private companion object {
-        val LOCATION_SERVICE_UUID = CBUUID.UUIDWithString(SonyBluetoothConstants.SERVICE_UUID)
-        val CONTROL_SERVICE_UUID = CBUUID.UUIDWithString(SonyBluetoothConstants.CONTROL_SERVICE_UUID)
-        val REMOTE_SERVICE_UUID = CBUUID.UUIDWithString(SonyBluetoothConstants.REMOTE_SERVICE_UUID)
+        /**
+         * Retries of the Fujifilm pairing gate. Keeps the gate (two pairing requests, up
+         * to 30 s each) within the controller's discovery timeout.
+         */
+        const val FUJIFILM_GATE_RETRIES = 1
 
-        /** Shared UUID string ↔ CBUUID pairs, built once (CBUUID canonicalizes to short form). */
-        val knownCharacteristicUuids: List<Pair<String, CBUUID>> = listOf(
+        /** Services discovered on every connection: Sony's, then Fujifilm's. */
+        val DISCOVERED_SERVICES: List<String> = listOf(
+            SonyBluetoothConstants.SERVICE_UUID,
+            SonyBluetoothConstants.CONTROL_SERVICE_UUID,
+            SonyBluetoothConstants.REMOTE_SERVICE_UUID,
+        ).plus(FujifilmBluetoothConstants.SERVICE_UUIDS).map(BleUuids::normalize)
+
+        val DISCOVERY_SERVICE_UUIDS: List<CBUUID> =
+            DISCOVERED_SERVICES.map { CBUUID.UUIDWithString(it) }
+
+        /** Normalized UUID → Sony constant, built once. */
+        val sonyCharacteristicUuids: Map<String, String> = listOf(
             SonyBluetoothConstants.CHARACTERISTIC_UUID,
             SonyBluetoothConstants.CHARACTERISTIC_READ_UUID,
             SonyBluetoothConstants.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND,
@@ -475,7 +612,7 @@ internal class IosBleTransport(
             SonyBluetoothConstants.AUTO_AREA_ADJUSTMENT_UUID,
             SonyBluetoothConstants.REMOTE_CHARACTERISTIC_UUID,
             SonyBluetoothConstants.REMOTE_STATUS_UUID,
-        ).map { it to CBUUID.UUIDWithString(it) }
+        ).associateBy(BleUuids::normalize)
     }
 }
 

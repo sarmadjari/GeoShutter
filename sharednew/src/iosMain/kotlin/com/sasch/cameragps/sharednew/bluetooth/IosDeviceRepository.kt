@@ -75,7 +75,12 @@ internal class IosDeviceRepository(
     }
 
     /** Insert if absent, or persist only a name change without resetting device settings. */
-    suspend fun ensureDeviceRecord(identifier: String, accessoryName: String?, bluetoothName: String? = null) {
+    suspend fun ensureDeviceRecord(
+        identifier: String,
+        accessoryName: String?,
+        bluetoothName: String? = null,
+        preferSavedName: Boolean = false,
+    ) {
         val normalized = identifier.uppercase()
         val dao = deviceDao()
         // Read the real row: the in-memory cache may not be populated yet at launch.
@@ -85,6 +90,7 @@ internal class IosDeviceRepository(
             bluetoothName = bluetoothName,
             savedName = existing?.deviceName,
             savedNameIsCustom = existing?.deviceNameIsCustom == true,
+            preferSavedName = preferSavedName,
         )
         val entry = CameraDevice(
             mac = normalized,

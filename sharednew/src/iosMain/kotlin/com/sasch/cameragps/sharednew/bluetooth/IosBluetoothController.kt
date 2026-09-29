@@ -24,6 +24,8 @@ import com.sasch.cameragps.sharednew.database.devices.CameraDeviceDAO
 import com.sasch.cameragps.sharednew.database.getDatabaseBuilder
 import com.sasch.cameragps.sharednew.database.logging.LogRepository
 import com.sasch.cameragps.sharednew.logging.IosLogging
+import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
+import com.sasch.cameragps.sharednew.ui.devicelist.cameraModelLine
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -188,6 +190,8 @@ object IosBluetoothController : BluetoothController {
             )
             shell?.cancelConnection(peripheral)
         },
+        // The disconnect callback issues a new pending connect (shouldAutoReconnect).
+        onReconnectRequested = { peripheral -> shell?.cancelConnection(peripheral) },
     )
 
     /**
@@ -328,6 +332,10 @@ object IosBluetoothController : BluetoothController {
             }
         },
         isTransmissionAllowed = { appEnabled },
+        // A Fujifilm camera is paired during discovery (the pairing gate): the person
+        // confirms the code on the iPhone and the camera, up to 30 s per attempt, and
+        // the gate allows one more attempt (IosBleTransport).
+        discoveryTimeoutMs = 90_000L,
     )
 
     private val transmissionNotifications = IosTransmissionNotifications(
@@ -594,7 +602,12 @@ object IosBluetoothController : BluetoothController {
         val central = shell ?: return
         central.retrievePeripherals(ids).forEach { peripheral ->
             val id = peripheral.identifier.UUIDString
-            repository.ensureDeviceRecord(id, accessorySession.displayName(id), peripheral.name)
+            repository.ensureDeviceRecord(
+                id,
+                accessorySession.displayName(id),
+                peripheral.name,
+                preferSavedName = isFujifilm(id),
+            )
             if (!repository.isDeviceEnabled(id)) {
                 return@forEach
             }
@@ -602,6 +615,10 @@ object IosBluetoothController : BluetoothController {
         }
         refreshDeviceListFrom(shell)
     }
+
+    /** Added through the Fujifilm picker item. */
+    private fun isFujifilm(identifier: String): Boolean =
+        accessorySession.brandOf(identifier) == CameraBrand.Fujifilm
 
     // Shell-owned identity/connection state only; per-device session state is
     // observed by the UI straight from [sessions]. Takes the shell as a parameter
@@ -623,16 +640,22 @@ object IosBluetoothController : BluetoothController {
                 val persistedEntry = persistedByNormalized[normalizedId]
                 val peripheral = discoveredEntry?.value
                 val identifier = discoveredEntry?.key ?: (persistedEntry?.mac ?: normalizedId)
+                val brand = accessorySession.brandOf(normalizedId)
+                val name = AccessoryCameraName.resolveName(
+                    accessoryName = accessorySession.displayName(normalizedId),
+                    bluetoothName = peripheral?.name,
+                    savedName = persistedEntry?.deviceName,
+                    savedNameIsCustom = persistedEntry?.deviceNameIsCustom == true,
+                    preferSavedName = brand == CameraBrand.Fujifilm,
+                )
                 BluetoothDeviceInfo(
                     identifier = identifier,
-                    name = AccessoryCameraName.resolveName(
-                        accessoryName = accessorySession.displayName(normalizedId),
-                        bluetoothName = peripheral?.name,
-                        savedName = persistedEntry?.deviceName,
-                        savedNameIsCustom = persistedEntry?.deviceNameIsCustom == true,
-                    ),
+                    name = name,
                     isConnected = connectedByNormalized.containsKey(normalizedId),
                     isSaved = repository.isSaved(identifier),
+                    // The Bluetooth name is the model code (Sony) or the model (Fujifilm).
+                    model = cameraModelLine(brand, peripheral?.name.orEmpty())?.takeIf { it != name },
+                    brand = brand,
                 )
             }
         }
@@ -689,7 +712,9 @@ object IosBluetoothController : BluetoothController {
             withDatabase("accessory added") {
                 val hardwareName = shell?.peripheralName(identifier)
                     ?: shell?.retrieveNames(listOf(identifier))?.get(identifier.uppercase())
-                repository.ensureDeviceRecord(identifier, displayName, hardwareName)
+                repository.ensureDeviceRecord(
+                    identifier, displayName, hardwareName, preferSavedName = isFujifilm(identifier),
+                )
                 repository.sync()
             }
             repository.markAutoReconnect(identifier)
@@ -751,6 +776,7 @@ object IosBluetoothController : BluetoothController {
                         id,
                         accessorySession.displayName(id),
                         shell?.peripheralName(id),
+                        preferSavedName = isFujifilm(id),
                     )
                 }
                 repository.sync()
@@ -765,6 +791,7 @@ object IosBluetoothController : BluetoothController {
             identifier,
             accessoryName = accessorySession.displayName(identifier),
             bluetoothName = shell?.peripheralName(identifier) ?: deviceName,
+            preferSavedName = isFujifilm(identifier),
         )
         repository.sync()
         refreshDeviceListFrom(shell)

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import cameragps.sharednew.generated.resources.Res
 import cameragps.sharednew.generated.resources.arrow_back_24px
 import cameragps.sharednew.generated.resources.back
+import cameragps.sharednew.generated.resources.pairing_preparation_fujifilm_note
 import cameragps.sharednew.generated.resources.pairing_preparation_help
 import cameragps.sharednew.generated.resources.pairing_preparation_note
 import cameragps.sharednew.generated.resources.pairing_preparation_search
@@ -131,11 +132,19 @@ fun SharedPairingPreparationScreen(
                 }
             }
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                Text(
-                    stringResource(Res.string.pairing_preparation_note),
+                Column(
                     modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        stringResource(Res.string.pairing_preparation_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(Res.string.pairing_preparation_fujifilm_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
     }

@@ -72,4 +72,37 @@ class AccessoryCameraNameTest {
         assertEquals(AccessoryCameraName.FALLBACK, resolved.name)
         assertFalse(resolved.isCustom)
     }
+
+    @Test
+    fun fujifilmKeepsTheNameItReportedOverItsBluetoothName() {
+        for (accessoryName in listOf(null, "Camera")) {
+            val resolved = AccessoryCameraName.resolve(
+                accessoryName, "X100VI", "X100VI-1A2B", preferSavedName = true,
+            )
+            assertEquals("X100VI-1A2B", resolved.name)
+            assertFalse(resolved.isCustom, "A reported name is derived, not chosen")
+        }
+    }
+
+    @Test
+    fun fujifilmWithoutAReportedNameUsesItsBluetoothName() {
+        for (saved in listOf(null, "Camera", "N/A")) {
+            assertEquals(
+                "X100VI",
+                AccessoryCameraName.resolveName("Camera", "X100VI", saved, preferSavedName = true),
+            )
+        }
+    }
+
+    @Test
+    fun renamesStillWinWhenTheSavedNameIsPreferred() {
+        assertEquals(
+            "Street camera",
+            AccessoryCameraName.resolveName("Street camera", "X100VI", "X100VI-1A2B", preferSavedName = true),
+        )
+        assertEquals(
+            "Mine",
+            AccessoryCameraName.resolveName(null, "X100VI", "Mine", savedNameIsCustom = true, preferSavedName = true),
+        )
+    }
 }

@@ -10,6 +10,7 @@
     <string name="pairing_preparation_step_pairing">Öffne den Bildschirm für die Bluetooth-Kopplung an der Kamera und starte die Kopplung.</string>
     <string name="pairing_preparation_step_ready">Lass diesen Bildschirm geöffnet, halte die Kamera in der Nähe und tippe auf Kamera suchen.</string>
     <string name="pairing_preparation_note">Bluetooth allein einzuschalten reicht nicht aus. Die Kamera muss im Kopplungsmodus sein, damit dein Smartphone sie finden kann. Die Menünamen unterscheiden sich je nach Kameramodell.</string>
+    <string name="pairing_preparation_fujifilm_note">Fujifilm: Bestätige nach der Auswahl der Kamera den Kopplungscode auf deinem iPhone und an der Kamera (MENU/OK) innerhalb von 30 Sekunden.</string>
     <string name="pairing_preparation_search">Kamera suchen</string>
     <string name="pairing_preparation_searching">Kamera wird gesucht…</string>
     <string name="pairing_preparation_help">Brauchst du Hilfe?</string>
@@ -52,7 +53,7 @@
     <string name="app_settings">App Einstellungen</string>
     <string name="location_bluetooth_access_title">Standort &amp; Bluetooth Zugriff benötigt</string>
     <string name="location_bluetooth_access_message">Diese App braucht Zugriff auf Standortdaten und Bluetooth um:</string>
-    <string name="location_bluetooth_benefit_1">• Verbinde dich mit Bluetooth zur Sony Kamera</string>
+    <string name="location_bluetooth_benefit_1">• Verbinde dich mit Bluetooth zu deiner Kamera</string>
     <string name="location_bluetooth_benefit_2">• Zugriff auf Standortdaten zur Übermittlung an die Kamera</string>
     <string name="location_bluetooth_benefit_3">• Stell akkurate Standortdaten zur Verfügung</string>
     <string name="background_location_access_title">Standortzugriff im Hintergrund</string>
@@ -78,7 +79,7 @@
     <string name="welcome_title">Willkommen bei GeoShutter</string>
     <string name="welcome_subtitle">GPS-Koordinaten in Echtzeit für Ihre Kamera über Bluetooth</string>
     <string name="welcome_feature_connect_title">Verbinde die Kamera</string>
-    <string name="welcome_feature_connect_description">Kopple deine Sony Kamera via Bluetooth für nahtlose Standortübertragung</string>
+    <string name="welcome_feature_connect_description">Kopple deine Kamera via Bluetooth für nahtlose Standortübertragung</string>
     <string name="welcome_feature_gps_sync_title">Echtzeit Standortübertragung</string>
     <string name="welcome_feature_gps_sync_description">Automatische Übertragung der Standortdaten zu deiner Sony Kamera</string>
     <string name="welcome_feature_device_management_title">Geräteverwaltung</string>

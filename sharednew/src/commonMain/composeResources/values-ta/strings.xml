@@ -12,7 +12,7 @@
     <string name="permission_bluetooth">ஊடலை இணைப்புகளை நிறுவ பயன்பாட்டை அனுமதிக்கவும்</string>
     <string name="permission_notifications">அறிவிப்புகளை இடுகையிட பயன்பாட்டை அனுமதிக்கவும்</string>
     <string name="step1_title">படி 1: இருப்பிடம் &amp; ஊடலை அணுகல்</string>
-    <string name="step1_desc">உங்கள் Sony கேமராவுடன் இணைப்பதற்கும் இருப்பிடத் தரவை அணுகுவதற்கும் தேவை.</string>
+    <string name="step1_desc">உங்கள் கேமராவுடன் இணைப்பதற்கும் இருப்பிடத் தரவை அணுகுவதற்கும் தேவை.</string>
     <string name="step1_missing">விடுபட்ட அனுமதிகள்:</string>
     <string name="step1_grant">இடம் &amp; ஊடலை அணுகலை வழங்கவும்</string>
     <string name="step1_granted">✓ வழங்கப்பட்டது</string>
@@ -35,7 +35,7 @@
     <string name="app_settings">பயன்பாட்டு அமைப்புகள்</string>
     <string name="location_bluetooth_access_title">இருப்பிடம் &amp; ஊடலை அணுகல் தேவை</string>
     <string name="location_bluetooth_access_message">இந்த பயன்பாட்டிற்கு இருப்பிடம் மற்றும் ஊடலை அனுமதிகள் தேவை:</string>
-    <string name="location_bluetooth_benefit_1">• ஊடலை வழியாக உங்கள் சோனி கேமராவுடன் இணைக்கவும்</string>
+    <string name="location_bluetooth_benefit_1">• ஊடலை வழியாக உங்கள் கேமராவுடன் இணைக்கவும்</string>
     <string name="location_bluetooth_benefit_2">• உங்கள் கேமராவுடன் ஒத்திசைக்க உலக இடம் காட்டும் அமைப்பு (இடம் காட்டி) ஒருங்கிணைப்புகளை அணுகவும்</string>
     <string name="location_bluetooth_benefit_3">• உங்கள் படங்களுக்கான துல்லியமான இருப்பிடத் தரவை வழங்கவும்</string>
     <string name="grant_permissions_button">அனுமதிகளை வழங்கவும்</string>
@@ -62,7 +62,7 @@
     <string name="welcome_title">GeoShutter-க்கு வரவேற்கிறோம்</string>
     <string name="welcome_subtitle">ஊடலை வழியாக உங்கள் கேமராவிற்கான நிகழ்நேர சிபிஎச் ஒருங்கிணைப்புகள்</string>
     <string name="welcome_feature_connect_title">உங்கள் கேமராவை இணைக்கவும்</string>
-    <string name="welcome_feature_connect_description">தடையற்ற சி.பி.எச் தரவு பரிமாற்றத்திற்கு ஊடலை வழியாக உங்கள் சோனி கேமராவை உங்கள் ஃபோனுடன் இணைக்கவும்</string>
+    <string name="welcome_feature_connect_description">தடையற்ற சி.பி.எச் தரவு பரிமாற்றத்திற்கு ஊடலை வழியாக உங்கள் கேமராவை உங்கள் ஃபோனுடன் இணைக்கவும்</string>
     <string name="welcome_feature_gps_sync_title">நிகழ்நேர சிபிஎச் ஒத்திசைவு</string>
     <string name="welcome_feature_gps_sync_description">துல்லியமான சியோடேக்கிங்கிற்காக உங்கள் ஃபோனின் சிபிஎச் ஒருங்கிணைப்புகளை உங்கள் கேமராவுடன் தானாக ஒத்திசைக்கவும்</string>
     <string name="welcome_feature_device_management_title">சாதன மேலாண்மை</string>

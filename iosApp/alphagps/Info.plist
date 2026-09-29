@@ -7,6 +7,7 @@
         <key>NSAccessorySetupBluetoothCompanyIdentifiers</key>
         <array>
             <string>012D</string>
+            <string>04D8</string>
         </array>
         <key>NSAccessorySetupBluetoothServices</key>
         <array>

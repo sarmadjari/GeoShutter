@@ -60,8 +60,9 @@ Rules the code relies on:
   `CBPeripheral.identifier` UUID on iOS. Both are stored in `CameraDevice.mac`.
 - Every GATT operation (handshake, location packets, remote probes, shutter,
   camera settings) goes through `BleOperationQueue`: one outstanding operation per
-  device, 15 s operation timeout, 30 s service-discovery timeout (the iOS pairing
-  gate runs inside discovery). Queued location writes are dropped at execution time
+  device, 15 s operation timeout, 30 s service-discovery timeout (90 s on iOS, where
+  the pairing gate runs inside discovery and pairing a Fujifilm camera waits for a
+  person; `finishDiscovery` tells the transport when the queue stops waiting). Queued location writes are dropped at execution time
   unless the session is `Transmitting`.
 - Continuous state lives in `CameraSessionRegistry`; one-shot side effects are
   `OrchestratorEvent`s (`DeviceConnected`, `DeviceDisconnected`,
@@ -96,8 +97,9 @@ AccessorySetupKit descriptor and `NSAccessorySetupBluetoothCompanyIdentifiers`).
 | `8000FF00-FF00-FFFF-FFFF-FFFFFFFFFFFF` (remote) | `FF01` | write: button commands |
 | | `FF02` | notify: remote status |
 
-On iOS a characteristic is only usable if it is listed in
-`IosBleTransport.knownCharacteristicUuids`.
+iOS discovers only the services it names (`IosBleTransport`: these three and
+`FujifilmBluetoothConstants.SERVICE_UUIDS`), so a characteristic in another service is not
+usable there.
 
 ### Location packet (`DD11`)
 
@@ -254,8 +256,10 @@ pass (`sarnau/sony-camera-protocol`, `Congee/alfa`, `ekutner/camera-gps-link`,
   only (`LocationManager`: FUSED provider on Android 12+, else GPS, else network);
   iOS = `IosLocationSource` (`CLLocationManager`, best accuracy, 2 m distance
   filter, background updates allowed, no automatic pausing). Both Android sources
-  take their interval from `setUpdateInterval` (above); iOS ignores it (no Fujifilm
-  support there).
+  take their interval from `setUpdateInterval` (above). Core Location has no interval, so
+  iOS asks for ten-metre accuracy and a 10 m distance filter when the interval is a minute
+  or longer (every camera in Fujifilm standby or at a long sync interval), otherwise for
+  the best accuracy and 2 m.
 
 ### Remote control and shutter
 
@@ -328,10 +332,10 @@ The `foss` guarantee also depends on `:sharednew`: Sentry KMP is declared only i
 | `AccessoryDiscoveryNaming.swift`, `AccessoryDiscoveryItems.swift` | iOS 26.1+ picker naming customizer. **Currently disabled** (the install call is commented out in `AppDelegate`). |
 | `IosBluetoothController` | Singleton facade used by the Compose UI and owner of the policy: auto-reconnect decisions (`AutoReconnectPolicy`), app/device enable sweeps, pairing-failure state, device-list assembly, forwarding of the AccessorySetupKit APIs. |
 | `IosCentralShell` | The `CBCentralManager` (restore identifier `com.sarmadjari.geoshutter.central`), state restoration (restored peripherals are parked until the central is powered on, see `RestorePolicy`), `retrievePeripheralsWithIdentifiers` plus pending connects with `CBConnectPeripheralOptionEnableAutoReconnect`. It does **not** scan for new cameras. |
-| `IosBleTransport` | `CBPeripheral` delegate, two-phase discovery and the **pairing gate**: subscribing to the first notifiable characteristic forces iOS pairing before the handshake (auth errors are retried, then `PairingFailed`). |
-| `IosAccessoryShell` / `IosAccessoryCoordinator` | AccessorySetupKit: `ASAccessorySession`, discovery picker (company ID `0x012D`, BLE pairing), migration picker for cameras saved before AccessorySetupKit (app versions before 1.6.2), system rename sheet, removal events. A picker is first requested with the central alive; only if iOS refuses it with `ASErrorCodePickerRestricted` (a live `CBCentralManager` from the legacy global Bluetooth grant) is the central released and the picker retried (up to 10 attempts, 10 s after a release, 5 s otherwise). Central creation stays blocked (`centralCreationBlocked`) until the picker operation ends. |
+| `IosBleTransport` | `CBPeripheral` delegate, two-phase discovery of the Sony and Fujifilm services (only those; see §3) and the **pairing gate**: the first operation that needs encryption makes iOS pair before the setup. Sony: subscribing to the first notifiable characteristic (removed again afterwards). Fujifilm: reading the status, the first step of its setup, so the camera is paired and registered on the same connection. Auth errors are retried, then `PairingFailed`. Characteristic lookup by service, `reconnect()` (cancels the connection; the disconnect handling reconnects), Service Changed (`didModifyServices` → `ServicesChanged`). |
+| `IosAccessoryShell` / `IosAccessoryCoordinator` | AccessorySetupKit: `ASAccessorySession`, discovery picker with one item per brand (`IosAccessoryPickerItems`: Sony `0x012D` with the picker's BLE pairing, Fujifilm `0x04D8` without it, see [fujifilm-protocol.md](fujifilm-protocol.md#iphone)), the brand of each camera from its item's company ID (`brandOf`: Fujifilm settings, model line, name), migration picker for cameras saved before AccessorySetupKit (app versions before 1.6.2), system rename sheet, removal events. A picker is first requested with the central alive; only if iOS refuses it with `ASErrorCodePickerRestricted` (a live `CBCentralManager` from the legacy global Bluetooth grant) is the central released and the picker retried (up to 10 attempts, 10 s after a release, 5 s otherwise). Central creation stays blocked (`centralCreationBlocked`) until the picker operation ends. |
 | `IosDeviceRepository` | Room DAO access, the legacy `NSUserDefaults` auto-reconnect store (read only for migration), enabled-state caches. |
-| `IosLocationSource` | `CLLocationManager`; requests When-In-Use, then escalates to Always. |
+| `IosLocationSource` | `CLLocationManager`; requests When-In-Use, then escalates to Always; `setUpdateInterval` picks the accuracy and distance filter (§4). |
 | `IosTransmissionNotifications` | Local notification "Location transmission active" while sending (setting *Transmission notification*, default on). |
 | `IosCrashReporting` | Sentry KMP (Cocoa SDK via the SPM package `sentry-cocoa` 8.58.2), started only after consent. The DSN comes from the `SentryDSN` Info.plist key (build setting `SENTRY_DSN`); without it error reporting is hidden. MAC addresses are redacted from messages, breadcrumbs and logs. |
 | `CameraGpsIosApp` | Screen state machine (Welcome, Devices, PairingPreparation, DeviceDetails, Settings, Help, Troubleshooting, Logs). Dialogs are queued through `IosAppDialogState` and the shared `DialogQueue`: error-reporting consent, migration explainer/error, pairing failed, "Always" location, precise location, what's new, donation (opens Saschl's Buy Me a Coffee page). |
@@ -341,8 +345,9 @@ Build settings: the target's base configuration is `iosApp/Config/GeoShutter.xcc
 which optionally includes the untracked `iosApp/Config/Local.xcconfig` for
 machine-specific values such as `SENTRY_DSN`.
 
-`Info.plist` declares `NSAccessorySetupKitSupports` = Bluetooth, the Sony company
-ID and the three service UUIDs for AccessorySetupKit, and the background modes
+`Info.plist` declares `NSAccessorySetupKitSupports` = Bluetooth, the Sony and Fujifilm
+company IDs (`NSAccessorySetupBluetoothCompanyIdentifiers`; a picker item with an
+undeclared one crashes the app) and Sony's three service UUIDs for AccessorySetupKit, and the background modes
 `location` and `bluetooth-central`. Permission texts are `INFOPLIST_KEY_*` build
 settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 `tools/ios_localization`.
@@ -351,13 +356,14 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 
 | Topic | Android | iOS |
 |---|---|---|
-| Adding a camera | CDM chooser + Bluetooth bonding | AccessorySetupKit picker (iOS pairs) |
-| Fujifilm cameras | supported (secure protocol; tested on the X100VI) | not supported (the picker lists Sony only) |
+| Adding a camera | CDM chooser + Bluetooth bonding | AccessorySetupKit picker (iOS pairs a Sony camera in the picker, a Fujifilm camera on the app's first connection) |
+| Fujifilm cameras | supported (secure protocol; tested on the X100VI) | supported the same way, not yet tested with a camera; paired on the app's first connection instead of in the picker |
 | Background reconnect | CDM presence (Android 12+) starts the foreground service; optional Always On keeps it running with `autoConnect` | pending connections with auto-reconnect + Core Bluetooth state restoration relaunches |
 | Always On / start on boot | yes | not applicable |
 | Status notification | status notification (foreground while the service runs), Quick Settings tile, home-screen widget | optional local notification |
 | Event sounds | yes (connected, disconnected, location acquired, location invalid; custom sounds) | no |
 | Location provider choice | `gplay` only | no |
+| Location update rate | the provider's interval follows the cameras (§4) | accuracy and distance filter follow the cameras (§4) |
 | Battery-optimization helpers | yes | no |
 | Rename | in-app name only (CDM keeps its own) | system rename sheet for AccessorySetupKit cameras, in-app otherwise |
 | Removing a camera | removes the CDM association and the app's data | also removes the AccessorySetupKit authorization (and the bond) |

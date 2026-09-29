@@ -38,8 +38,9 @@ Android and iPhone), so it installs next to Alpha GPS.
   for slow-starting cameras, and the camera's own *Automatic time correction* and
   *Automatic area adjustment* settings.
 - **Built-in help**: step-by-step troubleshooting guide, FAQ and log viewer.
-- **Fujifilm (Android)**: cameras of the FUJIFILM XApp generation, tested on the X100VI,
-  using Fujifilm's own Bluetooth geotagging protocol: the camera asks for the location
+- **Fujifilm**: cameras of the FUJIFILM XApp generation, tested on the X100VI with
+  Android (the iPhone app has the same support, not yet tested with a camera), using
+  Fujifilm's own Bluetooth geotagging protocol: the camera asks for the location
   (every 10 s by default, adjustable), GeoShutter sets its date, time and time zone when
   it is switched on, reads and changes its *Smartphone location sync* and *Connect while
   power off* settings, and keeps the location of a camera that is switched off or asleep
@@ -61,7 +62,7 @@ Android and iPhone), so it installs next to Alpha GPS.
 | System | Android 8.0 (API 26) or later with Bluetooth LE | iOS 18.0 or later (iPhone app) |
 | Automatic background reconnect | Android 12 or later. On Android 8–11, turn on **Always On** for the camera. | yes |
 | Permissions | precise location with "Allow all the time", Nearby devices (Bluetooth), notifications (Android 13+) | location **Always** with **Precise Location**; cameras are added through the iOS accessory picker |
-| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth, or a Fujifilm camera that syncs its location with FUJIFILM XApp (current, secured Bluetooth firmware) | Sony only |
+| Camera | a Sony camera that can receive location information from Imaging Edge Mobile or Creators' App over Bluetooth, or a Fujifilm camera that syncs its location with FUJIFILM XApp (current, secured Bluetooth firmware) | the same (Fujifilm not yet tested on an iPhone) |
 
 GeoShutter is tested on a Samsung phone with Android 17; Alpha GPS was tested on Android 10,
 12, 13, 15 and 16. Some manufacturers customize Android's background handling, so behavior
@@ -123,8 +124,10 @@ Android builds:
 ### iPhone
 
 1. Tap **Add camera**, put the camera into pairing mode as shown, then tap **Search for
-   camera**. iOS shows its accessory picker with nearby Sony cameras; select yours and
-   iOS pairs with it.
+   camera**. iOS shows its accessory picker with nearby Sony and Fujifilm cameras; select
+   yours. iOS pairs with a Sony camera right away. A Fujifilm camera is paired when the
+   app first connects to it: confirm the code on the iPhone and on the camera (MENU/OK)
+   within 30 seconds. Fujifilm on iPhone is new and not yet tested with a camera.
 2. When the first camera connects, allow **location access**, choose **Always** when iOS
    offers it (needed for background geotagging) and keep **Precise Location** on. If you
    missed the prompt, the app offers a shortcut to the Settings app.
@@ -251,11 +254,15 @@ working with Alpha GPS: **A1, A7 V, A6400, A6700 and ZV-E10**. Reports about oth
 working or not, are welcome in the
 [issue tracker](https://github.com/sarmadjari/GeoShutter/issues).
 
-**Fujifilm (Android only):** cameras that geotag through FUJIFILM XApp, tested on the
-X100VI; other models with the same app support should work but are untested. They need
+**Fujifilm:** cameras that geotag through FUJIFILM XApp, tested on the X100VI with
+Android; other models with the same app support should work but are untested. The iPhone
+app supports them the same way but hasn't been tested with a camera yet: there the camera
+is paired on the app's first connection, so confirm the code on the iPhone and on the
+camera (MENU/OK) within 30 seconds. They need
 firmware with Fujifilm's secured Bluetooth connection (from about July 2025); older
 firmware with the legacy protocol is detected but not supported.
-Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera asks for
+Add the camera like a Sony camera (pairing mode, then *Add camera*; on the iPhone, the
+accessory picker lists Sony and Fujifilm cameras). The camera asks for
 the location itself. Remote control is a Sony feature; a Fujifilm camera's details offer
 *Set date, time and time zone*, *Smartphone location sync* and the location intervals
 instead. With the camera's *CONNECT WHILE POWER OFF* setting on (camera menu: NETWORK/USB

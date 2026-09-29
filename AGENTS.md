@@ -41,8 +41,9 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
   changing an app ID changes the app identity (lost settings/pairings).
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
-- Cameras: **Sony** (Android and iOS) and, on Android, **Fujifilm** with the secure
-  Bluetooth protocol (tested on the X100VI; other XApp cameras untested). The Fujifilm code started as a
+- Cameras: **Sony** and **Fujifilm** with the secure Bluetooth protocol, on Android and
+  iOS (tested on the X100VI with Android; other XApp cameras untested; Fujifilm on iOS
+  since 2026-09-29, built and unit-tested but not yet tested on an iPhone). The Fujifilm code started as a
   port of furble and was extended from an analysis of Fujifilm's app; geotagging and the
   date/time/time zone sync work on an X100VI. `docs/fujifilm-protocol.md` is the protocol
   reference. It was developed on the branch `feature/fujifilm-support`.
@@ -84,7 +85,13 @@ python3 -m unittest discover -s tools/ios_localization -v
   `./gradlew :sharednew:embedAndSignAppleFrameworkForXcode` (framework `sharedKit`,
   `iosArm64` + `iosSimulatorArm64` only). Bundle ID `com.sarmadjari.geoshutter`; set your
   Apple team as `DEVELOPMENT_TEAM` in `iosApp/Config/Local.xcconfig` (git-ignored). Bluetooth
-  does not work in the iOS Simulator.
+  does not work in the iOS Simulator. A simulator build without signing, from the command
+  line (verified 2026-09-29; `GRADLE_OPTS` because of the gotcha below):
+  `JAVA_HOME=<JDK 17+> GRADLE_OPTS=-Dorg.gradle.java.home=<JDK 17+> xcodebuild -project
+  iosApp/alphagps.xcodeproj -scheme alphagps -configuration Debug -destination
+  'generic/platform=iOS Simulator' -derivedDataPath /tmp/gs_ios_build ARCHS=arm64
+  CODE_SIGNING_ALLOWED=NO build`; then `xcrun simctl install`/`launch` (a screen can be
+  shown directly with `SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT=<scenario>`, e.g. `pairing`).
 - Gradle daemon JVM: JetBrains JDK 21, auto-provisioned via
   `gradle/gradle-daemon-jvm.properties`; any JDK 17+ can launch the wrapper.
 - **Machine gotcha:** if Gradle fails with "Value '…' given for org.gradle.java.home Gradle
@@ -239,7 +246,7 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 |---|---|
 | `README.md` (GeoShutter-branded) | features, min OS (Android `minSdk` 26, CDM presence needs Android 12+, iOS 18.0), permissions, Add-camera flows, details/settings lists, troubleshooting (mirrors the in-app guide strings `guide_*`), confirmed cameras, build/test commands, repo layout |
 | `docs/ARCHITECTURE.md` | protocol constants and packet layouts, handshake order, timeouts/intervals, class responsibilities, flavors, DB schema, CI |
-| `docs/fujifilm-protocol.md` | everything in `bluetooth/fujifilm/` (UUIDs, packets, setup order, subscriptions), the Fujifilm parts of `CameraSessionOrchestrator` (time sync triggers, silence watchdog), `AndroidBleTransport` connection retries; every hardware observation and its date; keep the evidence tags (F, A, T, M, X) |
+| `docs/fujifilm-protocol.md` | everything in `bluetooth/fujifilm/` (UUIDs, packets, setup order, subscriptions), the Fujifilm parts of `CameraSessionOrchestrator` (time sync triggers, silence watchdog), `AndroidBleTransport` connection retries, the iPhone parts (`IosAccessoryPickerItems`, `IosBleTransport` gate and services, `IosLocationSource`; section *iPhone*); every hardware observation and its date; keep the evidence tags (F, A, T, M, X) |
 | `privacy.md` (GeoShutter's policy: provider Sarmad Jari, contact through GitHub Issues) | every data flow: location use, on-device data, Sentry opt-in and payload, Google Play services / Apple services. Bump "effective as of" on content changes |
 | `website/src/pages/index.astro` | features, the Fujifilm section, FAQ (also emitted as JSON-LD), min OS versions, tested and reported cameras (keep in sync with README), credits, links |
 | `website/public/seo/og-image.svg` | brand text in link previews |
@@ -331,6 +338,16 @@ effect after a new deployment.
   (#1F2A3C → #0B111C, pin #FF5A4E). Android: adaptive icon with a one-color themed layer;
   the splash screen shows the launcher icon. iOS: default, dark and tinted variants. The
   notification and tile keep their Material GPS status icons.
+- 2026-09-29: **Fujifilm on iOS** (the maintainer asked for parity; no iPhone to test
+  with, so it is built and unit-tested only). Design: the AccessorySetupKit picker gets a
+  second item for Fujifilm (`0x04D8`) **without** the picker's own Bluetooth pairing, so the
+  app's first connection pairs and registers the camera (the camera must be set up on the
+  connection that pairs it); the iOS transport's pairing gate reads the Fujifilm status
+  instead of subscribing. The brand comes from the picker item (`IosAccessoryShell.brandOf`)
+  and drives the Fujifilm details, the model line (now also shown on iOS, Sony included)
+  and the list name (the NOT4 name is kept over the Bluetooth name). The iOS onboarding
+  texts no longer say "Sony camera" (all languages); the iOS pairing screen explains the
+  Fujifilm code confirmation (English and German, others fall back to English).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -365,8 +382,8 @@ effect after a new deployment.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging (EXIF position
   within 1 m, GPS time in UTC), the date/time/time zone sync, the location sync setting and
   standby and registration on the pairing connection work on an X100VI (firmware 01.32,
-  2026-09-28/29); open: iOS and legacy firmware unsupported, remote Sony-only, the geotag
-  speed field and fix time, the 7-byte local-time fallback. Each pairing gives the camera
+  2026-09-28/29); open: iOS untested (below), legacy firmware unsupported, remote
+  Sony-only, the geotag speed field and fix time, the 7-byte local-time fallback. Each pairing gives the camera
   a new Bluetooth address. The camera applies the time only
   when it asked (NOT1, first connection after switching on or waking); writes at other
   times are accepted and ignored, so switching the option on takes effect at the next
@@ -375,8 +392,18 @@ effect after a new deployment.
   far. Look for "stays silent after setup" in logcat to see it act. The camera ends the
   next connection about 20 s after the phone closed one; Fujifilm's app writes a
   disconnect reason first (not tried).
-- iOS: the camera-name/model line, the direct connects and the status tile/widget are
-  Android-only so far.
+- iOS: Fujifilm support (2026-09-29) is built, unit-tested (iOS simulator suite) and the
+  app builds for the simulator, but it has not run with a camera. To check first on an
+  iPhone: the picker lists the camera, iOS shows the pairing request and the camera
+  registers on that connection (status `xx xx xx 00` acknowledged, geotag requests every
+  10 s), standby and requests with the app in the background, and Service Changed handling
+  (`didModifyServices`, new for Sony too). If registration fails, the camera refuses the
+  phone for about 4.5 minutes after pairing (see the protocol doc, Pairing and
+  registration).
+- iOS: the direct connects and the status tile/widget are Android-only; iOS has only the
+  optional transmission notification.
+- Both platforms: the *Pairing Failed* dialog's hints use Sony's menu path (MENU →
+  Network → Bluetooth), also for Fujifilm cameras.
 - Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
   minute. Cause found 2026-09-29: its power save (Power Save Start Time, 1 minute by
   default) ends the connection about 30 s after the screen goes dark, and it comes back
@@ -604,3 +631,19 @@ effect after a new deployment.
   https://geoshutter.sarmad.no is live. Right after a new DNS record, a resolver that looked
   the name up before (here the home router) keeps the "doesn't exist" answer for up to an
   hour (the zone's negative TTL is 3600 s).
+- 2026-09-29 (evening): website punctuation made plain (no semicolons or dashes, §7).
+  Then **Fujifilm on iOS** (§7): picker item for `0x04D8` without the picker's pairing,
+  `Info.plist` company ID, `IosBleTransport` reworked (Sony and Fujifilm services only,
+  lookup by service, `BleUuids.normalize`, Fujifilm status read as the pairing gate, stale
+  gate answers dropped, `reconnect()`, `didModifyServices` → `ServicesChanged`), brand
+  from the picker item (`brandOf`, `BluetoothDeviceInfo.brand`), model line on iOS, the
+  Fujifilm name kept (`AccessoryCameraName.resolve(preferSavedName)`), Fujifilm settings
+  in the iOS details data source, `IosLocationSource.setUpdateInterval` (ten-metre accuracy
+  from 60 s), the pairing screen's Fujifilm note, brand-neutral onboarding texts in all
+  languages. A code review found that a gate still waiting for a person outlived the
+  queue's 30 s discovery timeout (a late pairing then went unused): fixed with
+  `BlePeripheralTransport.finishDiscovery` (the queue tells the transport it stopped
+  waiting), a 90 s discovery budget on iOS (`CameraSessionOrchestrator(discoveryTimeoutMs)`)
+  and one retry for the Fujifilm gate. Verified: JVM 235 and iOS simulator 274 tests, a
+  simulator build of the app (screenshot of the pairing screen). Not tested with a camera
+  on an iPhone (§8).

@@ -6,7 +6,7 @@
     <string name="permission_bluetooth">Izinkan aplikasi membuat koneksi bluetooth</string>
     <string name="permission_notifications">Izinkan aplikasi menampilkan notifikasi</string>
     <string name="step1_title">Langkah 1: Akses Lokasi &amp; Bluetooth</string>
-    <string name="step1_desc">Diperlukan untuk menghubungkan ke kamera Sony Anda dan mengakses data lokasi.</string>
+    <string name="step1_desc">Diperlukan untuk menghubungkan ke kamera Anda dan mengakses data lokasi.</string>
     <string name="step1_missing">Izin yang hilang:</string>
     <string name="step1_grant">Berikan Akses Lokasi &amp; Bluetooth</string>
     <string name="step1_granted">✓ Diberikan</string>
@@ -26,7 +26,7 @@
     <string name="app_settings">Pengaturan aplikasi</string>
     <string name="location_bluetooth_access_title">Akses Lokasi &amp; Bluetooth Diperlukan</string>
     <string name="location_bluetooth_access_message">Aplikasi ini membutuhkan izin lokasi dan Bluetooth untuk:</string>
-    <string name="location_bluetooth_benefit_1">• Menghubungkan ke kamera Sony Anda melalui Bluetooth</string>
+    <string name="location_bluetooth_benefit_1">• Menghubungkan ke kamera Anda melalui Bluetooth</string>
     <string name="location_bluetooth_benefit_2">• Mengakses koordinat GPS untuk sinkronisasi dengan kamera Anda</string>
     <string name="location_bluetooth_benefit_3">• Menyediakan data lokasi akurat untuk foto Anda</string>
     <string name="grant_permissions_button">Berikan Izin</string>
@@ -48,7 +48,7 @@
     <string name="welcome_title">Selamat datang di GeoShutter</string>
     <string name="welcome_subtitle">Koordinat GPS real-time untuk kamera Anda melalui Bluetooth</string>
     <string name="welcome_feature_connect_title">Hubungkan Kamera Anda</string>
-    <string name="welcome_feature_connect_description">Pasangkan kamera Sony Anda dengan ponsel melalui Bluetooth untuk transfer data GPS tanpa hambatan</string>
+    <string name="welcome_feature_connect_description">Pasangkan kamera Anda dengan ponsel melalui Bluetooth untuk transfer data GPS tanpa hambatan</string>
     <string name="welcome_feature_gps_sync_title">Sinkronisasi GPS Real-time</string>
     <string name="welcome_feature_gps_sync_description">Secara otomatis sinkronkan koordinat GPS ponsel Anda ke kamera untuk geotagging yang akurat</string>
     <string name="welcome_feature_device_management_title">Manajemen Perangkat</string>

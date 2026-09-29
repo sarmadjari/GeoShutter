@@ -23,13 +23,22 @@ data class ResolvedCameraName(val name: String, val isCustom: Boolean)
 object AccessoryCameraName {
     const val FALLBACK = "Camera"
 
+    /** Stored before any real name was known: the picker fallback and the database default. */
+    private val PLACEHOLDERS = setOf(FALLBACK, "N/A")
+
     private fun String?.clean(): String? = this?.trim()?.takeUnless { it.isEmpty() }
 
+    /**
+     * [preferSavedName] keeps a stored name nobody chose over the live hardware name.
+     * For Fujifilm cameras: their Bluetooth name only holds the model ("X100VI"), while
+     * the name the camera reports during setup ("X100VI-1A2B") is the stored one.
+     */
     fun resolve(
         accessoryName: String?,
         bluetoothName: String?,
         savedName: String?,
         savedNameIsCustom: Boolean = false,
+        preferSavedName: Boolean = false,
     ): ResolvedCameraName {
         // A system rename is the newest expression of intent, and on iOS it is
         // the only way an accessory name can differ from the default we set.
@@ -38,6 +47,9 @@ object AccessoryCameraName {
 
         val saved = savedName.clean()
         if (savedNameIsCustom && saved != null) return ResolvedCameraName(saved, isCustom = true)
+        if (preferSavedName && saved != null && saved !in PLACEHOLDERS) {
+            return ResolvedCameraName(saved, isCustom = false)
+        }
 
         // Prefer the live hardware name so a camera saved before its name was
         // readable heals itself on the next connection.
@@ -54,5 +66,6 @@ object AccessoryCameraName {
         bluetoothName: String?,
         savedName: String?,
         savedNameIsCustom: Boolean = false,
-    ): String = resolve(accessoryName, bluetoothName, savedName, savedNameIsCustom).name
+        preferSavedName: Boolean = false,
+    ): String = resolve(accessoryName, bluetoothName, savedName, savedNameIsCustom, preferSavedName).name
 }

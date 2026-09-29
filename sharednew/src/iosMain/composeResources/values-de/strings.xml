@@ -22,7 +22,7 @@
     <string name="ios_accessory_migration_action">Kameras bestätigen</string>
 
     <string name="ios_no_cameras_title">Noch keine Kameras</string>
-    <string name="ios_no_cameras_message">Versetze deine Kamera in den Kopplungsmodus und füge sie dann hinzu. iOS zeigt dir eine eigene Liste der Sony-Kameras in der Nähe.</string>
+    <string name="ios_no_cameras_message">Versetze deine Kamera in den Kopplungsmodus und füge sie dann hinzu. iOS zeigt dir eine eigene Liste der Sony- und Fujifilm-Kameras in der Nähe.</string>
 
     <string name="ios_accessory_migration_dialog_title">Kameras bestätigen</string>
     <string name="ios_accessory_migration_dialog_message">Bestätige deine gespeicherten Kameras einmal, damit iOS die Verbindung zu ihnen zuverlässiger wiederherstellen kann, auch wenn du GeoShutter im App-Umschalter wegwischst.\n\nTippe auf "Weiter" — den Rest erledigt iOS von allein, meist in wenigen Sekunden und ohne Rückfrage. Alles wird übernommen, inklusive sämtlicher Einstellungen. Es geht nichts verloren und du musst die Kameras nicht neu koppeln.\n\nDeine Kameras funktionieren in der Zwischenzeit weiter, du kannst das also auch später erledigen.</string>

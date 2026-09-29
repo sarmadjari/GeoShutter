@@ -4,6 +4,7 @@ import com.diamondedge.logging.logging
 import com.sasch.cameragps.sharednew.bluetooth.accessory.AccessoryAuthorization
 import com.sasch.cameragps.sharednew.bluetooth.accessory.AccessoryPickerCompletion
 import com.sasch.cameragps.sharednew.bluetooth.accessory.PendingMigration
+import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -81,7 +82,7 @@ internal class IosAccessoryShell(
     /**
      * The accessory chosen in the picker. AccessorySetupKit delivers
      * `accessoryAdded` BEFORE `pickerDidDismiss`, and acting on it while the
-     * picker is still on screen would run the Sony handshake underneath it.
+     * picker is still on screen would run the camera setup underneath it.
      */
     private var pendingAccessory: ASAccessory? = null
 
@@ -140,6 +141,11 @@ internal class IosAccessoryShell(
     fun displayName(identifier: String): String? =
         authorized[identifier.uppercase()]?.displayName
 
+    /** The brand of the picker item the camera was added with; null when unknown. */
+    fun brandOf(identifier: String): CameraBrand? =
+        authorized[identifier.uppercase()]?.descriptor?.bluetoothCompanyIdentifier
+            ?.let { IosAccessoryPickerItems.brandOf(it.toInt()) }
+
     // ---------------------------------------------------------------------------
     // Pickers
     // ---------------------------------------------------------------------------
@@ -150,13 +156,13 @@ internal class IosAccessoryShell(
      */
     override suspend fun showDiscoveryPicker(): PickerOutcome {
         if (!awaitActivated()) return PickerOutcome.Failed("AccessorySetupKit did not activate", ASErrorCodeActivationFailed)
-        val item = IosAccessoryPickerItems.discovery()
+        val items = IosAccessoryPickerItems.discovery()
         log.i { "Presenting the discovery picker" }
         val customizer = IosAccessoryDiscoverySupport.create(session)
         discoveryCustomizer = customizer
         try {
             customizer?.start()
-            return presentPicker(listOf(item), waitForDismissalOnSuccess = true)
+            return presentPicker(items, waitForDismissalOnSuccess = true)
         } finally {
             customizer?.stop()
             if (discoveryCustomizer === customizer) discoveryCustomizer = null

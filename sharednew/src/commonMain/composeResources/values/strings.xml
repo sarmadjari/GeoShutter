@@ -10,6 +10,7 @@
     <string name="pairing_preparation_step_pairing">Open the camera’s Bluetooth pairing screen and start pairing.</string>
     <string name="pairing_preparation_step_ready">Leave that screen open, keep the camera nearby, then tap Search for camera.</string>
     <string name="pairing_preparation_note">Enabling Bluetooth alone is not enough. The camera must be in pairing mode so your phone can find it. Menu names vary by camera model.</string>
+    <string name="pairing_preparation_fujifilm_note">Fujifilm: after you choose the camera, confirm the pairing code on your iPhone and on the camera (MENU/OK) within 30 seconds.</string>
     <string name="pairing_preparation_search">Search for camera</string>
     <string name="pairing_preparation_searching">Searching for camera…</string>
     <string name="pairing_preparation_help">Need help?</string>
@@ -28,7 +29,7 @@
     <string name="permission_bluetooth">Allow the app to establish bluetooth connections</string>
     <string name="permission_notifications">Allow the app to post notifications</string>
     <string name="step1_title">Step 1: Location &amp; Bluetooth Access</string>
-    <string name="step1_desc">Required for connecting to your Sony camera and accessing location data.</string>
+    <string name="step1_desc">Required for connecting to your camera and accessing location data.</string>
     <string name="step1_missing">Missing permissions:</string>
     <string name="step1_grant">Grant Location &amp; Bluetooth Access</string>
     <string name="step1_granted">✓ Granted</string>
@@ -53,7 +54,7 @@
     <!-- Permission rationale strings -->
     <string name="location_bluetooth_access_title">Location &amp; Bluetooth Access Required</string>
     <string name="location_bluetooth_access_message">This app needs location and Bluetooth permissions to:</string>
-    <string name="location_bluetooth_benefit_1">• Connect to your Sony camera via Bluetooth</string>
+    <string name="location_bluetooth_benefit_1">• Connect to your camera via Bluetooth</string>
     <string name="location_bluetooth_benefit_2">• Access GPS coordinates to sync with your camera</string>
     <string name="location_bluetooth_benefit_3">• Provide accurate location data for your photos</string>
     <string name="grant_permissions_button">Grant Permissions</string>
@@ -83,7 +84,7 @@
     <string name="welcome_title">Welcome to GeoShutter</string>
     <string name="welcome_subtitle">Real-time GPS coordinates for your camera via Bluetooth</string>
     <string name="welcome_feature_connect_title">Connect Your Camera</string>
-    <string name="welcome_feature_connect_description">Pair your Sony camera with your phone via Bluetooth for seamless GPS data transfer</string>
+    <string name="welcome_feature_connect_description">Pair your camera with your phone via Bluetooth for seamless GPS data transfer</string>
     <string name="welcome_feature_gps_sync_title">Real-time GPS Sync</string>
     <string name="welcome_feature_gps_sync_description">Automatically sync your phone's GPS coordinates to your camera for accurate geotagging</string>
     <string name="welcome_feature_device_management_title">Device Management</string>

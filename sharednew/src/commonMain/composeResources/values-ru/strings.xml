@@ -12,7 +12,7 @@
     <string name="permission_bluetooth">Разрешить приложению устанавливать подключения Bluetooth</string>
     <string name="permission_notifications">Разрешить приложению отправлять уведомления</string>
     <string name="step1_title">Шаг 1: Доступ к геопозиции и Bluetooth</string>
-    <string name="step1_desc">Требуется для подключения к вашей камере Sony и доступа к данным геолокации.</string>
+    <string name="step1_desc">Требуется для подключения к вашей камере и доступа к данным геолокации.</string>
     <string name="step1_missing">Отсутствующие разрешения:</string>
     <string name="step1_grant">Предоставить доступ к геопозиции и Bluetooth</string>
     <string name="step1_granted">✓ Разрешено</string>
@@ -35,7 +35,7 @@
     <string name="app_settings">Настройки приложения</string>
     <string name="location_bluetooth_access_title">Требуется доступ к геопозиции и Bluetooth</string>
     <string name="location_bluetooth_access_message">Этому приложению требуются разрешения на доступ к геопозиции и Bluetooth, чтобы:</string>
-    <string name="location_bluetooth_benefit_1">• Подключаться к вашей камере Sony через Bluetooth</string>
+    <string name="location_bluetooth_benefit_1">• Подключаться к вашей камере через Bluetooth</string>
     <string name="location_bluetooth_benefit_2">• Получать GPS координаты для синхронизации с вашей камерой</string>
     <string name="location_bluetooth_benefit_3">• Предоставлять точные геоданные для ваших фотографий</string>
     <string name="grant_permissions_button">Предоставить разрешения</string>
@@ -62,7 +62,7 @@
     <string name="welcome_title">Добро пожаловать в GeoShutter</string>
     <string name="welcome_subtitle">Передача GPS координат на камеру в реальном времени по Bluetooth</string>
     <string name="welcome_feature_connect_title">Подключение камеры</string>
-    <string name="welcome_feature_connect_description">Свяжите камеру Sony с телефоном по Bluetooth для беспрепятственной передачи геоданных</string>
+    <string name="welcome_feature_connect_description">Свяжите камеру с телефоном по Bluetooth для беспрепятственной передачи геоданных</string>
     <string name="welcome_feature_gps_sync_title">Синхронизация GPS в реальном времени</string>
     <string name="welcome_feature_gps_sync_description">Автоматически синхронизируйте GPS координаты телефона с камерой для точного геотеггинга</string>
     <string name="welcome_feature_device_management_title">Управление устройствами</string>

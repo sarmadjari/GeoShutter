@@ -20,6 +20,7 @@ import com.sasch.cameragps.sharednew.bluetooth.session.CameraSessionOrchestrator
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
 import com.sasch.cameragps.sharednew.bluetooth.session.OrchestratorEvent
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperation
+import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationQueue
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationStatus
 import com.sasch.cameragps.sharednew.bluetooth.transport.BlePeripheralTransport
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleTransportEvent
@@ -304,6 +305,38 @@ class FujifilmSessionTest {
         assertEquals(1, f.transport.writes("S", Sony.CHARACTERISTIC_ENABLE_UNLOCK_GPS_COMMAND).size)
         assertTrue(f.session("S").isLocationReady)
         assertEquals(CameraProtocol.Sony, f.session("S").protocol)
+    }
+
+    /**
+     * On the iPhone a Fujifilm camera is paired during discovery, which waits for a person.
+     * When the queue gives up, the transport must stop too, or a late pairing would
+     * report a discovery nobody waits for.
+     */
+    @Test
+    fun aDiscoveryThatTimesOutIsStoppedInTheTransport() = runTest {
+        val f = Fixture(backgroundScope, discoveryTimeoutMs = 90_000)
+        f.transport.discoveriesToDrop = 1
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertTrue(f.transport.finishedDiscoveries.isEmpty(), "Still waiting for the person")
+        assertEquals(BleSessionPhase.DiscoveringServices, f.session("F").phase)
+
+        advanceTimeBy(31_000)
+        runCurrent()
+        assertEquals(listOf("F"), f.transport.finishedDiscoveries)
+        assertEquals(BleSessionPhase.Error, f.session("F").phase)
+    }
+
+    @Test
+    fun aCompletedDiscoveryIsFinishedOnce() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertTrue(f.session("F").isLocationReady)
+        assertEquals(listOf("F"), f.transport.finishedDiscoveries)
     }
 
     @Test
@@ -742,12 +775,16 @@ class FujifilmSessionTest {
         ) : Step
     }
 
-    private class Fixture(scope: CoroutineScope) {
+    private class Fixture(
+        scope: CoroutineScope,
+        discoveryTimeoutMs: Long = BleOperationQueue.DEFAULT_DISCOVERY_TIMEOUT_MS,
+    ) {
         val source = FakeSource()
         val transport = FakeTransport()
         val dao = FakeDao()
-        val orchestrator =
-            CameraSessionOrchestrator(transport, source, dao, scope).also { it.start() }
+        val orchestrator = CameraSessionOrchestrator(
+            transport, source, dao, scope, discoveryTimeoutMs = discoveryTimeoutMs,
+        ).also { it.start() }
         val events = mutableListOf<OrchestratorEvent>()
 
         init {
@@ -818,10 +855,15 @@ class FujifilmSessionTest {
         var powerKeyState = byteArrayOf(0x01, 0x02)
         var connectWhileOff = byteArrayOf(0x01, 0x00)
         val reconnects = mutableListOf<String>()
+        val finishedDiscoveries = mutableListOf<String>()
 
         override fun reconnect(identifier: String): Boolean {
             reconnects += identifier
             return true
+        }
+
+        override fun finishDiscovery(identifier: String) {
+            finishedDiscoveries += identifier
         }
 
         /** Keeps read responses back (in flight) until [releaseReads]. */

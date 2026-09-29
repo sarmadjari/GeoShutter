@@ -68,13 +68,15 @@ class CameraSessionOrchestrator(
     private val shouldRemainConnected: suspend (String) -> Boolean = { true },
     /** iOS: app-level transmission toggle for the location manager. */
     isTransmissionAllowed: () -> Boolean = { true },
+    /** How long service discovery may take, including the iOS pairing gate. */
+    discoveryTimeoutMs: Long = BleOperationQueue.DEFAULT_DISCOVERY_TIMEOUT_MS,
 ) : CameraAutoCorrectionControls {
     private val log = logging()
 
     val registry = CameraSessionRegistry()
 
     private val queue: BleOperationQueue =
-        BleOperationQueue(transport, scope, shouldExecute = { id, operation ->
+        BleOperationQueue(transport, scope, discoveryTimeoutMs = discoveryTimeoutMs, shouldExecute = { id, operation ->
             // Parked location packets require a completed handshake. Camera-reported
             // location status is advisory and does not gate transmission.
             when {

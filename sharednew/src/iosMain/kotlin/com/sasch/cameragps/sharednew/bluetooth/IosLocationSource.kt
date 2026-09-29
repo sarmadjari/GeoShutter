@@ -17,6 +17,8 @@ import platform.CoreLocation.kCLAuthorizationStatusDenied
 import platform.CoreLocation.kCLAuthorizationStatusNotDetermined
 import platform.CoreLocation.kCLAuthorizationStatusRestricted
 import platform.CoreLocation.kCLDistanceFilterNone
+import platform.CoreLocation.kCLLocationAccuracyBest
+import platform.CoreLocation.kCLLocationAccuracyNearestTenMeters
 import platform.Foundation.NSError
 import platform.Foundation.timeIntervalSince1970
 import platform.Foundation.timeIntervalSinceNow
@@ -42,6 +44,9 @@ internal class IosLocationSource : LocationSource {
 
     private var started = false
 
+    /** The distance filter for the current interval; see [setUpdateInterval]. */
+    private var distanceFilterMeters = DISTANCE_FILTER_METERS
+
     private val locationDelegate = object : NSObject(), CLLocationManagerDelegateProtocol {
         override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
             val location = didUpdateLocations.lastOrNull() as? CLLocation ?: return
@@ -54,8 +59,8 @@ internal class IosLocationSource : LocationSource {
                 manager.distanceFilter = kCLDistanceFilterNone
                 return
             }
-            if (manager.distanceFilter != DISTANCE_FILTER_METERS) {
-                manager.distanceFilter = DISTANCE_FILTER_METERS
+            if (manager.distanceFilter != distanceFilterMeters) {
+                manager.distanceFilter = distanceFilterMeters
             }
             log.d { "Received new location" }
             val lat = location.coordinate.useContents { latitude }
@@ -91,7 +96,7 @@ internal class IosLocationSource : LocationSource {
 
     private val locationManager = CLLocationManager().apply {
         delegate = locationDelegate
-        desiredAccuracy = platform.CoreLocation.kCLLocationAccuracyBest
+        desiredAccuracy = kCLLocationAccuracyBest
         distanceFilter = DISTANCE_FILTER_METERS
         pausesLocationUpdatesAutomatically = false
         allowsBackgroundLocationUpdates = true
@@ -119,6 +124,23 @@ internal class IosLocationSource : LocationSource {
         }
     }
 
+    /**
+     * Core Location has no update interval. When every camera needs a location only
+     * every minute or less often (a Fujifilm camera in standby, or a long sync
+     * interval), ask for ten-metre accuracy and fixes every ten metres, which lets iOS
+     * save power; otherwise the best accuracy and fixes every two metres.
+     */
+    override fun setUpdateInterval(intervalMs: Long) {
+        val relaxed = intervalMs >= RELAXED_INTERVAL_MS
+        val accuracy = if (relaxed) kCLLocationAccuracyNearestTenMeters else kCLLocationAccuracyBest
+        val filter = if (relaxed) RELAXED_DISTANCE_FILTER_METERS else DISTANCE_FILTER_METERS
+        if (locationManager.desiredAccuracy == accuracy && distanceFilterMeters == filter) return
+        log.i { "Location every ${intervalMs / 1000} s: ${if (relaxed) "ten-metre" else "best"} accuracy" }
+        distanceFilterMeters = filter
+        locationManager.desiredAccuracy = accuracy
+        locationManager.distanceFilter = filter
+    }
+
     override fun hasPreciseAuthorization(): Boolean =
         locationManager.accuracyAuthorization() ==
                 CLAccuracyAuthorization.CLAccuracyAuthorizationFullAccuracy
@@ -142,5 +164,9 @@ internal class IosLocationSource : LocationSource {
         /** Matches AndroidLocationSource's staleness gate for delivered fixes. */
         const val MAX_FIX_AGE_SECONDS = 30.0
         const val DISTANCE_FILTER_METERS = 2.0
+
+        /** From this interval on, fixes may be less precise and less frequent. */
+        const val RELAXED_INTERVAL_MS = 60_000L
+        const val RELAXED_DISTANCE_FILTER_METERS = 10.0
     }
 }

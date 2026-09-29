@@ -91,9 +91,12 @@ object FujifilmBluetoothConstants {
     const val SHUTTER_SERVICE_UUID = "6514eb81-4e8f-458d-aa2a-e691336cdfac"
     const val SHUTTER_CHARACTERISTIC_UUID = "7fcf49c6-4ff0-4777-a03d-1a79166af7a8"
 
+    /** Camera startup information service with [POWER_SWITCH_UUID] and [CONNECT_WHILE_OFF_UUID] (X100VI). */
+    const val STARTUP_INFO_SERVICE_UUID = "804daa8e-ffeb-4ab3-8e75-6edd7303208d"
+
     /**
      * The camera's power switch, uint16 (Fujifilm's app: CAMERA_POWER_KEY_STATE, in the
-     * camera startup information service, `804daa8e-ffeb-4ab3-8e75-6edd7303208d` on the
+     * camera startup information service, [STARTUP_INFO_SERVICE_UUID] on the
      * X100VI): `0x0201` on, `0x0200` off, `0x0101` on and `0x0100` off in standby. Not in
      * furble; see docs/fujifilm-protocol.md.
      */
@@ -127,8 +130,29 @@ object FujifilmBluetoothConstants {
 
     // ---- Legacy "basic" protocol (older firmware), detection only ----
 
+    /**
+     * Legacy pairing service (Fujifilm.h:38). It also holds a characteristic with the
+     * [IDENTIFIER_CHARACTERISTIC_UUID], so that one is always looked up in [PAIR_SERVICE_UUID].
+     */
+    const val LEGACY_PAIR_SERVICE_UUID = "91f1de68-dff6-466e-8b65-ff13b0f16fb8"
+
     /** Legacy pairing characteristic, written with a token from the advertisement (Fujifilm.h:40, FujifilmBasic.cpp). */
     const val LEGACY_PAIR_CHARACTERISTIC_UUID = "aba356eb-9633-4e60-b73f-f52516dbd671"
+
+    /**
+     * Every service GeoShutter uses on a Fujifilm camera. iOS discovers only the services
+     * it names; Android discovers them all.
+     */
+    val SERVICE_UUIDS = listOf(
+        PAIR_SERVICE_UUID,
+        CONFIG_SERVICE_UUID,
+        NOTIFICATION_SERVICE_UUID,
+        GEOTAG_SERVICE_UUID,
+        TIME_SERVICE_UUID,
+        STARTUP_INFO_SERVICE_UUID,
+        SHUTTER_SERVICE_UUID,
+        LEGACY_PAIR_SERVICE_UUID,
+    )
 
     /** Name the app identifies itself with; shown by the camera for the paired phone. */
     const val CLIENT_NAME = "GeoShutter"

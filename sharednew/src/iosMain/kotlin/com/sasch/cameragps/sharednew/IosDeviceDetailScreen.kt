@@ -13,6 +13,7 @@ import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController.ensureDeviceRecord
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailContent
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailDataSource
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailViewModel
@@ -91,6 +92,29 @@ internal fun IosDeviceDetailScreen(
         override suspend fun setKeepAwakeEnabled(deviceId: String, enabled: Boolean) {
             deviceDao.setKeepAwakeEnabled(deviceId.uppercase(), enabled)
         }
+
+        override suspend fun isTimeSyncEnabled(deviceId: String): Boolean =
+            deviceDao.findTimeSyncEnabled(deviceId.uppercase()) ?: true
+
+        override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
+            deviceDao.setTimeSyncEnabled(deviceId.uppercase(), enabled)
+        }
+
+        override suspend fun getLocationIntervalS(deviceId: String): Int =
+            deviceDao.findLocationIntervalS(deviceId.uppercase())
+                ?: FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS
+
+        override suspend fun setLocationIntervalS(deviceId: String, seconds: Int) {
+            deviceDao.setLocationIntervalS(deviceId.uppercase(), seconds)
+        }
+
+        override suspend fun getStandbyIntervalS(deviceId: String): Int =
+            deviceDao.findStandbyIntervalS(deviceId.uppercase())
+                ?: FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS
+
+        override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
+            deviceDao.setStandbyIntervalS(deviceId.uppercase(), seconds)
+        }
     }
     val canRenameInSystem = remember(device.identifier) {
         IosBluetoothController.canRenameInSystem(device.identifier)
@@ -120,6 +144,7 @@ internal fun IosDeviceDetailScreen(
             deviceId = device.identifier,
             deviceName = device.name,
             modifier = Modifier.padding(paddingValues),
+            brand = device.brand,
             modelLine = device.model,
             onRemove = onRemove,
             onDeviceEnabledChanged = { enabled ->

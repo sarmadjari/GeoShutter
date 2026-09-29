@@ -2,6 +2,7 @@ package com.sasch.cameragps.sharednew.bluetooth
 
 import com.diamondedge.logging.logging
 import com.sasch.cameragps.sharednew.IosLaunchContext
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.restore.PeripheralRestoreState
 import com.sasch.cameragps.sharednew.bluetooth.restore.RestorePolicy
 import com.sasch.cameragps.sharednew.bluetooth.restore.ScanAction
@@ -132,9 +133,6 @@ internal class IosCentralShell(
         /** CoreBluetooth connects never time out on their own; bound the callers. */
         const val CONNECT_TIMEOUT_MS = 30_000L
         const val DISCONNECT_TIMEOUT_MS = 10_000L
-
-        /** Bluetooth SIG company identifier for Sony, as advertised by the cameras. */
-        const val SONY_COMPANY_ID = 0x012D
     }
 
     // ---------------------------------------------------------------------------
@@ -223,11 +221,13 @@ internal class IosCentralShell(
                 if (mfgData == null || mfgData.length < 2u) return
                 val bytes = mfgData.toByteArray()
                 val companyId = (bytes[0].toInt() and 0xFF) or ((bytes[1].toInt() and 0xFF) shl 8)
-                if (companyId != SONY_COMPANY_ID) return
+                if (companyId != SonyBluetoothConstants.COMPANY_ID &&
+                    companyId != FujifilmBluetoothConstants.COMPANY_ID
+                ) return
 
                 val id = didDiscoverPeripheral.identifier.UUIDString
                 if (id !in discovered) {
-                    log.d { "Discovered Sony peripheral $id (${didDiscoverPeripheral.name})" }
+                    log.d { "Discovered camera peripheral $id (${didDiscoverPeripheral.name})" }
                 }
                 discovered[id] = didDiscoverPeripheral
                 onKnownPeripheralsChanged(this@IosCentralShell)

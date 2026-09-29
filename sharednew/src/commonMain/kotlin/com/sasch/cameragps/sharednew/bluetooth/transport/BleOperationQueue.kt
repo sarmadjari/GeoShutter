@@ -106,6 +106,9 @@ class BleOperationQueue(
                     if (operation is BleOperation.Read) {
                         transport.finishRead(identifier, operation.characteristicUuid)
                     }
+                    if (operation is BleOperation.DiscoverServices) {
+                        transport.finishDiscovery(identifier)
+                    }
                     pending = null
                 }
             }
@@ -255,7 +258,10 @@ class BleOperationQueue(
     companion object {
         const val DEFAULT_OPERATION_TIMEOUT_MS = 15_000L
 
-        /** Discovery includes the iOS pairing gate, which may retry 3× with 3s delays. */
+        /**
+         * Discovery includes the iOS pairing gate, which may retry 3× with 3s delays. iOS
+         * uses a longer budget: pairing a Fujifilm camera waits for a person to confirm.
+         */
         const val DEFAULT_DISCOVERY_TIMEOUT_MS = 30_000L
     }
 }

@@ -5,7 +5,7 @@
     <string name="permission_bluetooth">アプリにBluetooth接続を許可する</string>
     <string name="permission_notifications">アプリによる通知を許可する</string>
     <string name="step1_title">ステップ1: 位置情報とBluetoothアクセス</string>
-    <string name="step1_desc">ソニーカメラに接続して位置情報にアクセスするために必要。</string>
+    <string name="step1_desc">カメラに接続して位置情報にアクセスするために必要。</string>
     <string name="step1_missing">権限不足:</string>
     <string name="step1_grant">位置情報とBluetoothアクセスを許可</string>
     <string name="step1_granted">✓ 許可済み</string>
@@ -21,7 +21,7 @@
     <string name="cancel_button">キャンセル</string>
     <string name="app_settings">アプリ設定</string>
     <string name="location_bluetooth_access_message">このアプリは位置情報とBluetoothの権限が必要:</string>
-    <string name="location_bluetooth_benefit_1">• Bluetoothでソニーのカメラに接続する</string>
+    <string name="location_bluetooth_benefit_1">• Bluetoothでカメラに接続する</string>
     <string name="location_bluetooth_benefit_2">• カメラと同期するために位置情報(GPS)にアクセスする</string>
     <string name="location_bluetooth_benefit_3">• 写真の正確な位置情報を提供</string>
     <string name="grant_permissions_button">権限を付与</string>

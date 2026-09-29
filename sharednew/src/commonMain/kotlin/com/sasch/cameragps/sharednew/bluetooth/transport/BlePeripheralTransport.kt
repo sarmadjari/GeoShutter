@@ -121,6 +121,13 @@ interface BlePeripheralTransport {
     /** Clear read/notification bookkeeping after success, timeout or cancellation. No BLE I/O. */
     fun finishRead(identifier: String, characteristicUuid: String) = Unit
 
+    /**
+     * The queue stopped waiting for a service discovery: it completed, failed, timed out
+     * or was cancelled. Stop anything still running for it (iOS: the pairing gate), so a
+     * late result can't arrive when nobody waits for it. No BLE I/O.
+     */
+    fun finishDiscovery(identifier: String) = Unit
+
     // ---- Operation initiation. Completion arrives via [events]. ----
     // Returning false means the operation could not even be started
     // (no connection, unknown characteristic, platform refusal).

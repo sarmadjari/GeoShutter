@@ -12,6 +12,6 @@
     <string name="permission_bluetooth">Acceptă ca aplicația să stabilească conexiuni bluetooth</string>
     <string name="permission_notifications">Lasă aplicația să posteze notificări</string>
     <string name="step1_title">Pasul 1: Acces la Locație și la Bluetooth</string>
-    <string name="step1_desc">Necesar pentru a te conecta la camera Sony și să accesezi datele despre locație.</string>
+    <string name="step1_desc">Necesar pentru a te conecta la camera ta și să accesezi datele despre locație.</string>
     <string name="step1_missing">Permisiuni refuzate:</string>
 </resources>
