@@ -19,6 +19,9 @@ data class GeoLocation(
     val altitudeMeters: Double? = null,
 )
 
+/** Location update interval while every camera is switched off in standby; see [LocationSource.setSlowUpdates]. */
+const val STANDBY_LOCATION_UPDATE_INTERVAL_MS = 60_000L
+
 /**
  * Platform location provider. Android wraps FusedLocationProviderClient with a
  * LocationManager fallback; iOS wraps CLLocationManager.
@@ -36,6 +39,13 @@ interface LocationSource {
     fun start(): Boolean
 
     fun stop()
+
+    /**
+     * About one fix a minute instead of one every few seconds, while every camera that
+     * takes locations is switched off in standby (Fujifilm). Applies while started and
+     * to the next start. Sources that can't slow down ignore it.
+     */
+    fun setSlowUpdates(slow: Boolean) = Unit
 
     /** iOS: `CLAccuracyAuthorizationFullAccuracy`. Android: always `true`. */
     fun hasPreciseAuthorization(): Boolean

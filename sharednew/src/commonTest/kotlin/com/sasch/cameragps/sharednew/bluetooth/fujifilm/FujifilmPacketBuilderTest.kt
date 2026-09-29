@@ -142,6 +142,18 @@ class FujifilmPacketBuilderTest {
     }
 
     @Test
+    fun thePowerKeyStateTellsOnFromOff() {
+        // Read from an X100VI: switched on, then switched off in standby.
+        assertEquals(true, FujifilmPacketBuilder.isPoweredOn(bytes(0x01, 0x02)))
+        assertEquals(false, FujifilmPacketBuilder.isPoweredOn(bytes(0x00, 0x01)))
+        // The other values in Fujifilm's app.
+        assertEquals(false, FujifilmPacketBuilder.isPoweredOn(bytes(0x00, 0x02)))
+        assertEquals(true, FujifilmPacketBuilder.isPoweredOn(bytes(0x01, 0x01)))
+        assertNull(FujifilmPacketBuilder.isPoweredOn(bytes(0x00, 0x00)))
+        assertNull(FujifilmPacketBuilder.isPoweredOn(bytes(0x01)))
+    }
+
+    @Test
     fun statusIsAcknowledgedWithByteThreeSetTo0x20() {
         // The value furble's comment gives: 0x07960000 -> 0x07960020.
         assertContentEquals(

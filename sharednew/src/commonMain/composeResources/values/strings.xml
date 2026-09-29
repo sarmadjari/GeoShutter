@@ -336,6 +336,7 @@
     <string name="fujifilm_time_sync_hint">When the camera is switched on or wakes up and connects, set its clock, time zone (AREA SETTING) and daylight saving time to your phone's. The camera accepts the time only then, so turning this on takes effect the next time the camera is switched on.</string>
     <string name="fujifilm_location_sync">Smartphone location sync</string>
     <string name="fujifilm_location_sync_off_hint">Location sync is off on the camera, so it takes no location. Turn on Smartphone location sync in this camera's details, or SMARTPHONE LOCATION SYNC. on the camera.</string>
+    <string name="fujifilm_camera_off_hint">The camera is switched off. Its location is kept up to date, so your next photo is tagged right away.</string>
     <string name="fujifilm_location_sync_hint">The camera's SMARTPHONE LOCATION SYNC. setting. When it is on, the camera asks your phone for its location and saves it with every photo. This changes the setting on the connected camera.</string>
     <string name="camera_setting_connect">(Camera must be connected)</string>
     <string name="camera_setting_pending">Waiting for the camera…</string>

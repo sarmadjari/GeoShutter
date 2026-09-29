@@ -50,8 +50,11 @@ class StatusTileService : TileService() {
     private fun subtitle(status: GeoShutterStatus, enabled: Boolean): String = when {
         !enabled -> getString(R.string.status_off)
         status.sending.size == 1 -> status.sending.single().name
-        status.sending.size > 1 -> getString(R.string.status_sending_count, status.sending.size)
+        status.sending.size > 1 -> resources.getQuantityString(
+            R.plurals.status_sending_count, status.sending.size, status.sending.size,
+        )
         status.connecting.isNotEmpty() -> getString(R.string.status_connecting_short)
+        status.cameraOff.isNotEmpty() -> getString(R.string.status_camera_off_short)
         status.locationSyncOff.isNotEmpty() -> getString(R.string.status_sync_off_short)
         else -> getString(R.string.status_waiting_short)
     }

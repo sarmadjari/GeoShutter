@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 fun TransmissionDot(
     isRunning: Boolean,
     modifier: Modifier = Modifier,
+    /** Color while running; blue for a camera that is switched off in standby. */
+    runningColor: Color = Color.Green,
 ) {
     Box(
         modifier = modifier
@@ -59,9 +61,12 @@ fun TransmissionDot(
                     scaleY = scale
                 }
                 .background(
-                    color = Color.Green,
+                    color = runningColor,
                     shape = CircleShape
                 )
         )
     }
 }
+
+/** A camera switched off in standby that still receives the location. */
+val StandbyBlue = Color(0xFF1E88E5)

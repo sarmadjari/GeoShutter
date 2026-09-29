@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -55,6 +56,7 @@ import cameragps.sharednew.generated.resources.delete_device_confirmation
 import cameragps.sharednew.generated.resources.enable_pairing_mode_continue
 import cameragps.sharednew.generated.resources.enable_pairing_mode_message
 import cameragps.sharednew.generated.resources.enable_pairing_mode_title
+import cameragps.sharednew.generated.resources.fujifilm_camera_off_hint
 import cameragps.sharednew.generated.resources.fujifilm_location_sync_off_hint
 import cameragps.sharednew.generated.resources.guide_open_button
 import cameragps.sharednew.generated.resources.keyboard_arrow_right_24px
@@ -70,6 +72,7 @@ import cameragps.sharednew.generated.resources.transmission_inactive
 import cameragps.sharednew.generated.resources.trigger_shutter
 import com.sasch.cameragps.sharednew.bluetooth.BluetoothDeviceInfo
 import com.sasch.cameragps.sharednew.ui.ShutterPulseIcon
+import com.sasch.cameragps.sharednew.ui.StandbyBlue
 import com.sasch.cameragps.sharednew.ui.TransmissionDot
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
 import kotlinx.coroutines.delay
@@ -405,11 +408,15 @@ private fun DeviceCard(
                         item?.locationSyncOff == true ->
                             stringResource(Res.string.fujifilm_location_sync_off_hint)
 
+                        item?.cameraOff == true ->
+                            stringResource(Res.string.fujifilm_camera_off_hint)
+
                         isTransmissionActive -> stringResource(Res.string.transmission_active)
                         else -> stringResource(Res.string.transmission_inactive)
                     }
                     TransmissionDot(
                         isTransmissionActive,
+                        runningColor = if (item?.cameraOff == true) StandbyBlue else Color.Green,
                         modifier = Modifier.semantics {
                             contentDescription = transmissionStatusDescription
                         }
@@ -449,6 +456,13 @@ private fun DeviceCard(
                     text = stringResource(Res.string.fujifilm_location_sync_off_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (item?.cameraOff == true) {
+                Text(
+                    text = stringResource(Res.string.fujifilm_camera_off_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (showKeepAliveHint && item?.isAlwaysOnEnabled == false) {

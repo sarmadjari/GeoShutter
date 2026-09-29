@@ -10,6 +10,7 @@ import android.os.Looper
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 import com.sasch.cameragps.sharednew.bluetooth.location.GeoLocation
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
+import com.sasch.cameragps.sharednew.bluetooth.location.STANDBY_LOCATION_UPDATE_INTERVAL_MS
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -29,6 +30,7 @@ class PlatformLocationSource(
     override val locations: Flow<GeoLocation> = locationChannel.receiveAsFlow()
 
     private var started = false
+    private var slow = false
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
 
@@ -59,9 +61,23 @@ class PlatformLocationSource(
         started = false
     }
 
+    @SuppressLint("MissingPermission")
+    override fun setSlowUpdates(slow: Boolean) {
+        if (this.slow == slow) return
+        this.slow = slow
+        if (!started) return
+        val locManager = locationManager ?: return
+        val listener = locationListener ?: return
+        locManager.removeUpdates(listener)
+        requestUpdates(locManager, listener)
+    }
+
     override fun hasPreciseAuthorization(): Boolean = true
 
     // --- private helpers ---
+
+    private val intervalMs: Long
+        get() = if (slow) STANDBY_LOCATION_UPDATE_INTERVAL_MS else LOCATION_UPDATE_INTERVAL_MS
 
     private fun emitLocation(location: Location) {
         locationChannel.trySend(
@@ -110,17 +126,21 @@ class PlatformLocationSource(
         }
 
         locationListener = listener
+        requestUpdates(locManager, listener)
+    }
 
+    @SuppressLint("MissingPermission")
+    private fun requestUpdates(locManager: LocationManager, listener: LocationListener) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (locManager.isProviderEnabled(LocationManager.FUSED_PROVIDER)) {
                 locManager.requestLocationUpdates(
                     LocationManager.FUSED_PROVIDER,
-                    LOCATION_UPDATE_INTERVAL_MS,
+                    intervalMs,
                     10f,
                     listener,
                     Looper.getMainLooper(),
                 )
-                Timber.i("Started location updates from FUSED provider (Android 12+)")
+                Timber.i("Started location updates from FUSED provider (Android 12+), every ${intervalMs / 1000} s")
             } else {
                 Timber.w("FUSED provider not available, falling back to GPS")
                 requestGpsLocationUpdates(locManager, listener)
@@ -135,7 +155,7 @@ class PlatformLocationSource(
         if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             locManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                LOCATION_UPDATE_INTERVAL_MS,
+                intervalMs,
                 0f,
                 listener,
                 Looper.getMainLooper(),
@@ -144,7 +164,7 @@ class PlatformLocationSource(
         } else if (locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             locManager.requestLocationUpdates(
                 LocationManager.NETWORK_PROVIDER,
-                LOCATION_UPDATE_INTERVAL_MS,
+                intervalMs,
                 0f,
                 listener,
                 Looper.getMainLooper(),

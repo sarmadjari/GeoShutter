@@ -68,7 +68,7 @@ class StatusNotificationTest {
         )
         val waiting = context.getString(R.string.status_waiting_title)
         val one = context.getString(R.string.status_sending_one, "Camera 0")
-        val two = context.getString(R.string.status_sending_many, 2)
+        val two = context.resources.getQuantityString(R.plurals.status_sending_many, 2, 2)
         assertEquals(
             listOf(waiting, one, two, one, waiting, one),
             notifications.map { it.extras.getString(Notification.EXTRA_TITLE) },

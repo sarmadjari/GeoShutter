@@ -106,6 +106,7 @@ class CameraSessionOrchestrator(
         isTransmissionAllowed = isTransmissionAllowed,
         protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
         wantsLocation = { id -> registry.get(id)?.wantsLocation != false },
+        inStandby = { id -> registry.get(id)?.cameraOff == true },
     )
 
     /**
@@ -148,13 +149,15 @@ class CameraSessionOrchestrator(
                 handleTransportEvent(event, completedOperation)
             }
         }
-        // A Fujifilm camera's location sync switched off or on: the phone's location is
-        // only tracked while a ready camera wants it.
+        // A Fujifilm camera's location sync or power switched off or on: the phone's
+        // location is only tracked while a ready camera wants it, and slowly while every
+        // such camera is off in standby.
         scope.launch {
             registry.sessions
                 .map { sessions ->
-                    sessions.values.filter { it.isLocationReady && !it.wantsLocation }
-                        .map { it.identifier }.toSet()
+                    val ready = sessions.values.filter { it.isLocationReady }
+                    ready.filter { !it.wantsLocation }.map { it.identifier }.toSet() to
+                            ready.filter { it.cameraOff }.map { it.identifier }.toSet()
                 }
                 .distinctUntilChanged()
                 .drop(1)
@@ -335,6 +338,7 @@ class CameraSessionOrchestrator(
                 autoAreaAdjustment = CameraSettingState(),
                 fujifilmLocationSync = CameraSettingState(),
                 cameraResponding = false,
+                cameraOff = false,
             )
         }
         _events.tryEmit(OrchestratorEvent.DeviceConnected(id))
@@ -592,6 +596,7 @@ class CameraSessionOrchestrator(
                 // Before the camera counts as ready: with location sync off it takes no
                 // location, so it must not show as receiving one or start the GPS.
                 autoCorrection.readDuringSetup(id)
+                updateFujifilmPowerState(id)
                 if (setupGeneration[id] != generation) return
                 if (registry.get(id)?.cameraResponding == false) watchFujifilmSilence(id)
                 handleHandshakeComplete(id)
@@ -672,7 +677,12 @@ class CameraSessionOrchestrator(
             fujifilmWatchdogs.remove(id)?.cancel()
         }
         when (notification) {
-            FujifilmNotification.GeotagRequested -> locationManager.onLocationRequested(id)
+            FujifilmNotification.GeotagRequested -> {
+                locationManager.onLocationRequested(id)
+                // Switching the camera off or on usually reconnects it, but not always.
+                scope.launch { updateFujifilmPowerState(id) }
+            }
+
             FujifilmNotification.DateSyncRequested -> {
                 if (FujifilmPacketBuilder.isConfigured(event.value)) {
                     log.i { "Fujifilm camera $id reports it is configured" }
@@ -689,6 +699,18 @@ class CameraSessionOrchestrator(
 
             FujifilmNotification.Other -> Unit
         }
+    }
+
+    /**
+     * Whether the camera is switched off but connected in standby: shown as "Camera off",
+     * still answered, and the phone's location slows down if no other camera needs it.
+     */
+    private suspend fun updateFujifilmPowerState(id: String) {
+        val on = fujifilm.readPowerOn(id) ?: return
+        val session = registry.get(id) ?: return
+        if (session.cameraOff == !on) return
+        log.i { "Fujifilm camera $id is switched ${if (on) "on" else "off (standby)"}" }
+        registry.updateIfPresent(id) { it.copy(cameraOff = !on) }
     }
 
     /**

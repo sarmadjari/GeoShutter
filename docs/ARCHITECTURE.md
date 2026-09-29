@@ -141,16 +141,19 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
    Fujifilm status characteristic means a Fujifilm camera with the secure protocol, whose
    handshake runs as one sequence of queued operations (`FujifilmSessionController.runHandshake`),
    sets the camera's date, time and time zone (`syncTime`, unless the camera's
-   `timeSyncEnabled` option is off) and then continues with step 5; the legacy Fujifilm
-   pairing characteristic ends the session with an error; anything else takes the Sony
-   path, as before. The detected protocol is stored in `CameraSession.protocol` on every
-   connect; the Sony event handlers and remote monitoring ignore `FujifilmSecure` sessions.
-   A Fujifilm camera's clock is set again when it notifies NOT1 (at most every 10 s) and
-   when it first responds after a silent setup. `CameraSession.cameraResponding` records
-   whether it has sent anything since connecting: a silent camera ignores the phone, so a
-   watchdog repeats the setup after 15 s of silence and reconnects
-   (`BlePeripheralTransport.reconnect`) after another 15 s. See
-   [`fujifilm-protocol.md`](fujifilm-protocol.md).
+   `timeSyncEnabled` option is off; the camera applies it only when it asked, on the
+   first connection after it is switched on or wakes), reads the camera's SMARTPHONE
+   LOCATION SYNC. setting (`CameraAutoCorrectionController.readDuringSetup`) and its power
+   switch (`readPowerOn` → `CameraSession.cameraOff`) before it counts as ready, and then
+   continues with step 5; the legacy Fujifilm pairing characteristic ends the session
+   with an error; anything else takes the Sony path, as before. The detected protocol is
+   stored in `CameraSession.protocol` on every connect; the Sony event handlers and remote
+   monitoring ignore `FujifilmSecure` sessions. A Fujifilm camera's clock is set again
+   when it notifies NOT1 (at most every 10 s), and its power switch is read again after
+   every geotag request. `CameraSession.cameraResponding` records whether it has sent
+   anything since connecting: a silent camera ignores the phone, so a watchdog repeats
+   the setup after 15 s of silence and reconnects (`BlePeripheralTransport.reconnect`)
+   after another 15 s. See [`fujifilm-protocol.md`](fujifilm-protocol.md).
 4. **Handshake** (`BleSessionCoordinator.beginHandshake`, Sony); each step is skipped
    when its characteristic is missing: subscribe `DD01` → read `DD21` (one
    automatic retry on failure, for Android's intermittent GATT 133) → write
@@ -186,9 +189,16 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
   request (`onLocationRequested`). A request that comes before a fix is answered as soon
   as one exists. Remote control is only set up for Sony cameras.
 
-- Location updates start when the **first** session becomes ready and stop when no
-  session is ready (or, on iOS, when the app is disabled). Nothing reads location
-  while no camera is connected, also in Android's Always On mode.
+- Location updates start when the **first** session that wants locations becomes
+  ready and stop when none is left (or, on iOS, when the app is disabled). Nothing
+  reads location while no camera is connected, also in Android's Always On mode. A
+  Fujifilm camera whose location sync is off wants no location
+  (`CameraSession.wantsLocation`); a geotag request still starts updates. While every
+  camera that wants locations is switched off in standby (`CameraSession.cameraOff`),
+  the source is asked for one fix about every 60 s (`LocationSource.setSlowUpdates`,
+  `STANDBY_LOCATION_UPDATE_INTERVAL_MS`); a camera that is on brings it back to the
+  full rate. The orchestrator calls `updateTracking` whenever the set of cameras with
+  location sync off or in standby changes.
 - Stale fixes (older than 30 s) are ignored: iOS checks every fix, Android checks
   the initial/last-known seed fix, and a fix cached from a previous session is
   discarded when it is older than 30 s. A new fix replaces the current one unless
@@ -201,7 +211,9 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
   platform provider, chosen in Settings); Android `foss` = `PlatformLocationSource`
   only (`LocationManager`: FUSED provider on Android 12+, else GPS, else network);
   iOS = `IosLocationSource` (`CLLocationManager`, best accuracy, 2 m distance
-  filter, background updates allowed, no automatic pausing).
+  filter, background updates allowed, no automatic pausing). Both Android sources
+  switch to a 60 s interval with `setSlowUpdates(true)` (standby, above); iOS ignores
+  it (no Fujifilm support there).
 
 ### Remote control and shutter
 
@@ -244,7 +256,7 @@ stored by the app instead (`CameraDevice.timeSyncEnabled`).
 | `ServiceShutdownCoordinator` | On "disappeared": pause the camera unless it is Always On; stop the service when no camera is connected and none is Always On. `stopIfIdle(startId)` ends a `ConnectSaved` round the same way (`stopSelf(startId)`, so a newer start command keeps the service). |
 | `AndroidBleTransport` | `connectGatt(autoConnect = true)`, **bonded devices only**; API 37+ uses `BluetoothGattConnectionSettings` (automatic MTU). `connect(direct = true)` makes a direct attempt instead (aggressive scan for about 30 s), used whenever a camera appears (Fujifilm cameras advertise only briefly after switching on; Sony cameras connect within about a second); it replaces a waiting background connection. A failed or dropped direct connection is retried directly three times (a drop after a connection that lasted 30 s starts a fresh round), then the device falls back to `autoConnect`. Late callbacks of a replaced GATT handle are ignored. Operations can name a service to look the characteristic up in (needed for Fujifilm, which reuses a UUID across services); subscriptions write the indication bit for indication-only characteristics. `onServiceChanged` is forwarded as `ServicesChanged`. The GATT handle survives disconnects so autoConnect can resume; `disconnectAll()` is the only close path. High connection priority during setup, balanced afterwards. |
 | `RebootReceiver` | Unless the app is disabled (*Enable App*) or location isn't granted: `BOOT_COMPLETED` (only with *Start App on Device boot*) → start the service without an address (Always-On reconnect); `MY_PACKAGE_REPLACED` → `ConnectSaved` (the update ended every connection). |
-| Status outside the app (`status/`) | `StatusPublisher` (app-scoped, single source): combines *Enable App* (`PreferencesManager.appEnabledFlow`), the saved cameras (companion associations with brand), the `camera_devices` rows (names), the orchestrator's sessions and whether location updates run into the shared `GeoShutterStatus`, and drives the three views below. `StatusNotifier`: one notification (ID `locationTransmissionNotificationId`) — "Sending location to …" / "Connecting to …" / "GeoShutter is on – Waiting for …" with brand and model, filled or outline location icon, *Turn off* action (`StatusActionReceiver`); foreground while `LocationSenderService` runs, a quiet ongoing notification otherwise, none while the app is off. It alerts on `transmission_notification_channel` when a camera starts receiving the location, on `disconnect_notification_channel` when one stops (only if that channel is enabled), otherwise it updates silently (`general_notification_channel`). `StatusTileService`: Quick Settings tile (active = on; subtitle "Off"/"Waiting"/camera name/"N sending"; tap toggles). `StatusWidget` (Glance): monitoring only — header with state, up to four cameras with name, brand and model and a green/amber/red/grey dot; a tap opens the app. `GeoShutterSwitch.setEnabled`: the settings switch, tile and notification action all go through it; off stops the service, on starts it with `ConnectSaved`. |
+| Status outside the app (`status/`) | `StatusPublisher` (app-scoped, single source): combines *Enable App* (`PreferencesManager.appEnabledFlow`), the saved cameras (companion associations with brand), the `camera_devices` rows (names), the orchestrator's sessions and whether location updates run into the shared `GeoShutterStatus`, and drives the three views below. Camera states (`CameraState`): *Sending*, *Connecting* (also a Fujifilm camera that stays silent), *CameraOff* (Fujifilm switched off in standby, still receiving the location), *LocationSyncOff* (Fujifilm with SMARTPHONE LOCATION SYNC. off), *Away*. `StatusNotifier`: one notification (ID `locationTransmissionNotificationId`) — "Sending location to …" / "Connecting to …" / "… is off – Location kept up to date for your next photo" / "…: location sync is off on the camera" / "GeoShutter is on – Waiting for …" with brand and model (counts are plurals), filled or outline location icon, *Turn off* action (`StatusActionReceiver`); foreground while `LocationSenderService` runs, a quiet ongoing notification otherwise, none while the app is off. It alerts on `transmission_notification_channel` when a camera starts receiving the location, on `disconnect_notification_channel` when a camera that was receiving it goes away (only if that channel is enabled), otherwise it updates silently (`general_notification_channel`). `StatusTileService`: Quick Settings tile (active = on; subtitle "Off"/"Waiting"/"Connecting"/"Camera off"/"Location sync off"/camera name/"N sending"; tap toggles). `StatusWidget` (Glance): monitoring only — header with state, up to four cameras with name, brand and model and a green/blue/amber/red/grey dot (blue: camera off in standby; amber: connecting or location sync off, with a note line); a tap opens the app. The camera card in the app shows a blue dot and a note for a camera in standby, and a note for location sync off. `GeoShutterSwitch.setEnabled`: the settings switch, tile and notification action all go through it; off stops the service, on starts it with `ConnectSaved`. |
 | Permission safety | The permission screen can be skipped ("Continue anyway"), so reading bonds and device names goes through `bondedAddressesOrNull()` / `nameOrNull()` (`AssociatedDeviceCompat.kt`), which treat a missing Nearby devices permission as "unknown" instead of crashing. |
 | Preferences | `SharedPreferences` file `camera_gps_prefs` (`PreferencesManager`). |
 

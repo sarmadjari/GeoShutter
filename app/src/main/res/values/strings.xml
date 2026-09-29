@@ -10,17 +10,36 @@
     <string name="status_waiting_title">GeoShutter is on</string>
     <string name="status_waiting_for">Waiting for %1$s</string>
     <string name="status_sending_one">Sending location to %1$s</string>
-    <string name="status_sending_many">Sending location to %1$d cameras</string>
+    <plurals name="status_sending_many">
+        <item quantity="one">Sending location to %1$d camera</item>
+        <item quantity="other">Sending location to %1$d cameras</item>
+    </plurals>
     <string name="status_connecting_one">Connecting to %1$s</string>
-    <string name="status_connecting_many">Connecting to %1$d cameras</string>
+    <plurals name="status_connecting_many">
+        <item quantity="one">Connecting to %1$d camera</item>
+        <item quantity="other">Connecting to %1$d cameras</item>
+    </plurals>
     <string name="status_sync_off_one">%1$s: location sync is off on the camera</string>
-    <string name="status_sync_off_many">Location sync is off on %1$d cameras</string>
+    <plurals name="status_sync_off_many">
+        <item quantity="one">Location sync is off on %1$d camera</item>
+        <item quantity="other">Location sync is off on %1$d cameras</item>
+    </plurals>
     <string name="status_sync_off_short">Location sync off</string>
+    <string name="status_camera_off_one">%1$s is off</string>
+    <plurals name="status_camera_off_many">
+        <item quantity="one">%1$d camera is off</item>
+        <item quantity="other">%1$d cameras are off</item>
+    </plurals>
+    <string name="status_camera_off_text">Location kept up to date for your next photo</string>
+    <string name="status_camera_off_short">Camera off</string>
     <string name="status_turn_off">Turn off</string>
     <string name="status_off">Off</string>
     <string name="status_waiting_short">Waiting</string>
     <string name="status_connecting_short">Connecting</string>
-    <string name="status_sending_count">%1$d sending</string>
+    <plurals name="status_sending_count">
+        <item quantity="one">%1$d sending</item>
+        <item quantity="other">%1$d sending</item>
+    </plurals>
     <string name="status_sending_short">Sending location</string>
     <string name="status_no_cameras">No cameras added yet</string>
     <string name="status_widget_description">Whether GeoShutter is on and which cameras receive your location</string>

@@ -177,6 +177,15 @@ internal class FujifilmSessionController(
         return true
     }
 
+    /** `true` if the camera is switched on, `false` if it is off (standby), `null` if unknown. */
+    suspend fun readPowerOn(identifier: String): Boolean? {
+        val id = identifier.uppercase()
+        if (!port.hasCharacteristic(id, Fuji.POWER_SWITCH_UUID)) return null
+        val result = port.execute(id, BleOperation.Read(Fuji.POWER_SWITCH_UUID))
+        val value = (result as? BleOperationResult.Success)?.value ?: return null
+        return FujifilmPacketBuilder.isPoweredOn(value)
+    }
+
     /** Interpret a notification or indication from a Fujifilm camera. */
     fun onCharacteristicChanged(
         identifier: String,

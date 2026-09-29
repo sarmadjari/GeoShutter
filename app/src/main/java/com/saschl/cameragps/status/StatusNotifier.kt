@@ -21,6 +21,7 @@ internal data class StatusContent(val title: String, val text: String?, val send
             val sending = status.sending
             val connecting = status.connecting
             val syncOff = status.locationSyncOff
+            val off = status.cameraOff
             fun names(cameras: List<CameraStatus>) = cameras.joinToString(", ") { it.name }
             return when {
                 sending.size == 1 -> StatusContent(
@@ -30,7 +31,7 @@ internal data class StatusContent(val title: String, val text: String?, val send
                 )
 
                 sending.isNotEmpty() -> StatusContent(
-                    context.getString(R.string.status_sending_many, sending.size),
+                    context.resources.getQuantityString(R.plurals.status_sending_many, sending.size, sending.size),
                     names(sending),
                     sending = true,
                 )
@@ -42,8 +43,20 @@ internal data class StatusContent(val title: String, val text: String?, val send
                 )
 
                 connecting.isNotEmpty() -> StatusContent(
-                    context.getString(R.string.status_connecting_many, connecting.size),
+                    context.resources.getQuantityString(
+                        R.plurals.status_connecting_many, connecting.size, connecting.size,
+                    ),
                     names(connecting),
+                    sending = false,
+                )
+
+                off.isNotEmpty() -> StatusContent(
+                    if (off.size == 1) {
+                        context.getString(R.string.status_camera_off_one, off.single().name)
+                    } else {
+                        context.resources.getQuantityString(R.plurals.status_camera_off_many, off.size, off.size)
+                    },
+                    context.getString(R.string.status_camera_off_text),
                     sending = false,
                 )
 
@@ -54,7 +67,7 @@ internal data class StatusContent(val title: String, val text: String?, val send
                 )
 
                 syncOff.isNotEmpty() -> StatusContent(
-                    context.getString(R.string.status_sync_off_many, syncOff.size),
+                    context.resources.getQuantityString(R.plurals.status_sync_off_many, syncOff.size, syncOff.size),
                     names(syncOff),
                     sending = false,
                 )

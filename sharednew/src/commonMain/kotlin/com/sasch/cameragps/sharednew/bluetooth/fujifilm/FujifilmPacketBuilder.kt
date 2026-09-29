@@ -107,6 +107,20 @@ object FujifilmPacketBuilder {
     fun syncInterval(seconds: Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS): ByteArray =
         byteArrayOf(seconds.toByte(), (seconds shr 8).toByte())
 
+    /**
+     * The power switch position from [FujifilmBluetoothConstants.POWER_SWITCH_UUID]:
+     * `true` on, `false` off (also in standby), `null` for anything else.
+     */
+    fun isPoweredOn(powerKeyState: ByteArray): Boolean? {
+        if (powerKeyState.size < 2) return null
+        val state = (powerKeyState[0].toInt() and 0xFF) or ((powerKeyState[1].toInt() and 0xFF) shl 8)
+        return when (state) {
+            0x0201, 0x0101 -> true
+            0x0200, 0x0100 -> false
+            else -> null
+        }
+    }
+
     /** `true` for the camera's geotag request (`01 00`, longer payloads included). */
     fun isGeotagRequest(value: ByteArray): Boolean = value.startsWith(FujifilmBluetoothConstants.GEOTAG_REQUEST)
 

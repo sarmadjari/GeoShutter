@@ -264,6 +264,13 @@ fork's site. GitHub Pages is not enabled on the fork.
   connection, as Fujifilm's app does, with a per-camera option (*Set date, time and time
   zone*, on by default) to turn it off. The camera details also offer the camera's own
   SMARTPHONE LOCATION SYNC. setting, like Sony's camera settings.
+- 2026-09-29: a Fujifilm camera with location sync off is shown as "Location sync off"
+  (amber, with a note on the camera card) and the phone's location isn't used for it.
+- 2026-09-29: a Fujifilm camera switched off in standby (CONNECT WHILE POWER OFF) is shown
+  as "Camera off" with a **blue** dot and keeps receiving the location, so the first photo
+  after switching on is tagged; while every such camera is off the phone's location is
+  refreshed about once a minute instead of every 5 s (user's choice over full rate or
+  stopping).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -292,18 +299,18 @@ fork's site. GitHub Pages is not enabled on the fork.
   (`app-*-release.apk`) doesn't match. `deploy-pages.yml` fails while Pages is disabled.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
-- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging and the date, time
-  and time zone sync work on an X100VI (firmware 01.32, 2026-09-28/29); open: UTC vs local
-  time in EXIF, registration right after pairing, iOS and legacy firmware unsupported,
-  remote Sony-only, the geotag speed field and fix time, the 7-byte local-time fallback.
-  The X100VI sometimes stays silent on a connection (no requests, ignores the time); the
-  watchdog that repeats the setup and then reconnects is only unit-tested so far. Look for
-  "stays silent after setup" in logcat to see it act. The camera stays
-  connected while switched off when its CONNECT WHILE POWER OFF setting is on (X100VI
-  manual) and gives no Bluetooth sign of on/off (tested with every readable and notifying
-  characteristic), so the app can't show it; the phone keeps its location updates running
-  meanwhile (possible follow-up: slower location updates for
-  Fujifilm-only sessions, needs a user decision).
+- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging (EXIF position
+  within 1 m, GPS time in UTC), the date/time/time zone sync, the location sync setting and
+  standby work on an X100VI (firmware 01.32, 2026-09-28/29); open: registration right
+  after pairing, iOS and legacy firmware unsupported, remote Sony-only, the geotag speed
+  field and fix time, the 7-byte local-time fallback. The camera applies the time only
+  when it asked (NOT1, first connection after switching on or waking); writes at other
+  times are accepted and ignored, so switching the option on takes effect at the next
+  switch-on. The X100VI sometimes stays silent on a connection (no requests, ignores the
+  time); the watchdog that repeats the setup and then reconnects is only unit-tested so
+  far. Look for "stays silent after setup" in logcat to see it act. The camera ends the
+  next connection about 20 s after the phone closed one; Fujifilm's app writes a
+  disconnect reason first (not tried).
 - iOS: the camera-name/model line, the direct connects and the status tile/widget are
   Android-only so far.
 - Sony α1 II ends the connection itself (status 19) after 23–209 s, usually about a
@@ -450,3 +457,16 @@ fork's site. GitHub Pages is not enabled on the fork.
   doc and every full UUID in the doc matches a constant or a cited source. Corrected two
   details on the way: the camera ends the connection after a phone-closed one after 18–21 s
   (seen four times), and the silent-connection triggers.
+- 2026-09-29 (late morning): finished the Fujifilm tests on the X100VI with the maintainer.
+  A camera with location sync off still notifies NOT1 and the interval echo, so the
+  silence watchdog leaves it alone; new "Location sync off" state (amber) and location
+  tracking only while a ready camera wants it (the setting is read during setup, so no
+  "Sending" flash and no GPS start). Found that the camera applies the time only when it
+  asked (first connection after switching on or waking) and removed the ineffective
+  immediate/extra writes. From the maintainer's XApp technical reference: the power switch
+  characteristic (`f90f7d3a`, startup information service `804daa8e`) reads `01 02` on
+  and `00 01` off in standby; new "Camera off" state (blue), locations kept flowing, the
+  phone's location about once a minute while all cameras are off (verified: GPS on once a
+  minute; a photo 2 s after switch-on carried the standby location, 1 m from the phone,
+  GPS time UTC). CONNECT WHILE POWER OFF off: switching off disconnects. Status count
+  strings are plurals now. Tests: 215 JVM, 252 iOS simulator, app tests, lint 0 errors.

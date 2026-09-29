@@ -38,7 +38,8 @@ licensed under the [GPL-3.0](LICENSE).
 - **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
   the X100VI, using Fujifilm's own Bluetooth geotagging protocol (the camera asks for the
   location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble);
-  geotagging and setting the date, time and time zone work on an X100VI. See
+  geotagging, setting the date, time and time zone, and keeping a switched-off camera's
+  location up to date in standby work on an X100VI. See
   [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
 - **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
   exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
@@ -103,14 +104,16 @@ Android APKs are attached to the [upstream releases](https://github.com/Saschl/a
    connected it does not access your location. Combine it with *Start App on Device boot*
    in Settings.
 6. **Status at a glance.** While GeoShutter is on, a notification shows what it is doing:
-   *Sending location to X100VI-…* (brand and model underneath), *Connecting to …* or
-   *GeoShutter is on – Waiting for …*. Its **Turn off** button switches GeoShutter off.
-   Two optional extras:
+   *Sending location to X100VI-…* (brand and model underneath), *Connecting to …*,
+   *X100VI-… is off – Location kept up to date for your next photo*, *X100VI-…: location
+   sync is off on the camera* or *GeoShutter is on – Waiting for …*. Its **Turn off**
+   button switches GeoShutter off. Two optional extras:
    - the **GeoShutter** Quick Settings tile turns GeoShutter on or off; its icon fills
      while a camera receives your location;
-   - the **GeoShutter** home-screen widget only shows the state: each camera with a green
-     (sending), amber (connecting), red (away) or grey (GeoShutter off) dot. Tap it to
-     open the app.
+   - the **GeoShutter** home-screen widget only shows the state: each camera with a dot,
+     green (receiving your location), blue (Fujifilm switched off in standby, still
+     receiving it), amber (connecting, or location sync off on the camera), red (away) or
+     grey (GeoShutter off). Tap it to open the app.
 
    Turning GeoShutter on (tile or *Enable App*) connects right away to cameras that are
    already on. An X100VI stops advertising about 30 seconds after it loses its connection:
@@ -144,8 +147,8 @@ Tap a camera on **My Cameras** to open its details:
 | Enable remote control | Sony. Watches the camera's Bluetooth remote. When the camera allows remote control (camera menu *Bluetooth Rmt Ctrl*), a **Trigger remote shutter** button appears on the camera card. |
 | Delay connection setup | Waits 1–10 s (default: off) after the camera connects before the GPS setup starts. Try it if the camera starts slowly or its screen stays black. |
 | Automatic time correction, Automatic area adjustment | Sony. Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
-| Set date, time and time zone | Fujifilm, Android, on by default. Every time the camera connects, sets its clock, time zone (AREA SETTING) and daylight saving time to the phone's. |
-| Smartphone location sync | Fujifilm, Android. Reads and changes the camera's SMARTPHONE LOCATION SYNC. setting; while it is off the camera doesn't ask for the location. The camera must be connected. |
+| Set date, time and time zone | Fujifilm, Android, on by default. When the camera is switched on or wakes up and connects, sets its clock, time zone (AREA SETTING) and daylight saving time to the phone's. The camera accepts the time only then, so turning this on takes effect the next time you switch the camera on. |
+| Smartphone location sync | Fujifilm, Android. Reads and changes the camera's SMARTPHONE LOCATION SYNC. setting; while it is off the camera doesn't ask for the location, and GeoShutter doesn't use your phone's location for it. The camera must be connected. |
 
 To remove a camera, swipe its card to the left (on Android also *Remove* in the details).
 Removing it also deletes the Android companion association or the iOS accessory pairing.
@@ -222,13 +225,16 @@ or not, are welcome in the [issue tracker](https://github.com/sarmadjari/GeoShut
 starting with the X100VI, on firmware with Fujifilm's secured Bluetooth connection (from
 about July 2025). Older firmware with the legacy protocol is detected but not supported.
 Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera asks for
-the location itself; remote control and the camera time/area settings are Sony features.
-Geotagging works on an X100VI. Two things behave differently from Sony cameras: the camera
-stays connected while it is switched off when its *CONNECT WHILE POWER OFF* setting is on
-(it keeps asking for the location, so the app shows it as connected; set it to OFF in the
-camera's Bluetooth/smartphone settings if you prefer it to disconnect), and when it is
-switched on it drops the connection; GeoShutter reconnects within about half a minute. The camera list shows the camera's own name (for example `X100VI-…`) with the
-model underneath. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details
+the location itself. Remote control is a Sony feature; a Fujifilm camera's details offer
+*Set date, time and time zone* and *Smartphone location sync* instead.
+Geotagging works on an X100VI. With the camera's *CONNECT WHILE POWER OFF* setting on
+(camera menu: NETWORK/USB SETTING → Bluetooth/SMARTPHONE SETTING), a switched-off camera
+stays connected in standby: GeoShutter shows it as *Camera off* (blue) and keeps its
+location up to date, refreshing your phone's location about once a minute, so the first
+photo after switching the camera on is tagged right away. With the setting off, the camera
+disconnects when switched off. Switching the camera on drops the connection; GeoShutter
+reconnects within about 10 seconds. The camera list shows the camera's own name (for
+example `X100VI-…`) with the model underneath. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details
 and what is still unverified.
 
 ## Build from source

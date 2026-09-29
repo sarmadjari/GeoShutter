@@ -16,6 +16,7 @@ import com.google.android.gms.location.Priority
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 import com.sasch.cameragps.sharednew.bluetooth.location.GeoLocation
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
+import com.sasch.cameragps.sharednew.bluetooth.location.STANDBY_LOCATION_UPDATE_INTERVAL_MS
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -34,6 +35,7 @@ class FusedLocationSource(
     override val locations: Flow<GeoLocation> = locationChannel.receiveAsFlow()
 
     private var started = false
+    private var slow = false
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private var locationCallback: LocationCallback? = null
 
@@ -47,10 +49,11 @@ class FusedLocationSource(
         initializeIfNeeded()
 
         return try {
-            startPlayServicesLocationUpdates()
             started = true
+            startPlayServicesLocationUpdates()
             true
         } catch (e: Exception) {
+            started = false
             Timber.e(e, "Failed to start location updates")
             false
         }
@@ -61,6 +64,16 @@ class FusedLocationSource(
             fusedLocationClient?.removeLocationUpdates(callback)
         }
         started = false
+    }
+
+    override fun setSlowUpdates(slow: Boolean) {
+        if (this.slow == slow) return
+        this.slow = slow
+        if (!started) return
+        val client = fusedLocationClient ?: return
+        val callback = locationCallback ?: return
+        client.removeLocationUpdates(callback)
+        requestLocationUpdates(client)
     }
 
     override fun hasPreciseAuthorization(): Boolean = true
@@ -124,10 +137,13 @@ class FusedLocationSource(
                 Timber.e(e, "Failed to get initial location from Play Services")
             }
 
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            LOCATION_UPDATE_INTERVAL_MS,
-        )
+        requestLocationUpdates(fusedClient)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestLocationUpdates(fusedClient: FusedLocationProviderClient) {
+        val intervalMs = if (slow) STANDBY_LOCATION_UPDATE_INTERVAL_MS else LOCATION_UPDATE_INTERVAL_MS
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
             .setWaitForAccurateLocation(true)
             .setMinUpdateDistanceMeters(2f)
             .build()
@@ -137,7 +153,9 @@ class FusedLocationSource(
 
         LocationServices.getSettingsClient(context).checkLocationSettings(locationSettings.build())
             .addOnSuccessListener {
-                Timber.d("Location Settings are satisfied, starting location request")
+                // Stopped while the settings check ran: don't start updates after all.
+                if (!started) return@addOnSuccessListener
+                Timber.d("Location Settings are satisfied, requesting a location every ${intervalMs / 1000} s")
                 fusedClient.requestLocationUpdates(
                     locationRequest,
                     callback,

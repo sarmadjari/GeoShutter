@@ -107,6 +107,29 @@ class GeoShutterStatusTest {
     }
 
     @Test
+    fun aFujifilmCameraSwitchedOffInStandbyShowsThat() {
+        val status = geoShutterStatus(
+            enabled = true,
+            savedCameras = listOf(fuji),
+            devices = emptyList(),
+            sessions = mapOf(
+                "BB:02" to CameraSession(
+                    "BB:02",
+                    BleSessionPhase.Transmitting,
+                    protocol = CameraProtocol.FujifilmSecure,
+                    cameraResponding = true,
+                    cameraOff = true,
+                ),
+            ),
+            transmitting = true,
+        )
+
+        assertEquals(CameraState.CameraOff, status.cameras.single().state)
+        assertEquals(listOf("BB:02"), status.cameraOff.map { it.id })
+        assertTrue(status.sending.isEmpty())
+    }
+
+    @Test
     fun aSilentFujifilmCameraIsStillConnecting() {
         fun status(responding: Boolean) = geoShutterStatus(
             enabled = true,

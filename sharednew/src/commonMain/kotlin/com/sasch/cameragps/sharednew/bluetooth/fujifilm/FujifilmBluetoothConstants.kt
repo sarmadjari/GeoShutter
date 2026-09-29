@@ -84,6 +84,14 @@ object FujifilmBluetoothConstants {
     const val SHUTTER_SERVICE_UUID = "6514eb81-4e8f-458d-aa2a-e691336cdfac"
     const val SHUTTER_CHARACTERISTIC_UUID = "7fcf49c6-4ff0-4777-a03d-1a79166af7a8"
 
+    /**
+     * The camera's power switch, uint16 (Fujifilm's app: CAMERA_POWER_KEY_STATE, in the
+     * camera startup information service, `804daa8e-ffeb-4ab3-8e75-6edd7303208d` on the
+     * X100VI): `0x0201` on, `0x0200` off, `0x0101` on and `0x0100` off in standby. Not in
+     * furble; see docs/fujifilm-protocol.md.
+     */
+    const val POWER_SWITCH_UUID = "f90f7d3a-3b64-45c6-ab21-933900184837"
+
     // ---- Date, time and time zone (not in furble; see docs/fujifilm-protocol.md) ----
 
     /**

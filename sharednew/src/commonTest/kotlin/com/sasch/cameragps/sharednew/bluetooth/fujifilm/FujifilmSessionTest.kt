@@ -86,8 +86,9 @@ class FujifilmSessionTest {
             Fuji.NOTIFICATION_SERVICE_UUID,
             listOf(0x0A, 0x00),
         ) + timeWrite + // like Fujifilm's app, right after the sync interval
-                // Before the camera counts as ready: does it want locations at all?
+                // Before the camera counts as ready: does it want locations, is it on?
                 Step.Read(Fuji.LOCATION_SYNC_SETTING_UUID, Fuji.NOTIFICATION_SERVICE_UUID) +
+                Step.Read(Fuji.POWER_SWITCH_UUID, null) +
                 Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) // camera name
         assertEquals(expected, steps)
         // The two indication characteristics come first, as in furble.
@@ -577,6 +578,55 @@ class FujifilmSessionTest {
         assertTrue(f.source.active)
     }
 
+    // ---- switched off in standby ----
+
+    @Test
+    fun aCameraInStandbyKeepsGettingLocationsAtALowerRate() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.powerKeyState = byteArrayOf(0x00, 0x01) // off, standby
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertTrue(f.session("F").cameraOff)
+        assertTrue(f.source.active)
+        assertTrue(f.source.slow)
+
+        f.fix()
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertEquals(1, f.transport.geotagWrites("F").size)
+
+        // Switched on without reconnecting: noticed at the next request.
+        f.transport.powerKeyState = byteArrayOf(0x01, 0x02)
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertFalse(f.session("F").cameraOff)
+        assertFalse(f.source.slow)
+        assertEquals(2, f.transport.geotagWrites("F").size)
+    }
+
+    @Test
+    fun aCameraThatIsOnKeepsTheFullRate() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.powerKeyState = byteArrayOf(0x00, 0x01)
+        f.connect("F", FUJIFILM)
+        f.connect("S", SONY)
+        runCurrent()
+
+        assertTrue(f.session("F").cameraOff)
+        assertFalse(f.source.slow)
+    }
+
+    @Test
+    fun aCameraWithoutThePowerStateCountsAsOn() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM - Fuji.POWER_SWITCH_UUID)
+        runCurrent()
+
+        assertFalse(f.session("F").cameraOff)
+        assertTrue(f.session("F").isLocationReady)
+        assertFalse(f.source.slow)
+    }
+
     @Test
     fun aFujifilmCameraIsNotAskedForSonySettings() = runTest {
         val f = Fixture(backgroundScope)
@@ -648,6 +698,11 @@ class FujifilmSessionTest {
         override val locations = channel.receiveAsFlow()
         var active = false
         var starts = 0
+        var slow = false
+
+        override fun setSlowUpdates(slow: Boolean) {
+            this.slow = slow
+        }
 
         override fun start(): Boolean {
             active = true
@@ -673,6 +728,7 @@ class FujifilmSessionTest {
         var authErrorsLeft = 0
         var cameraName = "FUJIFILM-X100VI-1A2B"
         var locationSyncSetting = byteArrayOf(0x01, 0x00)
+        var powerKeyState = byteArrayOf(0x01, 0x02)
         val reconnects = mutableListOf<String>()
 
         override fun reconnect(identifier: String): Boolean {
@@ -762,6 +818,8 @@ class FujifilmSessionTest {
                     cameraName.encodeToByteArray() + ByteArray(5)
                 characteristicUuid.equals(Fuji.LOCATION_SYNC_SETTING_UUID, ignoreCase = true) ->
                     locationSyncSetting
+                characteristicUuid.equals(Fuji.POWER_SWITCH_UUID, ignoreCase = true) ->
+                    powerKeyState
                 else -> byteArrayOf(0, 0, 0, 0, 2)
             }
             val event = BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result)
@@ -846,6 +904,7 @@ class FujifilmSessionTest {
             Fuji.GEOTAG_CHARACTERISTIC_UUID,
             Fuji.SHUTTER_CHARACTERISTIC_UUID,
             Fuji.UTC_TIME_ZONE_UUID,
+            Fuji.POWER_SWITCH_UUID,
         ) + (Fuji.REQUIRED_SUBSCRIPTIONS + Fuji.OPTIONAL_SUBSCRIPTIONS).map { it.characteristicUuid }
 
         val SONY: Set<String> = setOf(

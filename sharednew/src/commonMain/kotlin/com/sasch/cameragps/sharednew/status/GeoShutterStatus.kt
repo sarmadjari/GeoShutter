@@ -22,6 +22,8 @@ data class GeoShutterStatus(
         get() = cameras.filter { it.state == CameraState.Connecting }
     val locationSyncOff: List<CameraStatus>
         get() = cameras.filter { it.state == CameraState.LocationSyncOff }
+    val cameraOff: List<CameraStatus>
+        get() = cameras.filter { it.state == CameraState.CameraOff }
 }
 
 data class CameraStatus(
@@ -41,6 +43,12 @@ enum class CameraState {
 
     /** Fujifilm: connected, but the camera's location sync is off, so it takes no location. */
     LocationSyncOff,
+
+    /**
+     * Fujifilm: switched off but connected in standby (CONNECT WHILE POWER OFF); it still
+     * receives the location, so its next photo is tagged right away.
+     */
+    CameraOff,
 
     /** Receiving the phone's location. */
     Sending,
@@ -88,6 +96,7 @@ fun geoShutterStatus(
             state = when {
                 session == null -> CameraState.Away
                 session.isLocationReady && !session.wantsLocation -> CameraState.LocationSyncOff
+                session.isLocationReady && session.cameraOff -> CameraState.CameraOff
                 session.takesLocation && transmitting -> CameraState.Sending
                 session.phase in LINKED_PHASES -> CameraState.Connecting
                 else -> CameraState.Away
