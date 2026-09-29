@@ -1,6 +1,6 @@
 <svg aria-labelledby="title desc" height="630" role="img" viewBox="0 0 1200 630" width="1200"
     xmlns="http://www.w3.org/2000/svg">
-    <title id="title">GeoShutter – geotagging for Sony and Fujifilm cameras</title>
+    <title id="title">GeoShutter: Geotagging for Sony and Fujifilm cameras</title>
     <desc id="desc">Open-source geotagging app for Sony and Fujifilm cameras on Android and iOS, based on Alpha GPS.</desc>
     <defs>
         <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">

@@ -47,15 +47,15 @@ const features = [
   "Automatic reconnect when the camera is switched on, also in the background and with the phone locked",
   "Camera date, time and time zone sync",
   "Several cameras at the same time",
-  "Per-camera settings: how often the location is updated, the camera's own location and time settings",
+  "Per-camera settings for how often the location is updated and for the camera's own location and time settings",
   "Status notification, Quick Settings tile and home-screen widget (Android)",
   "Bluetooth remote shutter (Sony)"
 ];
 const fujifilmFeatures = [
-  "The camera asks for your location itself, every 10 seconds by default (adjustable from 10 s to 8 min); your phone's GPS follows its pace.",
+  "The camera asks for your location itself, every 10 seconds by default (adjustable from 10 s to 8 min). Your phone's GPS follows its pace.",
   "Sets the camera's date, time, time zone (AREA SETTING) and daylight saving time from your phone when it is switched on.",
   "Reads and changes the camera's Smartphone location sync and Connect while power off settings from the app.",
-  "Standby: a camera that is switched off or asleep stays connected and gets its location kept up to date (once a minute by default), so the first photo after switching it on is tagged right away.",
+  "Standby keeps a camera that is switched off or asleep connected and its location up to date (once a minute by default), so the first photo after switching it on is tagged right away.",
   "Shows each state at a glance: receiving (green), standby (blue), location sync off (amber), not connected (red)."
 ];
 
@@ -67,15 +67,15 @@ const faq = [
   },
   {
     question: "Which cameras work?",
-    answer: `Sony cameras that can receive location information from Imaging Edge Mobile or Creators' App, and Fujifilm cameras that sync their location with FUJIFILM XApp (current firmware). GeoShutter is tested on the Fujifilm X100VI and the Sony α1 II; users of Alpha GPS reported the Sony ${upstreamCameras.join(", ")}.`
+    answer: `Sony cameras that can receive location information from Imaging Edge Mobile or Creators' App, and Fujifilm cameras that sync their location with FUJIFILM XApp (current firmware). GeoShutter is tested on the Fujifilm X100VI and the Sony α1 II. Users of Alpha GPS reported the Sony ${upstreamCameras.join(", ")}.`
   },
   {
     question: "How do I install it?",
-    answer: "GeoShutter isn't in the app stores yet. Build it from source with the instructions in the repository; ready-made Android APKs will be published on GitHub Releases."
+    answer: "GeoShutter isn't in the app stores yet. Build it from source with the instructions in the repository. Ready-made Android APKs will be published on GitHub Releases."
   },
   {
     question: "Does it work on iPhone?",
-    answer: `The iPhone app (${minIos} or later) supports Sony cameras; Fujifilm support is Android only for now. The Android app needs ${minAndroid} or later.`
+    answer: `The iPhone app (${minIos} or later) supports Sony cameras. Fujifilm support is Android only for now. The Android app needs ${minAndroid} or later.`
   },
   {
     question: "Does it keep geotagging in the background?",
@@ -83,7 +83,7 @@ const faq = [
   },
   {
     question: "Why are the first photos after switching my Sony camera on untagged?",
-    answer: "A Sony camera ends the Bluetooth connection when it is switched on and takes a location only after the phone has reconnected, about 10 seconds later. It also ends the connection in power save, so photos right after waking it are affected too; turn on Keep the camera awake in its details to avoid that."
+    answer: "A Sony camera ends the Bluetooth connection when it is switched on and takes a location only after the phone has reconnected, about 10 seconds later. It also ends the connection in power save, so photos right after waking it are affected too. To avoid that, turn on Keep the camera awake in its details."
   },
   {
     question: "Is it free?",
@@ -120,7 +120,7 @@ const jsonLd = [
 ---
 
 <BaseLayout
-  title="GeoShutter – open-source geotagging for Sony and Fujifilm cameras"
+  title="GeoShutter: Open-source geotagging for Sony and Fujifilm cameras"
   description="GeoShutter sends your phone's GPS position to Sony and Fujifilm cameras over Bluetooth, so every photo is geotagged. Open source, on Android and iPhone."
   jsonLd={jsonLd}
   nav={topNav}
@@ -156,9 +156,9 @@ const jsonLd = [
       <article class="card">
         <h3>Fujifilm, built in</h3>
         <p>
-          Speaks Fujifilm's own geotagging protocol: the camera asks for your location,
-          GeoShutter sets its clock and time zone, and keeps the location ready while the
-          camera sleeps. <a href="#fujifilm">More about Fujifilm</a>.
+          Speaks Fujifilm's own geotagging protocol. The camera asks for your location,
+          and GeoShutter sets its clock and time zone and keeps the location ready while
+          the camera sleeps. <a href="#fujifilm">More about Fujifilm</a>.
         </p>
       </article>
       <article class="card">
@@ -205,7 +205,7 @@ const jsonLd = [
     <p>Tested with GeoShutter:</p>
     <ul>
       {testedCameras.map((camera) => (
-        <li><strong>{camera.name}</strong><span class="muted"> – {camera.detail}</span></li>
+        <li><strong>{camera.name}</strong><span class="muted">: {camera.detail}</span></li>
       ))}
     </ul>
     <p>
@@ -215,7 +215,7 @@ const jsonLd = [
     </p>
     <p>
       <strong>Fujifilm (Android):</strong> cameras that geotag through FUJIFILM XApp with
-      current firmware should work; so far only the X100VI is tested.
+      current firmware should work. So far only the X100VI is tested.
     </p>
     <p class="muted">
       Using a camera that isn't listed? <a href={issuesUrl}>Let us know</a> whether it
