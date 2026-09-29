@@ -749,8 +749,8 @@ effect after a new deployment.
   sides moved out, round tip; inner: circle −28, sides moved in, meeting in a point) and
   fails if `PIN` in `shapes.mjs` changes. Verified: the outline matches the stroked pin
   exactly (overlay render), lint 0 errors, app tests, a simulator preview of the widget
-  symbols, and a device build installed on the iPhone (the Android phone wasn't
-  connected).
+  symbols, and a device build installed on the iPhone. Installed on the Android phone
+  later (2026-09-30, 00:17); the maintainer found both good.
 - 2026-09-29 (night): the iPhone widget showed the α1 II away with the waiting icon while
   the app showed it sending. The iPhone's system log (pymobiledevice3, §8) showed why:
   while the app is connected to a camera, iOS reloads the widget at most every 5 minutes
