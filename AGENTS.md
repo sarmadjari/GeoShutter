@@ -252,7 +252,12 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 Website deploy config: `website/astro.config.mjs` (`site` https://geoshutter.sarmad.no) and
 `website/public/robots.txt`. GitHub Pages is enabled with GitHub Actions as the source and
 the custom domain `geoshutter.sarmad.no` (set in the Pages settings, so no `CNAME` file is
-needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.io`.
+needed). DNS (Domeneshop, name servers `ns*.hyp.net`) has a CNAME record
+`geoshutter.sarmad.no` → `sarmadjari.github.io`. GitHub's Let's Encrypt certificate renews
+itself and *Enforce HTTPS* is on. If the certificate ever stops being issued, save the
+custom domain again (clear it, then set it) to restart provisioning. After changing the
+domain or HTTPS setting, run the deploy workflow again: the HTTP→HTTPS redirect only took
+effect after a new deployment.
 
 ## 7. User preferences and decisions
 
@@ -346,10 +351,7 @@ needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.
   signed APKs (Sentry secrets/variables are optional). Without them the build now
   succeeds but produces `*-release-unsigned.apk`, which the release step's file list
   (`app-*-release.apk`) doesn't match. No GitHub release has been published yet.
-- Website: until the DNS record for geoshutter.sarmad.no exists, the site isn't reachable
-  under that name; after GitHub issues its certificate, turn on *Enforce HTTPS* (Pages
-  settings, or `gh api -X PUT repos/sarmadjari/GeoShutter/pages -F https_enforced=true`).
-  The link-preview image is an SVG, which most social networks don't show.
+- Website: the link-preview image is an SVG, which most social networks don't show.
 - Fork CI: pushes to `main` have never started a workflow run (not even ones touching
   `website/**`), while `workflow_dispatch` works. GitHub keeps push-triggered workflows off
   on forks until they're enabled on the repository's Actions tab. Until then, deploy the
@@ -591,7 +593,10 @@ needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.
   switched-off Sony case), README (install, tested cameras X100VI and α1 II, credits) and
   website rewritten with a Fujifilm section, F-Droid description, old root `CNAME`,
   `icon.svg` and App Store badge removed. Enabled GitHub Pages (Actions) with the custom
-  domain and updated the repository description and homepage. The DNS record is up to the
-  maintainer (`sarmad.no` is hosted by Domeneshop, name servers `ns*.hyp.net`). The push
-  didn't start the deploy workflow (see §8), so it was run by hand; the site is deployed
-  and `sarmadjari.github.io/GeoShutter` redirects to the custom domain.
+  domain and updated the repository description and homepage. The push didn't start the
+  deploy workflow (see §8), so it was run by hand. The maintainer then added the DNS
+  record; saving the custom domain again started the certificate (approved within a
+  minute), HTTPS was enforced, and a second deployment turned on the HTTP→HTTPS redirect.
+  https://geoshutter.sarmad.no is live. Right after a new DNS record, a resolver that looked
+  the name up before (here the home router) keeps the "doesn't exist" answer for up to an
+  hour (the zone's negative TTL is 3600 s).
