@@ -26,7 +26,7 @@ try {
     mkdirSync(destination, { recursive: true });
     for (const scenario of ['geotagging', 'reconnect', 'remote', 'multiple', 'privacy']) {
       console.log(`Capturing ${locale}/${scenario}`);
-      run(['launch', '--terminate-running-process', device, 'com.saschl.cameragps', '-AppleLanguages', `(${language})`, '-AppleLocale', locale.replace('-', '_')], { env: { ...process.env, SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT: scenario } });
+      run(['launch', '--terminate-running-process', device, 'com.sarmadjari.geoshutter', '-AppleLanguages', `(${language})`, '-AppleLocale', locale.replace('-', '_')], { env: { ...process.env, SIMCTL_CHILD_ALPHA_GPS_SCREENSHOT: scenario } });
       // Allow Compose resources, fonts and the first frame to finish loading.
       await new Promise(resolve => setTimeout(resolve, 3500));
       run(['io', device, 'screenshot', resolve(destination, `${scenario}.png`)]);
@@ -34,6 +34,6 @@ try {
   }
 } finally {
   run(['status_bar', device, 'clear']);
-  run(['terminate', device, 'com.saschl.cameragps']);
+  run(['terminate', device, 'com.sarmadjari.geoshutter']);
 }
 await import('./render.mjs');

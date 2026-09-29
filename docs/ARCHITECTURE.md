@@ -6,11 +6,11 @@ The short, always-loaded project context lives in [`../AGENTS.md`](../AGENTS.md)
 this document is the deep dive. Verified against the code at app version 1.6.3
 (Android `versionCode` 163 / iOS build 163).
 
-GeoShutter is a fork of [Alpha GPS](https://github.com/Saschl/alpha-gps). The app is
-named GeoShutter (strings, Android launcher label, iOS display name) and Android has its
-own app ID (`com.sarmadjari.geoshutter`), but the code still uses the upstream identifiers
-(code namespace, Xcode project `alphagps`, iOS bundle ID `com.saschl.cameragps`), so
-those names appear throughout this document.
+GeoShutter is a standalone app based on [Alpha GPS](https://github.com/Saschl/alpha-gps)
+by Saschl (GPL-3.0). It has its own name and identity on both platforms (app ID and bundle
+ID `com.sarmadjari.geoshutter`), but the code keeps Alpha GPS's internal names (Kotlin
+namespaces `com.saschl.cameragps` and `com.sasch.cameragps.sharednew`, Xcode project and
+scheme `alphagps`), so those names appear throughout this document.
 
 ## 1. Modules
 
@@ -18,8 +18,8 @@ those names appear throughout this document.
 |---|---|---|---|
 | `:app` (`app/`) | Android application | namespace `com.saschl.cameragps`, applicationId `com.sarmadjari.geoshutter`, launcher label `GeoShutter` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
 | `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, StoreKit, Sentry). |
-| `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "GeoShutter", bundle ID `com.saschl.cameragps`, iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
-| `website/` | Astro static site | — | Landing page (upstream deploys it to alphagps.app). |
+| `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "GeoShutter", bundle ID `com.sarmadjari.geoshutter`, signing team from `Config/Local.xcconfig` (`DEVELOPMENT_TEAM`), iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
+| `website/` | Astro static site | — | Landing page, deployed by `deploy-pages.yml` to GitHub Pages at geoshutter.sarmad.no. |
 | `tools/` | Scripts | — | App icon generator, screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
 
 Root Gradle project name: `CameraGps`. Dependency versions: `gradle/libs.versions.toml`.
@@ -70,7 +70,7 @@ Rules the code relies on:
 
 ## 3. Sony Bluetooth LE protocol (as implemented)
 
-Fujifilm cameras (experimental, Android) use a different protocol, described with its
+Fujifilm cameras (Android; tested on the X100VI) use a different protocol, described with its
 sources in [`fujifilm-protocol.md`](fujifilm-protocol.md).
 
 Source of truth: `sharednew/.../bluetooth/SonyBluetoothConstants.kt`,
@@ -327,15 +327,14 @@ The `foss` guarantee also depends on `:sharednew`: Sentry KMP is declared only i
 | `ContentView.swift` | Embeds `MainViewController(reviewTestMode:requestReview:)` and supplies the StoreKit review callback. Debug simulator builds honor `ALPHA_GPS_SCREENSHOT` (store screenshots) and `ALPHA_GPS_REVIEW_TEST=1`. |
 | `AccessoryDiscoveryNaming.swift`, `AccessoryDiscoveryItems.swift` | iOS 26.1+ picker naming customizer. **Currently disabled** (the install call is commented out in `AppDelegate`). |
 | `IosBluetoothController` | Singleton facade used by the Compose UI and owner of the policy: auto-reconnect decisions (`AutoReconnectPolicy`), app/device enable sweeps, pairing-failure state, device-list assembly, forwarding of the AccessorySetupKit APIs. |
-| `IosCentralShell` | The `CBCentralManager` (restore identifier `com.saschl.cameragps.central`), state restoration (restored peripherals are parked until the central is powered on, see `RestorePolicy`), `retrievePeripheralsWithIdentifiers` plus pending connects with `CBConnectPeripheralOptionEnableAutoReconnect`. It does **not** scan for new cameras. |
+| `IosCentralShell` | The `CBCentralManager` (restore identifier `com.sarmadjari.geoshutter.central`), state restoration (restored peripherals are parked until the central is powered on, see `RestorePolicy`), `retrievePeripheralsWithIdentifiers` plus pending connects with `CBConnectPeripheralOptionEnableAutoReconnect`. It does **not** scan for new cameras. |
 | `IosBleTransport` | `CBPeripheral` delegate, two-phase discovery and the **pairing gate**: subscribing to the first notifiable characteristic forces iOS pairing before the handshake (auth errors are retried, then `PairingFailed`). |
 | `IosAccessoryShell` / `IosAccessoryCoordinator` | AccessorySetupKit: `ASAccessorySession`, discovery picker (company ID `0x012D`, BLE pairing), migration picker for cameras saved before AccessorySetupKit (app versions before 1.6.2), system rename sheet, removal events. A picker is first requested with the central alive; only if iOS refuses it with `ASErrorCodePickerRestricted` (a live `CBCentralManager` from the legacy global Bluetooth grant) is the central released and the picker retried (up to 10 attempts, 10 s after a release, 5 s otherwise). Central creation stays blocked (`centralCreationBlocked`) until the picker operation ends. |
 | `IosDeviceRepository` | Room DAO access, the legacy `NSUserDefaults` auto-reconnect store (read only for migration), enabled-state caches. |
 | `IosLocationSource` | `CLLocationManager`; requests When-In-Use, then escalates to Always. |
 | `IosTransmissionNotifications` | Local notification "Location transmission active" while sending (setting *Transmission notification*, default on). |
-| `IosTipJarController` | StoreKit products `com.saschl.cameragps.tip.small/medium/large`. |
 | `IosCrashReporting` | Sentry KMP (Cocoa SDK via the SPM package `sentry-cocoa` 8.58.2), started only after consent. The DSN comes from the `SentryDSN` Info.plist key (build setting `SENTRY_DSN`); without it error reporting is hidden. MAC addresses are redacted from messages, breadcrumbs and logs. |
-| `CameraGpsIosApp` | Screen state machine (Welcome, Devices, PairingPreparation, DeviceDetails, Settings, Help, Troubleshooting, Logs). Dialogs are queued through `IosAppDialogState` and the shared `DialogQueue`: error-reporting consent, migration explainer/error, pairing failed, "Always" location, precise location, what's new, donation (opens the Tip Jar). |
+| `CameraGpsIosApp` | Screen state machine (Welcome, Devices, PairingPreparation, DeviceDetails, Settings, Help, Troubleshooting, Logs). Dialogs are queued through `IosAppDialogState` and the shared `DialogQueue`: error-reporting consent, migration explainer/error, pairing failed, "Always" location, precise location, what's new, donation (opens Saschl's Buy Me a Coffee page). |
 | Preferences | `NSUserDefaults`, keys prefixed `ios.` (`IosAppPreferences`). |
 
 Build settings: the target's base configuration is `iosApp/Config/GeoShutter.xcconfig`,
@@ -353,7 +352,7 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 | Topic | Android | iOS |
 |---|---|---|
 | Adding a camera | CDM chooser + Bluetooth bonding | AccessorySetupKit picker (iOS pairs) |
-| Fujifilm cameras | experimental (secure protocol) | not supported (the picker lists Sony only) |
+| Fujifilm cameras | supported (secure protocol; tested on the X100VI) | not supported (the picker lists Sony only) |
 | Background reconnect | CDM presence (Android 12+) starts the foreground service; optional Always On keeps it running with `autoConnect` | pending connections with auto-reconnect + Core Bluetooth state restoration relaunches |
 | Always On / start on boot | yes | not applicable |
 | Status notification | status notification (foreground while the service runs), Quick Settings tile, home-screen widget | optional local notification |
@@ -363,7 +362,7 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 | Rename | in-app name only (CDM keeps its own) | system rename sheet for AccessorySetupKit cameras, in-app otherwise |
 | Removing a camera | removes the CDM association and the app's data | also removes the AccessorySetupKit authorization (and the bond) |
 | Crash reporting | `gplay` only, opt-in | opt-in |
-| Donations | Buy Me a Coffee link | Tip Jar (in-app purchase) |
+| Donations | Buy Me a Coffee link (to Saschl, the author of Alpha GPS) | same |
 | Review prompt | Play in-app review (`gplay`) | StoreKit request (one day after setup, then at least 30 days apart) |
 
 ## 8. Persistence

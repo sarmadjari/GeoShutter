@@ -1,7 +1,7 @@
 <svg aria-labelledby="title desc" height="630" role="img" viewBox="0 0 1200 630" width="1200"
     xmlns="http://www.w3.org/2000/svg">
-    <title id="title">GeoShutter – geotagging for Sony cameras</title>
-    <desc id="desc">Open-source geotagging app for Sony cameras on Android and iOS, a fork of Alpha GPS.</desc>
+    <title id="title">GeoShutter – geotagging for Sony and Fujifilm cameras</title>
+    <desc id="desc">Open-source geotagging app for Sony and Fujifilm cameras on Android and iOS, based on Alpha GPS.</desc>
     <defs>
         <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stop-color="#0d1117" />
@@ -11,10 +11,10 @@
     <rect fill="url(#bg)" height="630" width="1200" />
     <g fill="#e6edf3" font-family="Inter, Segoe UI, Arial, sans-serif">
         <text font-size="72" font-weight="700" x="80" y="235">GeoShutter</text>
-        <text fill="#79c0ff" font-size="50" font-weight="600" x="80" y="305">Geotagging &amp; remote shutter</text>
-        <text fill="#8b949e" font-size="32" x="80" y="390">Open-source GPS transfer for Sony cameras
+        <text fill="#79c0ff" font-size="50" font-weight="600" x="80" y="305">Geotagging for Sony &amp; Fujifilm</text>
+        <text fill="#8b949e" font-size="32" x="80" y="390">Open source, on Android and iPhone
         </text>
-        <text fill="#8b949e" font-size="28" x="80" y="455">github.com/sarmadjari/GeoShutter</text>
+        <text fill="#8b949e" font-size="28" x="80" y="455">geoshutter.sarmad.no</text>
     </g>
 </svg>
 

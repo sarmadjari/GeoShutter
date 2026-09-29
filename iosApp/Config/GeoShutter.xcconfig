@@ -1,6 +1,11 @@
 // Build settings for the alphagps target (all configurations).
 // Machine-specific values go in the untracked Local.xcconfig next to this file.
 
+// Your Apple developer team for code signing (the ID shown in Xcode under Signing &
+// Capabilities or on developer.apple.com). Set it in Local.xcconfig, for example
+// DEVELOPMENT_TEAM = ABCDE12345; left empty, Xcode asks for a team when signing.
+DEVELOPMENT_TEAM =
+
 // Sentry DSN of the iOS project; it becomes the SentryDSN Info.plist key.
 // Empty means the app offers no error reporting.
 SENTRY_DSN =

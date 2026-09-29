@@ -114,7 +114,6 @@ internal fun CameraGpsIosApp(
         )
     }
 
-    var scrollToTipJarOnSettingsOpen by remember { mutableStateOf(false) }
     var selectedDeviceIdentifier by remember { mutableStateOf<String?>(null) }
     // Where the back button of the troubleshooting guide returns to (it can be opened
     // from the help screen as well as from the device-list dialogs).
@@ -322,7 +321,6 @@ internal fun CameraGpsIosApp(
                     transmissionNotificationsPermissionDenied = transmissionNotificationsPermissionDenied,
                     onTransmissionNotificationsEnabledChange = bluetoothController::setTransmissionNotificationsEnabled,
                     onOpenNotificationSettings = { openNotificationSettings() },
-                    scrollToTipJarOnOpen = scrollToTipJarOnSettingsOpen,
                     onBackClick = { currentScreen = IosScreen.Devices },
                     onAppEnabledChange = { enabled ->
                         isAppEnabled = enabled
@@ -341,9 +339,6 @@ internal fun CameraGpsIosApp(
                     onChangeLogLevel = { level ->
                         IosLogging.install(logRepository, level)
                     },
-                    onTipJarScrollConsumed = {
-                        scrollToTipJarOnSettingsOpen = false
-                    }
                 )
             }
 
@@ -383,10 +378,6 @@ internal fun CameraGpsIosApp(
         onOpenTroubleshooting = {
             troubleshootingReturnScreen = IosScreen.Devices
             currentScreen = IosScreen.Troubleshooting
-        },
-        onOpenTipJar = {
-            scrollToTipJarOnSettingsOpen = true
-            currentScreen = IosScreen.Settings
         },
     )
 }

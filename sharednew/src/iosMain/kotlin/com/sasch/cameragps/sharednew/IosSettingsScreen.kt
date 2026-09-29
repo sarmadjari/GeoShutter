@@ -9,13 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,17 +19,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -55,13 +46,6 @@ import cameragps.sharednew.generated.resources.ios_transmission_notifications_se
 import cameragps.sharednew.generated.resources.log_level
 import cameragps.sharednew.generated.resources.log_settings
 import cameragps.sharednew.generated.resources.settings
-import cameragps.sharednew.generated.resources.tip_jar
-import cameragps.sharednew.generated.resources.tip_jar_description
-import cameragps.sharednew.generated.resources.tip_jar_dismiss
-import cameragps.sharednew.generated.resources.tip_jar_error_prefix
-import cameragps.sharednew.generated.resources.tip_jar_loading
-import cameragps.sharednew.generated.resources.tip_jar_thank_you
-import cameragps.sharednew.generated.resources.tip_jar_unavailable
 import com.diamondedge.logging.LogLevel
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController
 import com.sasch.cameragps.sharednew.crash.IosCrashReporting
@@ -73,7 +57,6 @@ import com.sasch.cameragps.sharednew.ui.settings.SharedSettingsScreen
 import com.sasch.cameragps.sharednew.ui.settings.SharedToggleRow
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewSettingsCard
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewState
-import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import platform.Foundation.NSLog
@@ -94,28 +77,17 @@ internal fun IosSettingsScreen(
     transmissionNotificationsPermissionDenied: Boolean,
     onTransmissionNotificationsEnabledChange: (Boolean) -> Unit,
     onOpenNotificationSettings: () -> Unit,
-    scrollToTipJarOnOpen: Boolean = false,
     onBackClick: () -> Unit,
     onAppEnabledChange: (Boolean) -> Unit,
     onHapticsEnabledChange: (Boolean) -> Unit,
     sentryEnabled: Boolean,
     onSentryEnabledChange: (Boolean) -> Unit,
     onChangeLogLevel: (LogLevel) -> Unit,
-    onTipJarScrollConsumed: () -> Unit = {},
     whatsNew: WhatsNewState? = null,
     crashReportingAvailable: Boolean = IosCrashReporting.AVAILABLE,
 ) {
     var selectedLogLevel by remember { mutableStateOf(LogLevel.valueOf(IosAppPreferences.getLogLevel())) }
     var debugTapCounter by remember { mutableIntStateOf(0) }
-    val tipJarRequester = remember { BringIntoViewRequester() }
-    var tipJarPlaced by remember { mutableStateOf(false) }
-
-    LaunchedEffect(scrollToTipJarOnOpen) {
-        if (!scrollToTipJarOnOpen) return@LaunchedEffect
-        snapshotFlow { tipJarPlaced }.first { it }
-        tipJarRequester.bringIntoView()
-        onTipJarScrollConsumed()
-    }
 
     SharedSettingsScreen(
         title = stringResource(Res.string.settings),
@@ -176,12 +148,6 @@ internal fun IosSettingsScreen(
                     onCheckedChange = onHapticsEnabledChange,
                 )
             }
-
-            IosTipJarCard(
-                modifier = Modifier
-                    .bringIntoViewRequester(tipJarRequester)
-                    .onGloballyPositioned { tipJarPlaced = true },
-            )
 
             SharedLanguageSettingsCard()
             whatsNew?.let { WhatsNewSettingsCard(it) }
@@ -348,127 +314,6 @@ private fun IosLogLevelPlaceholderCard(
                     }
                 },
             )
-        }
-    }
-}
-
-@Composable
-private fun IosTipJarCard(modifier: Modifier = Modifier) {
-    val products by IosTipJarController.products.collectAsState()
-    val purchaseState by IosTipJarController.purchaseState.collectAsState()
-    val isLoadingProducts by IosTipJarController.isLoadingProducts.collectAsState()
-
-    LaunchedEffect(Unit) {
-        if (products.isEmpty() && !isLoadingProducts) {
-            IosTipJarController.fetchProducts()
-        }
-    }
-
-    SharedSettingsCard(title = stringResource(Res.string.tip_jar), modifier = modifier) {
-        Text(
-            text = stringResource(Res.string.tip_jar_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        when {
-            // ── Purchase succeeded ──────────────────────────────────────────
-            purchaseState is TipPurchaseState.Success -> {
-                Text(
-                    text = stringResource(Res.string.tip_jar_thank_you),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                TextButton(onClick = { IosTipJarController.resetPurchaseState() }) {
-                    Text(stringResource(Res.string.tip_jar_dismiss))
-                }
-            }
-
-            // ── Purchase error ──────────────────────────────────────────────
-            purchaseState is TipPurchaseState.Error -> {
-                val msg = (purchaseState as TipPurchaseState.Error).message
-                Text(
-                    text = "${stringResource(Res.string.tip_jar_error_prefix)} $msg",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                TextButton(onClick = { IosTipJarController.resetPurchaseState() }) {
-                    Text(stringResource(Res.string.tip_jar_dismiss))
-                }
-            }
-
-            // ── Purchase in progress ────────────────────────────────────────
-            purchaseState is TipPurchaseState.Loading -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(
-                        text = stringResource(Res.string.tip_jar_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // ── Fetching products ───────────────────────────────────────────
-            isLoadingProducts -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(
-                        text = stringResource(Res.string.tip_jar_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // ── Products unavailable ────────────────────────────────────────
-            products.isEmpty() || !IosTipJarController.canMakePurchases() -> {
-                Text(
-                    text = stringResource(Res.string.tip_jar_unavailable),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // ── Tip buttons ─────────────────────────────────────────────────
-            else -> {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    products.forEach { product ->
-                        OutlinedButton(
-                            onClick = { IosTipJarController.purchase(product) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = product.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Text(
-                                    text = product.formattedPrice,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import cameragps.sharednew.generated.resources.Res
 import cameragps.sharednew.generated.resources.always_location
@@ -49,6 +50,7 @@ import cameragps.sharednew.generated.resources.pairing_failed_title
 import cameragps.sharednew.generated.resources.precise_location
 import com.sasch.cameragps.sharednew.bluetooth.IosBluetoothController
 import com.sasch.cameragps.sharednew.ui.dialog.DialogHost
+import com.sasch.cameragps.sharednew.ui.help.ProjectLinks
 import com.sasch.cameragps.sharednew.ui.settings.SharedSentryConsentDialog
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewDialog
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewState
@@ -67,7 +69,6 @@ internal fun IosAppDialogHost(
     migrationSnackbarHostState: SnackbarHostState,
     onSentryEnabledChange: (Boolean) -> Unit,
     onOpenTroubleshooting: () -> Unit,
-    onOpenTipJar: () -> Unit,
 ) {
     val bluetoothController = IosBluetoothController
     val migrationInProgress by bluetoothController.migrationInProgress.collectAsState()
@@ -75,6 +76,7 @@ internal fun IosAppDialogHost(
     val migrationSuccessMessage = stringResource(Res.string.ios_accessory_migration_success)
     // This scope outlives individual dialogs, including migration completion/snackbars.
     val scope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
 
     DialogHost(state.queue, canShow = canShow) { dialog, dismiss ->
         when (dialog) {
@@ -286,7 +288,8 @@ internal fun IosAppDialogHost(
                         TextButton(
                             onClick = {
                                 dismiss()
-                                onOpenTipJar()
+                                // Donations go to Saschl, the author of Alpha GPS.
+                                uriHandler.openUri(ProjectLinks.ORIGINAL_AUTHOR_DONATION)
                             }
                         ) {
                             Text(text = stringResource(Res.string.donation_dialog_confirm))

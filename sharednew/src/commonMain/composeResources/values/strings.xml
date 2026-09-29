@@ -148,6 +148,7 @@
     <string name="help_close_description">Close</string>
     <string name="help_about_title">About GeoShutter</string>
     <string name="help_about_description">This app provides real-time GPS coordinates to your camera via Bluetooth, allowing for automatic geotagging of your photos without needing a camera's built-in GPS.</string>
+    <string name="help_about_credits">GeoShutter is free software under the GPL-3.0 and comes with no warranty. It is based on Alpha GPS by Saschl; the Fujifilm support is based on furble by Guo-Rong Koh (MIT License).</string>
     <string name="help_need_more_title">Need more help?</string>
     <string name="help_need_more_description">Check the app logs in the top menu for troubleshooting information, or review your device settings to ensure all permissions are granted.</string>
     <!-- FAQ Questions -->
@@ -274,7 +275,7 @@
     <string name="language_german">Deutsch</string>
     <string name="language_chinese">简体中文</string>
     <string name="how_about_privacy">How about privacy?</string>
-    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. All collected information (location data) is only used to transfer GPS coordinates to your connected camera and is not permanently stored. Location collection stops as soon as the connection to the camera is disconnected. If you have any questions or concerns, please contact us through the GitHub page mentioned above.</string>
+    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. All collected information (location data) is only used to transfer GPS coordinates to your connected camera and is not permanently stored. Location collection stops as soon as no connected camera needs it. Anonymous error reports are only sent if you allow them. If you have any questions or concerns, please contact us through the GitHub page mentioned above.</string>
     <!-- Device management strings -->
     <string name="device_management">Device Management</string>
     <string name="no_devices_found">No devices found</string>
@@ -315,14 +316,6 @@
     <string name="bluetooth_connect_required_desc">This app requires Bluetooth Connect permission to discover and communicate with your camera device.</string>
     <string name="bluetooth_connect_grant_button">Grant Bluetooth Permission</string>
     <string name="bluetooth_connect_permanently_denied">Bluetooth permission has been permanently denied. Please open App Settings, navigate to Permissions → Nearby devices, and grant the permission manually.</string>
-    <!-- Tip Jar -->
-    <string name="tip_jar">Tip Jar</string>
-    <string name="tip_jar_description">GeoShutter builds on Alpha GPS by Saschl. Tips go to him and help cover the Apple Developer Program fee ($99/year) that keeps Alpha GPS on the App Store. It's completely optional — thank you! ❤️</string>
-    <string name="tip_jar_loading">Loading…</string>
-    <string name="tip_jar_thank_you">Thank you so much for your support!</string>
-    <string name="tip_jar_unavailable">Tip options are not available right now.</string>
-    <string name="tip_jar_error_prefix">Something went wrong:</string>
-    <string name="tip_jar_dismiss">Dismiss</string>
     <!-- Donation prompt -->
     <string name="donation_dialog_title">Enjoying GeoShutter?</string>
     <string name="donation_dialog_message">GeoShutter builds on Alpha GPS by Saschl. If the app helps your photography, a small donation supports its original author. It is completely optional.</string>

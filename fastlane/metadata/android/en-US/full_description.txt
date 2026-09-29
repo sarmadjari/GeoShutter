@@ -1,16 +1,17 @@
-GeoShutter geotags your photos by transmitting your phone's GPS location to Sony cameras (Alpha, ZV and other models with Bluetooth location linking) over Bluetooth LE — a lightweight alternative to the official apps. It also offers a Bluetooth remote shutter.
+GeoShutter geotags your photos by sending your phone's GPS location to Sony and Fujifilm cameras over Bluetooth LE — a lightweight, open-source alternative to the official apps. It also sets the camera's date, time and time zone, and works as a Bluetooth remote shutter for Sony cameras.
 
 <b>Features</b>
 
 <ul>
-<li>Continuous location transmission to the camera while shooting, including automatic date, time and time zone synchronization</li>
+<li>Sony cameras (Alpha, ZV and other models with Bluetooth location linking): continuous location transmission, date, time and time zone sync, remote shutter, and an option to keep the camera awake so every photo is tagged</li>
+<li>Fujifilm cameras that sync their location with FUJIFILM XApp (tested on the X100VI): the camera asks for the location, GeoShutter sets its date, time and time zone, changes its location sync and power-off connection settings, and keeps the location up to date while the camera is in standby</li>
 <li>Automatic reconnection when the camera is turned on, even with the app in the background and the screen off (via Android's companion device manager, Android 12 and later)</li>
 <li>Optional "Always On" foreground service for older Android versions and devices with aggressive battery management</li>
-<li>Remote shutter with a focus → shutter sequence</li>
-<li>Per-camera settings, including a connection-setup delay for slow-starting cameras and the camera's automatic time correction and area adjustment</li>
+<li>Status notification, Quick Settings tile and home-screen widget</li>
+<li>Per-camera settings, including how often the location is updated and the camera's own time and location settings</li>
 <li>Multiple cameras can be paired and used at the same time</li>
 <li>Step-by-step troubleshooting guide and in-app logs</li>
 <li>No account, no ads, no tracking; this build contains no Google Play services and no crash reporting</li>
 </ul>
 
-Works with Sony cameras that support location linking via Bluetooth (as used by Imaging Edge Mobile or Creators' App).
+GeoShutter is based on Alpha GPS by Saschl and licensed under the GPL-3.0.

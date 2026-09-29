@@ -1,10 +1,11 @@
 # Fujifilm Bluetooth LE protocol
 
-> **Status: experimental, Android only.** With a FUJIFILM X100VI (firmware 01.32)
+> **Status: supported on Android, tested on a FUJIFILM X100VI (firmware 01.32).**
 > GeoShutter geotags photos, sets the camera's date, time and time zone, reads and changes
-> the camera's SMARTPHONE LOCATION SYNC. setting, and keeps the location of a camera that
-> is switched off or asleep up to date in standby. iOS and cameras with the legacy protocol are not
-> supported.
+> the camera's SMARTPHONE LOCATION SYNC. and CONNECT WHILE POWER OFF settings, sets how
+> often the camera asks for the location, and keeps the location of a camera that is
+> switched off or asleep up to date in standby. Other XApp-generation cameras should work
+> but are untested. iOS and cameras with the legacy protocol are not supported.
 
 This is the reference for the Bluetooth Low Energy protocol GeoShutter uses with Fujifilm
 cameras: what the camera offers, every message with its bytes, the order and timing, how

@@ -229,13 +229,6 @@
     <string name="bluetooth_connect_required_desc">Esta aplicación requiere permisos de Conexión de Bluetooth para descubrir y comunicar con su dispositivo de cámara.</string>
     <string name="bluetooth_connect_grant_button">Concede Permisos de Bluetooth</string>
     <string name="bluetooth_connect_permanently_denied">Permisos de Bluetooth han sido denegados permanentemente. Abra los Ajustes de App, navegue a Permisos → Dispositivos cercanos, y conceda el permiso manualmente.</string>
-    <string name="tip_jar">Consejo Jar</string>
-    <string name="tip_jar_description">GeoShutter se basa en Alpha GPS de Saschl. Las propinas van a él y ayudan a cubrir la tarifa del Apple Developer Program (99 $/año) que mantiene Alpha GPS en la App Store. Es totalmente opcional. ¡Gracias! ❤️</string>
-    <string name="tip_jar_loading">Cargando…</string>
-    <string name="tip_jar_thank_you">¡Muchas gracias por su apoyo!</string>
-    <string name="tip_jar_unavailable">Justo ahora no están disponibles las opciones de consejo.</string>
-    <string name="tip_jar_error_prefix">Algo ha ido mal:</string>
-    <string name="tip_jar_dismiss">Despedir</string>
     <string name="donation_dialog_title">¿Disfruta del GPS Alpha?</string>
     <string name="donation_dialog_message">GeoShutter se basa en Alpha GPS de Saschl. Si la aplicación le ayuda en su fotografía, una pequeña donación apoya a su autor original. Esto es completamente opcional.</string>
     <string name="donation_dialog_confirm">Apoyar proyecto</string>

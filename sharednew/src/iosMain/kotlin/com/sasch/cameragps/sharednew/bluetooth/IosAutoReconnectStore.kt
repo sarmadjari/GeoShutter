@@ -16,7 +16,7 @@ internal class IosAutoReconnectStore(
     private val ids = mutableSetOf<String>()
 
     private companion object {
-        const val PERSISTED_PERIPHERALS_KEY = "com.saschl.cameragps.persistedPeripherals"
+        const val PERSISTED_PERIPHERALS_KEY = "com.sarmadjari.geoshutter.persistedPeripherals"
     }
 
     /** Add a peripheral to the auto-reconnect set and persist. */

@@ -216,13 +216,6 @@
     <string name="bluetooth_connect_required_desc">Aplikasi ini memerlukan izin Bluetooth Connect untuk menemukan dan berkomunikasi dengan perangkat kamera Anda.</string>
     <string name="bluetooth_connect_grant_button">Berikan Izin Bluetooth</string>
     <string name="bluetooth_connect_permanently_denied">Izin Bluetooth telah ditolak secara permanen. Silakan buka Pengaturan Aplikasi, navigasikan ke Izin → Perangkat di sekitar, dan berikan izin secara manual.</string>
-    <string name="tip_jar">Toples Tips</string>
-    <string name="tip_jar_description">GeoShutter dibuat berdasarkan Alpha GPS oleh Saschl. Tip diberikan kepadanya dan membantu menutup biaya Apple Developer Program ($99/tahun) agar Alpha GPS tetap ada di App Store. Ini sepenuhnya opsional — terima kasih! ❤️</string>
-    <string name="tip_jar_loading">Memuat…</string>
-    <string name="tip_jar_thank_you">Terima kasih banyak atas dukungan Anda! ️</string>
-    <string name="tip_jar_unavailable">Opsi tip tidak tersedia saat ini.</string>
-    <string name="tip_jar_error_prefix">Terjadi kesalahan:</string>
-    <string name="tip_jar_dismiss">Tutup</string>
     <string name="donation_dialog_title">Menikmati GeoShutter?</string>
     <string name="donation_dialog_message">GeoShutter dibuat berdasarkan Alpha GPS oleh Saschl. Jika aplikasi ini membantu fotografi Anda, donasi kecil akan mendukung pembuat aslinya. Ini sepenuhnya opsional.</string>
     <string name="donation_dialog_confirm">Dukung proyek</string>

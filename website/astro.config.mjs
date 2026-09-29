@@ -1,11 +1,10 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 
-// GitHub Pages project site base path.
+// Deployed by .github/workflows/deploy-pages.yml to GitHub Pages under the custom domain
+// geoshutter.sarmad.no (set in the repository's Pages settings).
 export default defineConfig({
-  site: "https://alphagps.app",
+  site: "https://geoshutter.sarmad.no",
   base: "/",
   integrations: [sitemap()]
 });
-
-

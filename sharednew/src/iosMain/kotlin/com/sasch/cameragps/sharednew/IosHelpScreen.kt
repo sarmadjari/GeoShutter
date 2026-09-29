@@ -53,6 +53,7 @@ import cameragps.sharednew.generated.resources.is_there_documenation
 import cameragps.sharednew.generated.resources.is_there_documenation_answer
 import cameragps.sharednew.generated.resources.is_there_documenation_answer_coffee
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
+import com.sasch.cameragps.sharednew.ui.help.AboutCredits
 import com.sasch.cameragps.sharednew.ui.help.ProjectLinks
 import com.sasch.cameragps.sharednew.ui.help.TroubleshootingGuideContent
 import com.sasch.cameragps.sharednew.ui.settings.SharedSettingsScreen
@@ -136,6 +137,8 @@ internal fun IosHelpScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AboutCredits(color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }

@@ -310,7 +310,7 @@ internal class IosCentralShell(
     private var centralOrNull: CBCentralManager? = CBCentralManager(
         delegate = delegate,
         queue = null,
-        options = mapOf(CBCentralManagerOptionRestoreIdentifierKey to "com.saschl.cameragps.central"),
+        options = mapOf(CBCentralManagerOptionRestoreIdentifierKey to "com.sarmadjari.geoshutter.central"),
     )
 
     private val central: CBCentralManager? get() = centralOrNull

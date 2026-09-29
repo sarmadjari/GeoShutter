@@ -11,32 +11,37 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 
 ## 1. What this project is
 
-- **GeoShutter** (`sarmadjari/GeoShutter`) is a fork of **Alpha GPS**
-  (`Saschl/alpha-gps`, website https://alphagps.app). Git remotes: `origin` = fork,
-  `upstream` = Saschl/alpha-gps. Check `git log main..upstream/main` for new upstream work
-  before larger changes.
-- The app sends the phone's GPS position to **Sony** cameras over Bluetooth LE
-  (geotagging), syncs date/time/time zone, works as a Bluetooth remote shutter and can
-  toggle the camera's automatic time correction and area adjustment. Android and iOS,
-  built with Kotlin Multiplatform and Compose Multiplatform. License GPL-3.0.
+- **GeoShutter** (`sarmadjari/GeoShutter`, website https://geoshutter.sarmad.no) is a
+  **standalone app** by Sarmad Jari, based on **Alpha GPS** (`Saschl/alpha-gps`, website
+  https://alphagps.app), which it credits (README, website, in-app About card). GitHub
+  still lists the repository as a fork. Git remotes: `origin` = this repository,
+  `upstream` = Saschl/alpha-gps (only for reference; see below).
+- The app sends the phone's GPS position to **Sony** and **Fujifilm** cameras over
+  Bluetooth LE (geotagging), syncs date/time/time zone, works as a Bluetooth remote shutter
+  for Sony and can change the camera's own location and time settings. Android and iOS,
+  built with Kotlin Multiplatform and Compose Multiplatform. License GPL-3.0. Tested on a
+  Fujifilm X100VI and a Sony α1 II (Android).
 - **Naming decision (2026-09-28):** the repository documentation is branded GeoShutter.
   The **Android app ID is GeoShutter's own, `com.sarmadjari.geoshutter`, with the
   launcher label "GeoShutter"** (user decision, so it installs next to Alpha GPS). Since
   2026-09-29 the **app calls itself GeoShutter** too: all strings in every language, the
   iOS display name (`INFOPLIST_KEY_CFBundleDisplayName`, `InfoPlist.xcstrings`) and the
   Help links (`ui/help/ProjectLinks.kt`: this repository's README and Issues, no personal
-  e-mail). "Alpha GPS" remains only where the app credits it: donations (Help, the
-  donation prompt, the iOS Tip Jar) say they go to Saschl, the original author. Still
-  upstream's: the code namespace/packages (`com.saschl.cameragps`,
-  `com.sasch.cameragps.sharednew`), the Xcode project/target/scheme `alphagps`, the iOS
-  bundle ID `com.saschl.cameragps`, StoreKit product IDs (the Tip Jar pays Saschl), the
-  Core Bluetooth restore identifier, the `ALPHA_GPS_*` debug environment variables and the
-  store listings. Do not rename these identifiers unless the user asks for it; changing an
-  app ID changes the app identity (new store listing, lost settings/pairings).
+  e-mail). "Alpha GPS" remains only where the app credits it: the About card (license,
+  based on Alpha GPS by Saschl, furble) and donations (Help, the donation prompt) that go
+  to Saschl. Since 2026-09-29 (standalone) the iOS bundle ID is GeoShutter's own,
+  `com.sarmadjari.geoshutter`, the Apple team comes from the untracked
+  `iosApp/Config/Local.xcconfig` (`DEVELOPMENT_TEAM`), the iOS Tip Jar (StoreKit products
+  of the Alpha GPS App Store app) is gone, and the iOS-internal keys (restore identifier,
+  notification and UserDefaults keys) use the `com.sarmadjari.geoshutter` prefix. Alpha
+  GPS's internal names remain: the code namespaces (`com.saschl.cameragps`,
+  `com.sasch.cameragps.sharednew`), the Xcode project/target/scheme `alphagps` and the
+  `ALPHA_GPS_*` debug environment variables. Do not rename these unless the user asks;
+  changing an app ID changes the app identity (lost settings/pairings).
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
-- Cameras: **Sony** (Android and iOS) and, experimentally on Android, **Fujifilm** with the
-  secure Bluetooth protocol (X100VI and other XApp cameras). The Fujifilm code started as a
+- Cameras: **Sony** (Android and iOS) and, on Android, **Fujifilm** with the secure
+  Bluetooth protocol (tested on the X100VI; other XApp cameras untested). The Fujifilm code started as a
   port of furble and was extended from an analysis of Fujifilm's app; geotagging and the
   date/time/time zone sync work on an X100VI. `docs/fujifilm-protocol.md` is the protocol
   reference. It was developed on the branch `feature/fujifilm-support`.
@@ -50,7 +55,7 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
 | `iosApp/` | Xcode project `alphagps.xcodeproj` (target/scheme `alphagps`): thin SwiftUI shell, `Info.plist`, `InfoPlist.xcstrings`; `Config/GeoShutter.xcconfig` (base configuration) + untracked `Config/Local.xcconfig`. |
 | `docs/ARCHITECTURE.md` | Deep technical reference (protocol, flows, platform shells, persistence, CI). |
 | `docs/fujifilm-protocol.md` | Fujifilm protocol reference: UUIDs, setup sequence, every message with its bytes, observed camera behavior, the source of each fact, verification status, how to investigate, furble MIT license. |
-| `website/` | Astro landing page (upstream deploys it to alphagps.app). |
+| `website/` | Astro landing page, deployed to GitHub Pages at https://geoshutter.sarmad.no (`deploy-pages.yml`). |
 | `fastlane/metadata/android/en-US/` | F-Droid listing for the `foss` build. |
 | `localization/ios/` | XLIFF for Weblate (iOS permission texts), see `tools/ios_localization`. |
 | `tools/` | `app_icon` (generates every app icon asset), `app_store` (iOS screenshots), `ios_localization` (XLIFF bridge), `sony_camera_sim` (Bumble fake camera), `sony_shutter` (Python intervalometer), `tests/` (stale Swift test, see §8). |
@@ -76,9 +81,9 @@ python3 -m unittest discover -s tools/ios_localization -v
 
 - iOS app: open `iosApp/alphagps.xcodeproj`; the *Compile Kotlin* phase runs
   `./gradlew :sharednew:embedAndSignAppleFrameworkForXcode` (framework `sharedKit`,
-  `iosArm64` + `iosSimulatorArm64` only). Signing team `6T589MK27K` and bundle ID are
-  upstream's; change both to run on your own device. Bluetooth does not work in the iOS
-  Simulator.
+  `iosArm64` + `iosSimulatorArm64` only). Bundle ID `com.sarmadjari.geoshutter`; set your
+  Apple team as `DEVELOPMENT_TEAM` in `iosApp/Config/Local.xcconfig` (git-ignored). Bluetooth
+  does not work in the iOS Simulator.
 - Gradle daemon JVM: JetBrains JDK 21, auto-provisioned via
   `gradle/gradle-daemon-jvm.properties`; any JDK 17+ can launch the wrapper.
 - **Machine gotcha:** if Gradle fails with "Value '…' given for org.gradle.java.home Gradle
@@ -216,8 +221,9 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Strings: add English source strings to
   `sharednew/src/commonMain/composeResources/values/strings.xml` (iOS-only ones in
   `sharednew/src/iosMain/composeResources`, Android notification strings in
-  `app/src/main/res`). Translations come from Weblate (upstream project `alpha-gps`);
-  don't hand-edit them. Changing English source text invalidates existing translations.
+  `app/src/main/res`). Most translations came from Alpha GPS's Weblate project
+  (`alpha-gps`), which GeoShutter no longer syncs with; edit them here, carefully, and keep
+  brand names as they are. Changing English source text leaves translations outdated.
   The language picker is generated from the `values-*` folders.
 - Releases: bump Android `versionCode`/`versionName` (`app/build.gradle.kts`) **and** iOS
   `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` (`project.pbxproj`); add a
@@ -233,8 +239,8 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | `README.md` (GeoShutter-branded) | features, min OS (Android `minSdk` 26, CDM presence needs Android 12+, iOS 18.0), permissions, Add-camera flows, details/settings lists, troubleshooting (mirrors the in-app guide strings `guide_*`), confirmed cameras, build/test commands, repo layout |
 | `docs/ARCHITECTURE.md` | protocol constants and packet layouts, handshake order, timeouts/intervals, class responsibilities, flavors, DB schema, CI |
 | `docs/fujifilm-protocol.md` | everything in `bluetooth/fujifilm/` (UUIDs, packets, setup order, subscriptions), the Fujifilm parts of `CameraSessionOrchestrator` (time sync triggers, silence watchdog), `AndroidBleTransport` connection retries; every hardware observation and its date; keep the evidence tags (F, A, T, M, X) |
-| `privacy.md` (policy of the published Alpha GPS app; provider/contact stay Saschl) | every data flow: location use, on-device data, Sentry opt-in and payload, Google Play services / Apple services. Bump "effective as of" on content changes |
-| `website/src/pages/index.astro` | features, FAQ (also emitted as JSON-LD), min OS versions, confirmed cameras (keep in sync with README), links |
+| `privacy.md` (GeoShutter's policy: provider Sarmad Jari, contact through GitHub Issues) | every data flow: location use, on-device data, Sentry opt-in and payload, Google Play services / Apple services. Bump "effective as of" on content changes |
+| `website/src/pages/index.astro` | features, the Fujifilm section, FAQ (also emitted as JSON-LD), min OS versions, tested and reported cameras (keep in sync with README), credits, links |
 | `website/public/seo/og-image.svg` | brand text in link previews |
 | `fastlane/metadata/android/en-US/*` | F-Droid listing of the `foss` build (GeoShutter name; changelogs of old upstream versions unchanged) |
 | `tools/*/README.md` | tool CLIs; the simulator README mirrors the GATT table |
@@ -242,9 +248,10 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | `.claude/skills/accessorysetupkit.md` | iOS AccessorySetupKit flow |
 | In-app help (strings `faq_*`, `guide_*`, `ios_troubleshooting_*`, `HelpScreen.kt`, `IosHelpScreen.kt`) | user-facing docs inside the app; see §8 for open issues |
 
-Website deploy config (`website/astro.config.mjs` `site`, root `CNAME`,
-`website/public/robots.txt`) still targets `alphagps.app`; change them before deploying the
-fork's site. GitHub Pages is not enabled on the fork.
+Website deploy config: `website/astro.config.mjs` (`site` https://geoshutter.sarmad.no) and
+`website/public/robots.txt`. GitHub Pages is enabled with GitHub Actions as the source and
+the custom domain `geoshutter.sarmad.no` (set in the Pages settings, so no `CNAME` file is
+needed); DNS needs a CNAME record `geoshutter.sarmad.no` → `sarmadjari.github.io`.
 
 ## 7. User preferences and decisions
 
@@ -296,6 +303,12 @@ fork's site. GitHub Pages is not enabled on the fork.
   languages, iOS home screen). Help links go to this repository (README, Issues) instead
   of Saschl's old repository and personal e-mail; donations stay with Saschl and say so
   (user's choice over removing them or leaving the links).
+- 2026-09-29: **GeoShutter is standalone**, crediting Alpha GPS: own iOS bundle ID
+  `com.sarmadjari.geoshutter` with the team set locally, no iOS Tip Jar, its own privacy
+  policy (provider Sarmad Jari, contact through GitHub Issues), its own website at
+  https://geoshutter.sarmad.no (GitHub Pages, custom domain; repository homepage and
+  description updated), README and website without Alpha GPS store buttons (they are in
+  the credits), and an About card crediting Alpha GPS (GPL-3.0) and furble (MIT).
 - 2026-09-29: Sony features after hardware tests on the α1 II (the maintainer chose all
   four offered): *Keep the camera awake* per camera (**off by default**: Sony's power save
   and camera battery as before), *Location updates while on* for Sony (5–30 s, default and
@@ -311,13 +324,11 @@ fork's site. GitHub Pages is not enabled on the fork.
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
-- In-app "documentation" link on both platforms points to
-  `https://github.com/Saschl/camera-gps/blob/main/README.md` (old upstream repo name;
-  `app/.../ui/HelpScreen.kt`, `sharednew/src/iosMain/.../IosHelpScreen.kt`).
 - Shared FAQ strings: `faq_permissions_answer` (also shown on iOS) lists Android-only items
   (battery optimization, Nearby devices); `faq_connect_camera_answer` describes an old flow
-  ("click on the camera on the main screen") instead of *Add camera*;
-  `how_about_privacy_answer` doesn't mention optional error reporting.
+  ("click on the camera on the main screen") instead of *Add camera*. The translations of
+  `how_about_privacy_answer` don't have the English sentence about opt-in error reports
+  (Chinese mentions it).
 - `tools/tests/AccessoryDiscoveryItemsTests.swift` uses the old generic
   `AccessoryDiscoveryItems<Accessory, String>` API; the class is now concrete and iOS 26.1
   only, so the test no longer compiles. It is not wired into any build.
@@ -333,7 +344,11 @@ fork's site. GitHub Pages is not enabled on the fork.
 - Fork CI: `build-and-release.yml` needs `KEYSTORE_BASE64` and `SIGNING_*` secrets for
   signed APKs (Sentry secrets/variables are optional). Without them the build now
   succeeds but produces `*-release-unsigned.apk`, which the release step's file list
-  (`app-*-release.apk`) doesn't match. `deploy-pages.yml` fails while Pages is disabled.
+  (`app-*-release.apk`) doesn't match. No GitHub release has been published yet.
+- Website: until the DNS record for geoshutter.sarmad.no exists, the site isn't reachable
+  under that name; after GitHub issues its certificate, turn on *Enforce HTTPS* (Pages
+  settings, or `gh api -X PUT repos/sarmadjari/GeoShutter/pages -F https_enforced=true`).
+  The link-preview image is an SVG, which most social networks don't show.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
 - Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging (EXIF position
@@ -374,9 +389,6 @@ fork's site. GitHub Pages is not enabled on the fork.
 - The Settings screen still mixes styles: *App Controls* and *Log Settings* are
   `SharedSettingsCard`s (the log level in a nested surface), the entries below them
   (*Location Provider*, *Transmission Event Sounds*, …) are plain navigation cards.
-- `privacy.md` is still the policy of the published Alpha GPS app (provider and contact
-  Saschl); GeoShutter needs its own before it is published. The privacy FAQ answer says
-  the app sends no personal data, without mentioning the opt-in error reporting.
 
 ### Fork status (checked 2026-09-28)
 
@@ -389,16 +401,13 @@ fork's site. GitHub Pages is not enabled on the fork.
   push protection enabled; `main` unprotected. Upstream updates dependencies with
   Renovate, which is not installed on the fork, so dependency updates only arrive by
   merging upstream.
-- Repository metadata: description says "Sony and FijiFilm cameras" (typo; Fujifilm support
-  is experimental); homepage is upstream's https://alphagps.app; no topics;
-  `.github/FUNDING.yml` shows Saschl's Buy Me a Coffee.
-- Upstream identity baked into the code (matters as soon as the fork publishes its own
-  app): iOS bundle ID `com.saschl.cameragps` (the Android app ID is GeoShutter's own since
-  2026-09-28); iOS team `6T589MK27K`; StoreKit tip
-  IDs; in-app contact e-mail, docs and donation links in `HelpScreen.kt`,
-  `IosHelpScreen.kt`, `CameraDeviceManager.kt`; `privacy.md` names Saschl as provider.
-  (The upstream Sentry DSNs/org were removed on 2026-09-28; Sentry is now configured per
-  build.)
+- Repository metadata (updated 2026-09-29): description about Sony and Fujifilm, "Based
+  on Alpha GPS"; homepage https://geoshutter.sarmad.no; no topics; `.github/FUNDING.yml`
+  shows Saschl's Buy Me a Coffee (donations go to him, the user's choice).
+- Upstream identity baked into the code: resolved on 2026-09-29 (own iOS bundle ID and
+  team setting, no Tip Jar, own Help links and privacy policy); only internal code names
+  remain (see §1). (The upstream Sentry DSNs/org were removed on 2026-09-28; Sentry is now
+  configured per build.)
 - Upstream is actively working on branches not in the fork, e.g. `feat/unify-more-ui`
   (40 commits ahead of `main`) and `feat/wifi-features` (photo browser, 9 commits) as of
   2026-09-28; expect larger merges when they land.
@@ -570,3 +579,12 @@ fork's site. GitHub Pages is not enabled on the fork.
   applied at once; switching off with *Cnct. while Power OFF* on showed *Switched off* and
   stopped the Sony location; switching on reconnected and resumed. The maintainer's α1 II
   was left with keep-awake off and 5 s; *Cnct. while Power OFF* was turned on for the test.
+- 2026-09-29 (evening): made GeoShutter standalone with credits (§7): iOS bundle ID, team
+  in `Local.xcconfig`, iOS-internal key prefixes, Tip Jar removed (the donation prompt opens
+  Saschl's Buy Me a Coffee page), About card with license and credits (`AboutCredits`,
+  both platforms), privacy policy rewritten (also mentions Fujifilm standby and the
+  switched-off Sony case), README (install, tested cameras X100VI and α1 II, credits) and
+  website rewritten with a Fujifilm section, F-Droid description, old root `CNAME`,
+  `icon.svg` and App Store badge removed. Enabled GitHub Pages (Actions) with the custom
+  domain and updated the repository description and homepage. The DNS record is up to the
+  maintainer.

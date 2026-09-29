@@ -99,7 +99,7 @@ internal object IosCrashReporting {
 
     private fun bundleRelease(): String {
         val bundle = NSBundle.mainBundle
-        val identifier = bundle.bundleIdentifier ?: "com.saschl.cameragps"
+        val identifier = bundle.bundleIdentifier ?: "com.sarmadjari.geoshutter"
         val shortVersion =
             bundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String
         val build = bundle.objectForInfoDictionaryKey("CFBundleVersion") as? String

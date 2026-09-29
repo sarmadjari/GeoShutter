@@ -1,19 +1,21 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-// GeoShutter is a fork of Alpha GPS. GeoShutter has no store listing yet, so the
-// store listings, APK releases and app JSON-LD below describe the published
-// Alpha GPS app, while repository/issue/privacy links point to the fork.
+// GeoShutter is a standalone app based on Alpha GPS by Saschl (GPL-3.0). It isn't in the
+// app stores yet: the page points to the source and the build instructions, and credits
+// Alpha GPS (with links to the original app) in its own section.
+const siteUrl = "https://geoshutter.sarmad.no/";
 const repoUrl = "https://github.com/sarmadjari/GeoShutter";
 const issuesUrl = `${repoUrl}/issues`;
+const installUrl = `${repoUrl}#install`;
+const releasesUrl = `${repoUrl}/releases`;
 const privacyUrl = `${repoUrl}/blob/main/privacy.md`;
-const upstreamRepoUrl = "https://github.com/Saschl/alpha-gps";
-const upstreamSiteUrl = "https://alphagps.app/";
-const releasesUrl = `${upstreamRepoUrl}/releases`;
-const playStoreUrl = "https://play.google.com/store/apps/details?id=com.saschl.cameragps";
-const appStoreId = "6760982303";
-const appStoreUrl = `https://apps.apple.com/us/app/alpha-gps-camera-geotagging/id${appStoreId}`;
-const weblateUrl = "https://hosted.weblate.org/engage/alpha-gps/";
+const fujifilmDocUrl = `${repoUrl}/blob/main/docs/fujifilm-protocol.md`;
+const alphaGpsSiteUrl = "https://alphagps.app/";
+const alphaGpsRepoUrl = "https://github.com/Saschl/alpha-gps";
+const alphaGpsPlayUrl = "https://play.google.com/store/apps/details?id=com.saschl.cameragps";
+const alphaGpsAppStoreUrl = "https://apps.apple.com/us/app/alpha-gps-camera-geotagging/id6760982303";
+const furbleUrl = "https://github.com/gkoh/furble";
 const supportUrl = "https://buymeacoffee.com/wj8tism4dq";
 const topNav = {
   brand: "GeoShutter",
@@ -25,97 +27,85 @@ const topNav = {
   forksBadgeUrl: "https://img.shields.io/github/forks/sarmadjari/GeoShutter?style=for-the-badge&logo=github"
 };
 
-// Confirmed by user reports. Keep in sync with "Supported cameras" in the repo
-// README.
-const confirmedCameras = [
-  { name: "A1", code: "ILCE-1" },
-  { name: "A7 V", code: "ILCE-7M5" },
-  { name: "A6400", code: "ILCE-6400" },
-  { name: "A6700", code: "ILCE-6700" },
-  { name: "ZV-E10", code: "ZV-E10" }
+// Keep in sync with "Supported cameras" in the repository README.
+const testedCameras = [
+  {
+    name: "Fujifilm X100VI",
+    detail: "geotagging, date, time and time zone, the camera's location sync and power-off connection settings, standby, location intervals"
+  },
+  {
+    name: "Sony α1 II (ILCE-1M2)",
+    detail: "geotagging, time sync, keeping the camera awake, location intervals, switched-off detection"
+  }
 ];
-const confirmedCameraNames = confirmedCameras.map((camera) => camera.name).join(", ");
+const upstreamCameras = ["A1", "A7 V", "A6400", "A6700", "ZV-E10"];
 
 const minIos = "iOS 18.0";
 const minAndroid = "Android 8.0";
 const features = [
-  "Automatic GPS geotagging over Bluetooth",
-  "Automatic reconnect when the camera is switched on",
-  "Location updates in the background and with the phone locked",
+  "Automatic GPS geotagging over Bluetooth, for Sony and Fujifilm cameras",
+  "Automatic reconnect when the camera is switched on, also in the background and with the phone locked",
   "Camera date, time and time zone sync",
   "Several cameras at the same time",
-  "Bluetooth remote shutter"
+  "Per-camera settings: how often the location is updated, the camera's own location and time settings",
+  "Status notification, Quick Settings tile and home-screen widget (Android)",
+  "Bluetooth remote shutter (Sony)"
+];
+const fujifilmFeatures = [
+  "The camera asks for your location itself, every 10 seconds by default (adjustable from 10 s to 8 min); your phone's GPS follows its pace.",
+  "Sets the camera's date, time, time zone (AREA SETTING) and daylight saving time from your phone when it is switched on.",
+  "Reads and changes the camera's Smartphone location sync and Connect while power off settings from the app.",
+  "Standby: a camera that is switched off or asleep stays connected and gets its location kept up to date (once a minute by default), so the first photo after switching it on is tagged right away.",
+  "Shows each state at a glance: receiving (green), standby (blue), location sync off (amber), not connected (red)."
 ];
 
 // Rendered on the page and as FAQPage JSON-LD, so both always say the same.
 const faq = [
   {
-    question: "How are GeoShutter and Alpha GPS related?",
-    answer: "GeoShutter is an open-source fork of Alpha GPS by Saschl. GeoShutter is not in the stores yet, so the store buttons on this page install Alpha GPS."
+    question: "How is GeoShutter related to Alpha GPS?",
+    answer: "GeoShutter is a standalone app based on Alpha GPS by Saschl, and open source under the same GPL-3.0 license. It adds Fujifilm support, Sony power handling and a new interface, has its own app ID and installs next to Alpha GPS."
+  },
+  {
+    question: "Which cameras work?",
+    answer: `Sony cameras that can receive location information from Imaging Edge Mobile or Creators' App, and Fujifilm cameras that sync their location with FUJIFILM XApp (current firmware). GeoShutter is tested on the Fujifilm X100VI and the Sony α1 II; users of Alpha GPS reported the Sony ${upstreamCameras.join(", ")}.`
+  },
+  {
+    question: "How do I install it?",
+    answer: "GeoShutter isn't in the app stores yet. Build it from source with the instructions in the repository; ready-made Android APKs will be published on GitHub Releases."
   },
   {
     question: "Does it work on iPhone?",
-    answer: `Yes. Alpha GPS is on the App Store for iPhone (${minIos} or later) and on Google Play for Android (${minAndroid} or later). Both versions are free.`
-  },
-  {
-    question: "Which Sony cameras are supported?",
-    answer: `Any Sony camera that can receive location information from Imaging Edge Mobile or Creators' App should work, because the app uses the same Bluetooth location feature. Confirmed by users so far: ${confirmedCameraNames}.`
+    answer: `The iPhone app (${minIos} or later) supports Sony cameras; Fujifilm support is Android only for now. The Android app needs ${minAndroid} or later.`
   },
   {
     question: "Does it keep geotagging in the background?",
-    answer: "Yes. Pair the camera once, and the app reconnects automatically whenever you switch the camera on. It keeps sending location while the app is in the background and the phone is locked. On Android 8 to 11, turn on Always On for the camera."
+    answer: "Yes. Pair the camera once, and the app reconnects automatically whenever you switch the camera on. It keeps sending the location while the app is in the background and the phone is locked. On Android 8 to 11, turn on Always On for the camera."
   },
   {
-    question: "How is it different from Sony Creators' App or Imaging Edge Mobile?",
-    answer: "It is built around one job: keeping location data on your photos. It reconnects on its own, can sync the camera clock and trigger the shutter, and is open source with no ads and no account. It does not transfer photos, so keep using Sony's app to copy photos to your phone."
-  },
-  {
-    question: "Can I use a camera that was set up with Creators' App before?",
-    answer: "Usually yes. Just pair it in the app. If it connects but the camera doesn't receive location, remove the camera from your phone's Bluetooth settings and from the Sony app, then pair it again."
+    question: "Why are the first photos after switching my Sony camera on untagged?",
+    answer: "A Sony camera ends the Bluetooth connection when it is switched on and takes a location only after the phone has reconnected, about 10 seconds later. It also ends the connection in power save, so photos right after waking it are affected too; turn on Keep the camera awake in its details to avoid that."
   },
   {
     question: "Is it free?",
-    answer: "Yes. It is free, open source (GPL-3.0) and has no ads. Your location is only used to geotag photos on your camera, and crash reports are only sent if you allow them."
+    answer: "Yes. It is free, open source (GPL-3.0) and has no ads and no account. Your location is only used to geotag photos on your camera, and error reports are only sent if you allow them."
   }
 ];
 
-// One entry per store: a combined "Android, iOS" entry with two download URLs
-// can't say which listing belongs to which platform. These describe the
-// published Alpha GPS app.
-const appJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "MobileApplication",
-  name: "Alpha GPS for Geotagging",
-  applicationCategory: "PhotographyApplication",
-  description:
-    "Open-source Sony camera geotagging app that transmits GPS coordinates from your phone to your camera.",
-  url: upstreamSiteUrl,
-  sameAs: [upstreamRepoUrl, releasesUrl],
-  featureList: features,
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD"
-  },
-  publisher: {
-    "@type": "Person",
-    name: "Saschl"
-  }
-};
 const jsonLd = [
   {
-    ...appJsonLd,
-    operatingSystem: "Android",
-    softwareRequirements: `${minAndroid} or later`,
-    downloadUrl: playStoreUrl,
-    installUrl: playStoreUrl
-  },
-  {
-    ...appJsonLd,
-    operatingSystem: "iOS",
-    softwareRequirements: `${minIos} or later`,
-    downloadUrl: appStoreUrl,
-    installUrl: appStoreUrl
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    name: "GeoShutter",
+    applicationCategory: "PhotographyApplication",
+    operatingSystem: "Android, iOS",
+    description:
+      "Open-source app that sends your phone's GPS position to Sony and Fujifilm cameras over Bluetooth, so every photo is geotagged.",
+    url: siteUrl,
+    sameAs: [repoUrl],
+    featureList: features,
+    isBasedOn: { "@type": "SoftwareApplication", name: "Alpha GPS", url: alphaGpsSiteUrl },
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    author: { "@type": "Person", name: "Sarmad Jari" }
   },
   {
     "@context": "https://schema.org",
@@ -130,86 +120,106 @@ const jsonLd = [
 ---
 
 <BaseLayout
-  title="GeoShutter – open-source geotagging for Sony cameras"
-  description="GeoShutter, a fork of Alpha GPS: open-source app that sends your phone's GPS coordinates to Sony cameras over Bluetooth, on Android and iOS."
+  title="GeoShutter – open-source geotagging for Sony and Fujifilm cameras"
+  description="GeoShutter sends your phone's GPS position to Sony and Fujifilm cameras over Bluetooth, so every photo is geotagged. Open source, on Android and iPhone."
   jsonLd={jsonLd}
-  appleAppId={appStoreId}
   nav={topNav}
 >
   <section class="hero">
     <h1>GeoShutter</h1>
     <p class="lead">
-      Open-source geotagging and remote shutter for Sony cameras, on iPhone and
-      Android. Pair once and automatically get accurate GPS coordinates for your
-      photos.
+      Open-source geotagging for Sony and Fujifilm cameras, on Android and iPhone.
+      Pair your camera once, and every photo gets your phone's GPS position,
+      automatically, over Bluetooth.
     </p>
     <p class="muted">
-      GeoShutter is a fork of <a href={upstreamSiteUrl}>Alpha GPS</a> by Saschl.
-      GeoShutter is not in the stores yet, so the buttons below install Alpha GPS.
+      Tested on the Fujifilm X100VI and the Sony α1 II. Free, no ads, no account.
     </p>
     <div class="actions">
-      <a class="button" href={playStoreUrl}>Get Alpha GPS on Google Play</a>
-      <a class="button" href={appStoreUrl}>Get Alpha GPS on the App Store</a>
-      <a class="button ghost" href={releasesUrl}>Alpha GPS APK releases</a>
+      <a class="button" href={installUrl}>How to install</a>
+      <a class="button ghost" href={repoUrl}>Source code</a>
+      <a class="button ghost" href={releasesUrl}>Releases</a>
     </div>
   </section>
 
   <section>
-    <h2>Why people use it</h2>
+    <h2>Why photographers use it</h2>
     <div class="grid">
       <article class="card">
-        <h3>Reliable background updates</h3>
+        <h3>Set and forget</h3>
         <p>
-          Uses platform-specific mechanisms to keep location updates running in the background, even with aggressive battery optimizations.
+          Reconnects on its own whenever you switch the camera on, keeps the location
+          flowing in the background and with the phone locked, and shows at a glance
+          which cameras receive it.
         </p>
       </article>
       <article class="card">
-        <h3>Works with supported Sony models</h3>
+        <h3>Fujifilm, built in</h3>
         <p>
-          Built for cameras that work with Imaging Edge or Sony Creators' app,
-          with confirmed reports including {confirmedCameraNames}.{" "}
-          <a href="#cameras">See supported cameras</a>.
+          Speaks Fujifilm's own geotagging protocol: the camera asks for your location,
+          GeoShutter sets its clock and time zone, and keeps the location ready while the
+          camera sleeps. <a href="#fujifilm">More about Fujifilm</a>.
         </p>
       </article>
       <article class="card">
-        <h3>Practical troubleshooting</h3>
+        <h3>Sony, the way Sony's apps do it</h3>
         <p>
-          Includes a step-by-step troubleshooting guide, logs, and an optional
-          Always On mode for tricky vendor-specific Android behavior.
+          Uses the same Bluetooth location feature as Imaging Edge Mobile and Creators'
+          App, can keep the camera awake so no photo misses its location, and works as a
+          remote shutter.
         </p>
       </article>
     </div>
   </section>
 
   <section>
-    <h2>On iPhone and Android</h2>
+    <h2>Features</h2>
     <p>
-      The app runs on iPhones with {minIos} or later and on Android phones with {minAndroid}
-      or later (automatic background reconnect needs Android 12 or later, or Always On
-      mode on older versions). Features on both:
+      For iPhones with {minIos} or later and Android phones with {minAndroid} or later
+      (automatic background reconnect needs Android 12 or later, or Always On mode on
+      older versions).
     </p>
     <ul>
       {features.map((feature) => <li>{feature}</li>)}
     </ul>
   </section>
 
-  <section id="cameras">
-    <h2>Supported cameras</h2>
+  <section id="fujifilm">
+    <h2>Fujifilm support</h2>
     <p>
-      The app works with Sony Alpha, ILCE and ZV cameras that can receive
-      location information from Imaging Edge Mobile or Creators' App. It uses
-      the same Bluetooth location feature, so if Sony's app can geotag your
-      camera, this app should too.
+      GeoShutter geotags Fujifilm cameras that sync their location with FUJIFILM XApp,
+      on firmware with Fujifilm's secured Bluetooth connection. It is tested on the
+      X100VI and available on Android.
     </p>
-    <p>Confirmed by users so far:</p>
     <ul>
-      {confirmedCameras.map((camera) => (
-        <li>{camera.name}{camera.code !== camera.name && <span class="muted"> ({camera.code})</span>}</li>
-      ))}
+      {fujifilmFeatures.map((feature) => <li>{feature}</li>)}
     </ul>
     <p class="muted">
-      Using a camera that isn't listed? <a href={issuesUrl}>Let us know</a> whether
-      it works, so it can be added.
+      The protocol is based on <a href={furbleUrl}>furble</a> and documented, with how
+      each detail was verified, in the <a href={fujifilmDocUrl}>Fujifilm protocol reference</a>.
+    </p>
+  </section>
+
+  <section id="cameras">
+    <h2>Supported cameras</h2>
+    <p>Tested with GeoShutter:</p>
+    <ul>
+      {testedCameras.map((camera) => (
+        <li><strong>{camera.name}</strong><span class="muted"> – {camera.detail}</span></li>
+      ))}
+    </ul>
+    <p>
+      <strong>Sony:</strong> cameras that can receive location information from Imaging
+      Edge Mobile or Creators' App should work, because GeoShutter uses the same
+      Bluetooth feature. Users of Alpha GPS reported: {upstreamCameras.join(", ")}.
+    </p>
+    <p>
+      <strong>Fujifilm (Android):</strong> cameras that geotag through FUJIFILM XApp with
+      current firmware should work; so far only the X100VI is tested.
+    </p>
+    <p class="muted">
+      Using a camera that isn't listed? <a href={issuesUrl}>Let us know</a> whether it
+      works, so it can be added.
     </p>
   </section>
 
@@ -224,42 +234,44 @@ const jsonLd = [
   </section>
 
   <section>
-    <h2>Open source, community built</h2>
+    <h2>Open source</h2>
     <p>
-      GeoShutter is fully open source under the GPL-3.0 and builds on Alpha GPS.
-      You can inspect the code, open issues, propose improvements, and help
-      translate the app. No paywalls, no ads, no data selling.
+      GeoShutter is open source under the GPL-3.0. You can read the code, report
+      problems and propose improvements on GitHub. No paywalls, no ads, no data selling.
     </p>
     <div class="actions">
-      <a class="button" href={repoUrl}>Source Code</a>
-      <a class="button ghost" href={issuesUrl}>Issue Tracker</a>
-      <a class="button ghost" href={upstreamRepoUrl}>Upstream: Alpha GPS</a>
-      <a class="button ghost" href={weblateUrl}>Translate on Weblate</a>
+      <a class="button" href={repoUrl}>Source code</a>
+      <a class="button ghost" href={issuesUrl}>Issue tracker</a>
     </div>
   </section>
 
   <section>
     <h2>Privacy first</h2>
     <ul>
-      <li>No advertising or data selling.</li>
-      <li>Location is used only while a camera is connected, for live geotag transfer to your camera.</li>
-      <li>Crash reports are opt-in, and the FOSS Android build has no crash reporter at all.</li>
-      <li>You can turn error reporting off in the app settings at any time.</li>
+      <li>No advertising, no account and no data selling.</li>
+      <li>Location is used only while a camera takes it, for live geotagging on your camera.</li>
+      <li>Error reports are opt-in, and the FOSS Android build has no error reporting at all.</li>
     </ul>
     <p class="muted">
       Full details: <a href={privacyUrl}>Privacy Policy</a>
     </p>
   </section>
 
-  <section>
-    <h2>Support the original author</h2>
+  <section id="credits">
+    <h2>Credits</h2>
     <p>
-      GeoShutter builds on Alpha GPS by Saschl. If the app helps your photo
-      workflow, support its ongoing development and maintenance.
+      GeoShutter is based on <a href={alphaGpsSiteUrl}>Alpha GPS</a> by Saschl and its
+      contributors (<a href={alphaGpsRepoUrl}>source</a>, GPL-3.0). The original app is on
+      the <a href={alphaGpsAppStoreUrl}>App Store</a> and{" "}
+      <a href={alphaGpsPlayUrl}>Google Play</a>. The Fujifilm support is based on{" "}
+      <a href={furbleUrl}>furble</a> by Guo-Rong Koh (MIT License).
+    </p>
+    <p>
+      If GeoShutter helps your photography, consider supporting the author of Alpha GPS.
     </p>
     <div class="actions">
-      <a class="button" href={supportUrl}>Buy Me a Coffee</a>
+      <a class="button ghost" href={supportUrl}>Buy Saschl a coffee</a>
     </div>
-    <small>GeoShutter is maintained by sarmadjari, based on Alpha GPS by Saschl and contributors.</small>
+    <small>GeoShutter is made by Sarmad Jari, based on Alpha GPS by Saschl and contributors.</small>
   </section>
 </BaseLayout>

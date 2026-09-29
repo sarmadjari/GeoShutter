@@ -1,8 +1,8 @@
 **Privacy Policy**
 
-This privacy policy applies to the Alpha GPS for Geotagging app ("Application") for Android and
-iOS devices, created by Saschl ("Service Provider") as an open‑source service. This service is
-provided "AS IS".
+This privacy policy applies to the GeoShutter app ("Application") for Android and iOS devices,
+created by Sarmad Jari ("Service Provider") as an open‑source service. GeoShutter is based on the
+open-source Alpha GPS app by Saschl. This service is provided "AS IS".
 
 **What Data Is Collected and Why**
 
@@ -11,17 +11,21 @@ advertising, tracking, or other commercial purposes**, and it does not require a
 
 The Application only processes data that is strictly necessary for:
 
-* Providing geotagging functionality for your Sony camera
+* Providing geotagging functionality for your Sony or Fujifilm camera
 * Diagnosing crashes and technical problems, **only if you enable error reporting**
 
 **Location Data**
 
 The Application uses your device's location only to provide geotagging functionality:
 
-* Location is used to transfer GPS coordinates to your connected Sony camera over Bluetooth.
-* Location is only accessed while at least one camera is connected. Location collection stops as
-  soon as no camera is connected anymore, also when the camera is kept in "Always On" mode on
-  Android.
+* Location is used to transfer GPS coordinates to your connected camera over Bluetooth.
+* Location is only accessed while at least one connected camera takes it: not while a connected
+  Fujifilm camera has its location sync turned off, or while a connected Sony camera is switched
+  off. Location collection stops as soon as no connected camera needs it anymore, also when the
+  camera is kept in "Always On" mode on Android. A Fujifilm camera that stays connected in standby
+  (switched off or asleep, with its CONNECT WHILE POWER OFF setting on) keeps receiving your
+  location, by default once a minute, so that its next photo is tagged right away.
+* When a camera connects, the Application also sets its date, time and time zone from your phone.
 * The Application does **not** store location data permanently, neither on your device nor with
   the Service Provider, and it does not write location data to its logs.
 * Location data is **not** sent to the Service Provider or to any third party by the
@@ -69,13 +73,12 @@ Depending on your device and the version of the Application, it may also use:
 * [Google Play Services](https://www.google.com/policies/privacy/) (Google Play version of the
   Android app only): location through the Fused Location Provider (you can switch to the Android
   platform location provider in the settings) and the in-app review dialog.
-* Apple services (iOS only): Core Location for location, the App Store review prompt, and
-  optional tips via Apple's In-App Purchase system. Tips are processed entirely by Apple; the
-  Application does not receive your payment details. See
+* Apple services (iOS only): Core Location for location and the App Store review prompt. See
   [Apple's Privacy Policy](https://www.apple.com/legal/privacy/).
 
-Donation links in the Application open an external website (Buy Me a Coffee) in your browser,
-where that website's privacy policy applies.
+Links in the Application open external websites in your browser (GitHub for documentation and
+problem reports, and Buy Me a Coffee for donations to Saschl, the author of Alpha GPS), where
+those websites' privacy policies apply.
 
 Please refer to these providers' privacy policies for details about their processing.
 
@@ -94,7 +97,7 @@ You can delete the Application's on-device log at any time in the log viewer.
 The Application is not directed to children under the age of 13, and the Service Provider does not
 knowingly collect personally identifiable information from children under 13 years of age. If you
 believe that a child under 13 has provided personal information, please contact the Service Provider
-so that it can be removed.
+(see below) so that it can be removed.
 
 **Security**
 
@@ -108,7 +111,7 @@ This Privacy Policy may be updated from time to time. Any changes will be publis
 Continued use of the Application after changes are posted will be treated as acceptance of the
 updated Privacy Policy.
 
-This privacy policy is effective as of 2026-09-28.
+This privacy policy is effective as of 2026-09-29.
 
 **Your Consent**
 
@@ -118,10 +121,12 @@ Privacy Policy, now and as amended from time to time.
 **Contact Us**
 
 If you have any questions about this Privacy Policy or privacy while using the Application, please
-contact the Service Provider at: **saschl.ra@web.de**.
+contact the Service Provider by opening an issue at
+**[github.com/sarmadjari/GeoShutter/issues](https://github.com/sarmadjari/GeoShutter/issues)**.
+Issues are public: please don't include personal information in them.
 
 ---
 
-This privacy policy page was originally generated
-by [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/) and has been
+This privacy policy page is based on the Alpha GPS privacy policy, which was originally generated
+by [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/), and has been
 adapted to reflect the Application's actual data usage and strong privacy focus.

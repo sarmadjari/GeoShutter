@@ -266,13 +266,6 @@
     <string name="bluetooth_connect_required_desc">This app requires Bluetooth Connect permission to discover and communicate with your máy ảnh thiết bị.</string>
     <string name="bluetooth_connect_grant_button">Grant Bluetooth Permission</string>
     <string name="bluetooth_connect_permanently_denied">Bluetooth permission has been permanently denied. Please Mở App Cài đặt, navigate to Permissions → Nearby devices, and grant the permission manually.</string>
-    <string name="tip_jar">Tip Jar</string>
-    <string name="tip_jar_description">GeoShutter được phát triển dựa trên Alpha GPS của Saschl. Tiền tip được gửi đến tác giả và giúp trang trải phí Apple Developer Program ($99/năm) để duy trì Alpha GPS trên App Store. Việc này hoàn toàn tùy chọn — cảm ơn bạn! ❤️</string>
-    <string name="tip_jar_loading">Loading…</string>
-    <string name="tip_jar_thank_you">Thank you so much for your support!</string>
-    <string name="tip_jar_unavailable">Tip options are not có sẵn right now.</string>
-    <string name="tip_jar_error_prefix">Something went wrong:</string>
-    <string name="tip_jar_dismiss">Bỏ qua</string>
     <string name="donation_dialog_title">Enjoying GeoShutter?</string>
     <string name="donation_dialog_message">GeoShutter được phát triển dựa trên Alpha GPS của Saschl. Nếu ứng dụng hữu ích cho việc chụp ảnh của bạn, một khoản đóng góp nhỏ sẽ ủng hộ tác giả gốc. Việc này hoàn toàn tùy chọn.</string>
     <string name="donation_dialog_confirm">Support project</string>

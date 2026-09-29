@@ -241,13 +241,6 @@
     <string name="bluetooth_connect_permanently_denied">Die Bluetooth-Berechtigung wurde dauerhaft verweigert. Bitte öffne die App-Einstellungen, navigiere zu Berechtigungen → Geräte in der Nähe und erteile die Berechtigung manuell.</string>
     <string name="auto_scan">Start Scan nach Öffnen der App</string>
     <string name="auto_scan_description">Suche automatisch nach Kameras in der Nähe wenn der Startbildschirm sichtbar ist</string>
-    <string name="tip_jar">Spenden</string>
-    <string name="tip_jar_description">GeoShutter basiert auf Alpha GPS von Saschl. Trinkgelder gehen an ihn und helfen, die Apple-Entwicklergebühr (99 €/Jahr) zu finanzieren, mit der Alpha GPS im App Store bleibt. Das ist komplett optional, vielen Dank! ❤️</string>
-    <string name="tip_jar_loading">Laden…</string>
-    <string name="tip_jar_thank_you">Vielen Dank für deine Unterstützung!</string>
-    <string name="tip_jar_unavailable">Spenden sind momentan nicht möglich.</string>
-    <string name="tip_jar_error_prefix">Etwas ist schief gelaufen:</string>
-    <string name="tip_jar_dismiss">Verwerfen</string>
     <string name="donation_dialog_title">Gefällt dir GeoShutter?</string>
     <string name="donation_dialog_message">GeoShutter basiert auf Alpha GPS von Saschl. Falls die App dich beim Fotografieren unterstützt, freut sich der ursprüngliche Entwickler über eine kleine Spende. Das ist natürlich komplett optional.</string>
     <string name="donation_dialog_confirm">Unterstütze das Projekt</string>

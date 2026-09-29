@@ -219,13 +219,6 @@
     <string name="bluetooth_connect_required_desc">உங்கள் கேமரா சாதனத்தைக் கண்டறிந்து தொடர்புகொள்வதற்கு இந்தப் பயன்பாட்டிற்கு ஊடலை இணைப்பு இசைவு தேவை.</string>
     <string name="bluetooth_connect_grant_button">ஊடலை இசைவு வழங்கவும்</string>
     <string name="bluetooth_connect_permanently_denied">ஊடலை இசைவு நிரந்தரமாக மறுக்கப்பட்டது. ஆப்ச் அமைப்புகளைத் திறந்து, அனுமதிகள் → அருகிலுள்ள சாதனங்களுக்குச் சென்று, அனுமதியை கைமுறையாக வழங்கவும்.</string>
-    <string name="tip_jar">குறிப்பு குடுவை</string>
-    <string name="tip_jar_description">GeoShutter, Saschl உருவாக்கிய Alpha GPS-ஐ அடிப்படையாகக் கொண்டது. டிப்ஸ் அவருக்குச் செல்லும்; Alpha GPS-ஐ App Store-இல் வைத்திருக்கத் தேவையான Apple Developer Program கட்டணத்தை ($99/ஆண்டு) ஈடுகட்ட உதவும். இது முற்றிலும் விருப்பமானது — நன்றி! ❤️</string>
-    <string name="tip_jar_loading">ஏற்றுகிறது…</string>
-    <string name="tip_jar_thank_you">உங்கள் ஆதரவுக்கு மிக்க நன்றி!</string>
-    <string name="tip_jar_unavailable">உதவிக்குறிப்பு விருப்பங்கள் இப்போது கிடைக்கவில்லை.</string>
-    <string name="tip_jar_error_prefix">ஏதோ தவறாகிவிட்டது:</string>
-    <string name="tip_jar_dismiss">தள்ளுபடி</string>
     <string name="donation_dialog_title">GeoShutter-ஐ அனுபவிக்கிறீர்களா?</string>
     <string name="donation_dialog_message">GeoShutter, Saschl உருவாக்கிய Alpha GPS-ஐ அடிப்படையாகக் கொண்டது. உங்கள் புகைப்படம் எடுப்பதற்கு ஆப்ஸ் உதவினால், ஒரு சிறிய நன்கொடை அதன் மூல ஆசிரியரை ஆதரிக்கும். இது முற்றிலும் விருப்பமானது.</string>
     <string name="donation_dialog_confirm">உதவி திட்டம்</string>

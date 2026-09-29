@@ -71,8 +71,7 @@ Swift honors it **only in Debug simulator builds**. The normal app launch and
 Bluetooth restoration path are unchanged, including on physical devices.
 `StoreScreenshotViewController.kt` supplies sample state to production shared
 UI with inert callbacks; it does not initialize the Bluetooth controller or
-crash reporting. The settings screen may still load its normal StoreKit tip
-information. No purchase action is performed.
+crash reporting.
 
 Use a dedicated simulator: captures install the app, set light appearance,
 temporarily override its status bar, and replace its running session. The

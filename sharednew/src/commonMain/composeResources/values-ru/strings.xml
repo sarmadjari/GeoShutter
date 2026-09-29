@@ -260,13 +260,6 @@
     <string name="bluetooth_connect_required_desc">Этому приложению необходимо разрешение на подключение Bluetooth для обнаружения вашей камеры и связи с ней.</string>
     <string name="bluetooth_connect_grant_button">Предоставить разрешение Bluetooth</string>
     <string name="bluetooth_connect_permanently_denied">Доступ к Bluetooth был окончательно заблокирован. Пожалуйста, откройте Настройки приложения, перейдите в раздел Разрешения → Устройства поблизости и предоставьте его вручную.</string>
-    <string name="tip_jar">Чаевые</string>
-    <string name="tip_jar_description">GeoShutter основан на Alpha GPS от Saschl. Чаевые достаются ему и помогают оплачивать Apple Developer Program ($99 в год), благодаря которой Alpha GPS остаётся в App Store. Это исключительно по вашему желанию — спасибо! ❤️</string>
-    <string name="tip_jar_loading">Загрузка…</string>
-    <string name="tip_jar_thank_you">Большое спасибо за вашу поддержку!</string>
-    <string name="tip_jar_unavailable">В данный момент варианты поддержки недоступны.</string>
-    <string name="tip_jar_error_prefix">Что-то пошло не так:</string>
-    <string name="tip_jar_dismiss">Закрыть</string>
     <string name="donation_dialog_title">Нравится GeoShutter?</string>
     <string name="donation_dialog_message">GeoShutter основан на Alpha GPS от Saschl. Если приложение помогает вам в фотографии, небольшое пожертвование поддержит его первоначального автора. Это абсолютно добровольно.</string>
     <string name="donation_dialog_confirm">Поддержать проект</string>

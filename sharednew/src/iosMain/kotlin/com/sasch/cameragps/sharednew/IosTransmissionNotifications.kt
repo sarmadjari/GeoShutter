@@ -200,6 +200,6 @@ internal class IosTransmissionNotifications(
     }
 
     private companion object {
-        const val REQUEST_ID = "com.saschl.cameragps.transmissionStatus"
+        const val REQUEST_ID = "com.sarmadjari.geoshutter.transmissionStatus"
     }
 }
