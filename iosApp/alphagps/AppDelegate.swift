@@ -32,6 +32,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             bluetooth: launchOptions?[.bluetoothCentrals] != nil,
             location: launchOptions?[.location] != nil
         )
+        // Before the controller starts, so its first status reaches the widget.
+        WidgetBridge.install()
         IosBluetoothController.shared.ensureInitialized()
         return true
     }

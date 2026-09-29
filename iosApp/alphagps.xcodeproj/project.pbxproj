@@ -9,12 +9,38 @@
 /* Begin PBXBuildFile section */
 		2B2597FC2F7146300006B4E3 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B2597FB2F7146300006B4E3 /* StoreKit.framework */; };
 		2BAB7506304CDA98002DE729 /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 2BAB7505304CDA98002DE729 /* Sentry-Dynamic */; };
+		6E57A100000000000000000D /* GeoShutterWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E57A1000000000000000004 /* GeoShutterWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6E57A100000000000000000F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2BE082C42F6824510077F638 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6E57A1000000000000000005;
+			remoteInfo = GeoShutterWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6E57A100000000000000000C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6E57A100000000000000000D /* GeoShutterWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		70875043302BADBBD7C694CB /* GeoShutter.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = GeoShutter.xcconfig; sourceTree = "<group>"; };
 		2B2597FB2F7146300006B4E3 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		2BE082CC2F6824510077F638 /* alphagps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = alphagps.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E57A1000000000000000004 /* GeoShutterWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GeoShutterWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -24,6 +50,13 @@
 				Info.plist,
 			);
 			target = 2BE082CB2F6824510077F638 /* alphagps */;
+		};
+		6E57A1000000000000000003 /* Exceptions for "GeoShutterWidgets" folder in "GeoShutterWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6E57A1000000000000000005 /* GeoShutterWidgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -36,6 +69,19 @@
 			path = alphagps;
 			sourceTree = "<group>";
 		};
+		6E57A1000000000000000001 /* GeoShutterWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6E57A1000000000000000003 /* Exceptions for "GeoShutterWidgets" folder in "GeoShutterWidgets" target */,
+			);
+			path = GeoShutterWidgets;
+			sourceTree = "<group>";
+		};
+		6E57A1000000000000000002 /* WidgetShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WidgetShared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +91,13 @@
 			files = (
 				2BAB7506304CDA98002DE729 /* Sentry-Dynamic in Frameworks */,
 				2B2597FC2F7146300006B4E3 /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E57A1000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +125,8 @@
 			children = (
 				9C4934121360F66332754427 /* Config */,
 				2BE082CE2F6824510077F638 /* alphagps */,
+				6E57A1000000000000000001 /* GeoShutterWidgets */,
+				6E57A1000000000000000002 /* WidgetShared */,
 				2B2597FA2F7146300006B4E3 /* Frameworks */,
 				2BE082CD2F6824510077F638 /* Products */,
 			);
@@ -81,6 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				2BE082CC2F6824510077F638 /* alphagps.app */,
+				6E57A1000000000000000004 /* GeoShutterWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -96,13 +152,16 @@
 				2BE082C82F6824510077F638 /* Sources */,
 				2BE082C92F6824510077F638 /* Frameworks */,
 				2BE082CA2F6824510077F638 /* Resources */,
+				6E57A100000000000000000C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6E57A100000000000000000E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2BE082CE2F6824510077F638 /* alphagps */,
+				6E57A1000000000000000002 /* WidgetShared */,
 			);
 			name = alphagps;
 			packageProductDependencies = (
@@ -111,6 +170,29 @@
 			productName = alphagps;
 			productReference = 2BE082CC2F6824510077F638 /* alphagps.app */;
 			productType = "com.apple.product-type.application";
+		};
+		6E57A1000000000000000005 /* GeoShutterWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E57A1000000000000000009 /* Build configuration list for PBXNativeTarget "GeoShutterWidgets" */;
+			buildPhases = (
+				6E57A1000000000000000006 /* Sources */,
+				6E57A1000000000000000007 /* Frameworks */,
+				6E57A1000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6E57A1000000000000000001 /* GeoShutterWidgets */,
+				6E57A1000000000000000002 /* WidgetShared */,
+			);
+			name = GeoShutterWidgets;
+			packageProductDependencies = (
+			);
+			productName = GeoShutterWidgets;
+			productReference = 6E57A1000000000000000004 /* GeoShutterWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -123,6 +205,9 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					2BE082CB2F6824510077F638 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					6E57A1000000000000000005 = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
@@ -146,12 +231,20 @@
 			projectRoot = "";
 			targets = (
 				2BE082CB2F6824510077F638 /* alphagps */,
+				6E57A1000000000000000005 /* GeoShutterWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		2BE082CA2F6824510077F638 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E57A1000000000000000008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -186,7 +279,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6E57A1000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6E57A100000000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6E57A1000000000000000005 /* GeoShutterWidgets */;
+			targetProxy = 6E57A100000000000000000F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2BE082D52F6824520077F638 /* Debug */ = {
@@ -408,6 +516,70 @@
 			};
 			name = Release;
 		};
+		6E57A100000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70875043302BADBBD7C694CB /* GeoShutter.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GeoShutterWidgets/GeoShutterWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 163;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoShutterWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GeoShutter;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sarmadjari.geoshutter.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		6E57A100000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70875043302BADBBD7C694CB /* GeoShutter.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GeoShutterWidgets/GeoShutterWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 163;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoShutterWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GeoShutter;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sarmadjari.geoshutter.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -425,6 +597,15 @@
 			buildConfigurations = (
 				2BE082D82F6824520077F638 /* Debug */,
 				2BE082D92F6824520077F638 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6E57A1000000000000000009 /* Build configuration list for PBXNativeTarget "GeoShutterWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6E57A100000000000000000A /* Debug */,
+				6E57A100000000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

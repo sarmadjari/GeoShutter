@@ -1,0 +1,86 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "GeoShutter on" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GeoShutter an"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An"
+          }
+        }
+      }
+    },
+    "Open GeoShutter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GeoShutter öffnen"
+          }
+        }
+      }
+    },
+    "Sending location" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet Standort"
+          }
+        }
+      }
+    },
+    "Turn GeoShutter on or off" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GeoShutter ein- oder ausschalten"
+          }
+        }
+      }
+    },
+    "Turn GeoShutter on or off." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GeoShutter ein- oder ausschalten."
+          }
+        }
+      }
+    },
+    "Whether GeoShutter is on and which cameras receive your location." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ob GeoShutter an ist und welche Kameras deinen Standort erhalten."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

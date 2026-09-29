@@ -49,4 +49,12 @@
         <item quantity="other">Transmitting location data to %1$d cameras</item>
     </plurals>
 
+    <!-- iPhone widget and Control Center control (GeoShutterWidgets extension) -->
+    <string name="widget_status_off">Off</string>
+    <string name="widget_status_sending">Sending location</string>
+    <string name="widget_status_connecting">Connecting</string>
+    <string name="widget_status_standby">Standby</string>
+    <string name="widget_status_sync_off">Location sync off</string>
+    <string name="widget_status_waiting">Waiting</string>
+    <string name="widget_no_cameras">No cameras added yet</string>
 </resources>

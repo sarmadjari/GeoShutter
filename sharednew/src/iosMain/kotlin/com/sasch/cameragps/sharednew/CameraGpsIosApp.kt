@@ -105,7 +105,8 @@ internal fun CameraGpsIosApp(
         firstLaunch = IosAppPreferences.showWelcomeOnLaunch(),
         saveVersion = IosAppPreferences::setLastSeenReleaseVersion,
     )
-    var isAppEnabled by remember { mutableStateOf(IosAppPreferences.isAppEnabled()) }
+    // Also changed by the Control Center control.
+    val isAppEnabled by bluetoothController.appEnabledState.collectAsState()
     var hapticsEnabled by remember { mutableStateOf(IosAppPreferences.isHapticsEnabled()) }
     var sentryEnabled by remember { mutableStateOf(IosAppPreferences.isSentryEnabled()) }
     var isAppInForeground by remember {
@@ -322,13 +323,7 @@ internal fun CameraGpsIosApp(
                     onTransmissionNotificationsEnabledChange = bluetoothController::setTransmissionNotificationsEnabled,
                     onOpenNotificationSettings = { openNotificationSettings() },
                     onBackClick = { currentScreen = IosScreen.Devices },
-                    onAppEnabledChange = { enabled ->
-                        isAppEnabled = enabled
-                        IosAppPreferences.setAppEnabled(enabled)
-                        scope.launch {
-                            bluetoothController.applyAppEnabledState(enabled)
-                        }
-                    },
+                    onAppEnabledChange = bluetoothController::setAppEnabled,
                     hapticsEnabled = hapticsEnabled,
                     onHapticsEnabledChange = { enabled ->
                         hapticsEnabled = enabled

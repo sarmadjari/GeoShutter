@@ -23,9 +23,13 @@ Writes:
   transparent background; iOS supplies the background), and `Contents.json`.
 - `fastlane/metadata/android/en-US/images/icon.png`: the F-Droid listing icon (512 px).
 - `website/public/icon.svg`: the website's favicon and logo (rounded corners).
-- `app/src/main/res/drawable/ic_status_{sending,waiting}.xml` and
-  `artwork/status-icon-{sending,waiting}.svg` (`status-icons.mjs`): the status icons of
-  the notification (status bar), the Quick Settings tile and the widget, in one color.
+- `app/src/main/res/drawable/ic_status_{sending,waiting}.xml`,
+  `artwork/status-icon-{sending,waiting}.svg` and the iOS custom symbols
+  `iosApp/WidgetShared/Assets.xcassets/geoshutter.status.{sending,waiting}.symbolset`
+  (`status-icons.mjs`): the status icons of the notification (status bar), the Quick
+  Settings tile and the widget on Android, and of the widget and Control Center control
+  on the iPhone, in one color. The symbols use Apple's SF Symbols template (Regular
+  weight in three scales, filled outlines: the frame's strokes are outlined).
   *Sending*: the frame with the pin, while a camera receives the location. *Waiting*: the
   frame alone, while GeoShutter waits, a camera is in standby or GeoShutter is off. The
   frame is drawn a little heavier than in the app icon so it holds up at status-bar size.

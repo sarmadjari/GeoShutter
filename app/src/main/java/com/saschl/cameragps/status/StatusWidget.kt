@@ -40,6 +40,8 @@ import androidx.glance.unit.ColorProvider
 import com.sasch.cameragps.sharednew.status.CameraState
 import com.sasch.cameragps.sharednew.status.CameraStatus
 import com.sasch.cameragps.sharednew.status.GeoShutterStatus
+import com.sasch.cameragps.sharednew.status.StatusHeadline
+import com.sasch.cameragps.sharednew.status.headline
 import com.saschl.cameragps.AppServices
 import com.saschl.cameragps.MainActivity
 import com.saschl.cameragps.R
@@ -194,13 +196,15 @@ private fun CameraRow(context: Context, camera: CameraStatus, enabled: Boolean) 
 }
 
 /** The header's state; the rows below show which cameras it applies to. */
-private fun summary(context: Context, status: GeoShutterStatus): String = when {
-    !status.enabled -> context.getString(R.string.status_off)
-    status.sending.isNotEmpty() -> context.getString(R.string.status_sending_short)
-    status.connecting.isNotEmpty() -> context.getString(R.string.status_connecting_short)
-    status.standby.isNotEmpty() -> context.getString(R.string.status_standby_short)
-    status.locationSyncOff.isNotEmpty() -> context.getString(R.string.status_sync_off_short)
-    else -> context.getString(R.string.status_waiting_short)
-}
+private fun summary(context: Context, status: GeoShutterStatus): String = context.getString(
+    when (status.headline()) {
+        StatusHeadline.Off -> R.string.status_off
+        StatusHeadline.Sending -> R.string.status_sending_short
+        StatusHeadline.Connecting -> R.string.status_connecting_short
+        StatusHeadline.Standby -> R.string.status_standby_short
+        StatusHeadline.LocationSyncOff -> R.string.status_sync_off_short
+        StatusHeadline.Waiting -> R.string.status_waiting_short
+    }
+)
 
 private const val MAX_CAMERAS = 4

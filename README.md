@@ -28,8 +28,9 @@ Android and iPhone), so it installs next to Alpha GPS.
 - **Automatic reconnect**: pair once, and the app reconnects whenever you switch the
   camera on, also in the background and with the phone locked.
 - **Several cameras** at the same time.
-- **Status at a glance (Android)**: a status notification, a Quick Settings tile (on/off)
-  and a home-screen widget show whether GeoShutter is on and which cameras receive your
+- **Status at a glance**: on Android a status notification, a Quick Settings tile
+  (on/off) and a home-screen widget, on the iPhone a home-screen widget and a Control
+  Center control (on/off), show whether GeoShutter is on and which cameras receive your
   location.
 - **Remote shutter**: one tap runs a full half-press → focus → shutter → release cycle,
   driven by the camera's status messages.
@@ -136,7 +137,15 @@ Android builds:
    the background: iOS keeps a pending connection to your saved cameras and can relaunch
    the app when one connects. *Transmission notification* in Settings shows a
    notification while location is being sent.
-4. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
+4. **Status at a glance.** Add the **GeoShutter** widget to the home screen (small or
+   medium): it shows whether GeoShutter is on and each camera with a dot, green
+   (receiving your location), blue (Fujifilm in standby), amber (connecting, or location
+   sync off on the camera), red (away) or grey (GeoShutter off). The **GeoShutter**
+   control, added to Control Center (or the Lock Screen), turns GeoShutter on or off like
+   *Enable App*. Both show the app icon's frame, with the pin while a camera receives
+   your location. They show what the app last reported; iOS limits how often a widget
+   updates while the app runs in the background.
+5. Cameras that were added with app versions before 1.6.2 need a one-time **Confirm
    cameras** step so iOS can manage them; iOS usually finishes it within seconds without
    further questions. All settings carry over and no new pairing is needed.
 
@@ -182,7 +191,7 @@ association or the iOS accessory pairing.
   provider), *Transmission Event Sounds* (connected, disconnected, location acquired,
   location invalid), *Battery & Background Settings*, language, what's new and *Error
   Reporting Settings* (Google Play build with a Sentry DSN only).
-- **iPhone**: *Enable App*, *Transmission notification*, *Haptic feedback*, language,
+- **iPhone**: *Enable App* (same as the Control Center control), *Transmission notification*, *Haptic feedback*, language,
   what's new, log level and error reporting (builds with a Sentry DSN only).
 
 ## Troubleshooting
@@ -327,7 +336,11 @@ ignored with a build warning (Android) or a log line (iOS), and error reporting 
    Kotlin code as the `sharedKit` framework (Apple silicon simulators and devices).
 3. To run it on your iPhone, set your Apple developer team: `DEVELOPMENT_TEAM = …` in
    `iosApp/Config/Local.xcconfig` (git-ignored), or pick it in Xcode's *Signing &
-   Capabilities*. The bundle ID is `com.sarmadjari.geoshutter`.
+   Capabilities*. The bundle IDs are `com.sarmadjari.geoshutter` (app) and
+   `com.sarmadjari.geoshutter.widgets` (the widget and Control Center control, target
+   `GeoShutterWidgets`, embedded in the app). Both use the app group
+   `group.com.sarmadjari.geoshutter`, which needs a paid Apple Developer Program team
+   (a free personal team can't sign app groups).
 
 Bluetooth does not work in the iOS Simulator; test camera features on a real iPhone.
 
@@ -366,7 +379,7 @@ Actions tab.
 |---|---|
 | [`app/`](app) | Android app: Compose host, CompanionDeviceManager integration, foreground service, Android Bluetooth and location code, flavors `gplay` and `foss` |
 | [`sharednew/`](sharednew) | Kotlin Multiplatform module shared by both apps: Bluetooth protocol and session logic, location transmission, database, most of the UI and all shared strings. `src/iosMain` holds the iOS app logic. |
-| [`iosApp/`](iosApp) | Thin SwiftUI/Xcode shell that embeds the shared `sharedKit` framework |
+| [`iosApp/`](iosApp) | Thin SwiftUI/Xcode shell that embeds the shared `sharedKit` framework, and the widget extension (`GeoShutterWidgets`, with `WidgetShared` compiled into both) |
 | [`website/`](website) | Astro landing page |
 | [`fastlane/metadata/android/`](fastlane/metadata/android) | F-Droid store metadata |
 | [`localization/ios/`](localization/ios) | XLIFF files for translating the iOS permission texts on Weblate |

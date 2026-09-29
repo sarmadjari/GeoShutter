@@ -18,7 +18,7 @@ scheme `alphagps`), so those names appear throughout this document.
 |---|---|---|---|
 | `:app` (`app/`) | Android application | namespace `com.saschl.cameragps`, applicationId `com.sarmadjari.geoshutter`, launcher label `GeoShutter` | Android shell: Compose host activity, CompanionDeviceManager (CDM) integration, foreground service, Android BLE transport, location sources, notifications, Android-only settings screens. Flavors `gplay` / `foss`. |
 | `:sharednew` (`sharednew/`) | Kotlin Multiplatform library (Android, `iosArm64`, `iosSimulatorArm64`) | Kotlin package / Android namespace `com.sasch.cameragps.sharednew` (note: `sasch`, not `saschl`), iOS framework `sharedKit`, resources class `cameragps.sharednew.generated.resources.Res` | Everything platform-neutral: BLE protocol and session orchestration, location transmission, Room database, most Compose UI and all shared strings. Its `iosMain` source set **is the iOS app logic** (CoreBluetooth, AccessorySetupKit, Core Location, Sentry; the StoreKit review request lives in the Swift shell). |
-| `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps` | display name "GeoShutter", bundle ID `com.sarmadjari.geoshutter`, signing team from `Config/Local.xcconfig` (`DEVELOPMENT_TEAM`), iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. |
+| `iosApp/` | Xcode project `alphagps.xcodeproj`, target and scheme `alphagps`; widget extension target `GeoShutterWidgets` | display name "GeoShutter", bundle IDs `com.sarmadjari.geoshutter` and `com.sarmadjari.geoshutter.widgets`, app group `group.com.sarmadjari.geoshutter`, signing team from `Config/Local.xcconfig` (`DEVELOPMENT_TEAM`), iPhone only, deployment target iOS 18.0 | Thin SwiftUI shell: `AppDelegate` and `ContentView` embed the Compose `MainViewController` from `sharedKit`. `GeoShutterWidgets/` (extension only) and `WidgetShared/` (compiled into the app and the extension): the home-screen widget and the Control Center control, in Swift, without `sharedKit`. |
 | `website/` | Astro static site | — | Landing page, deployed by `deploy-pages.yml` to GitHub Pages at geoshutter.sarmad.no. |
 | `tools/` | Scripts | — | App icon generator, screenshot generator, iOS localization bridge, Sony camera simulator, Python intervalometer, a standalone Swift test. |
 
@@ -327,8 +327,8 @@ The `foss` guarantee also depends on `:sharednew`: Sentry KMP is declared only i
 
 | Piece | Responsibility |
 |---|---|
-| `AppDelegate.swift` | Records the launch reason (`IosLaunchContext`: user, Bluetooth restoration or location event) and calls `IosBluetoothController.shared.ensureInitialized()` inside `didFinishLaunchingWithOptions`, which Core Bluetooth state restoration requires on background relaunches. |
-| `ContentView.swift` | Embeds `MainViewController(reviewTestMode:requestReview:)` and supplies the StoreKit review callback. Debug simulator builds honor `ALPHA_GPS_SCREENSHOT` (store screenshots) and `ALPHA_GPS_REVIEW_TEST=1`. |
+| `AppDelegate.swift` | Records the launch reason (`IosLaunchContext`: user, Bluetooth restoration or location event) installs the widget reloads (`WidgetBridge.install()`) and calls `IosBluetoothController.shared.ensureInitialized()` inside `didFinishLaunchingWithOptions`, which Core Bluetooth state restoration requires on background relaunches. |
+| `ContentView.swift` | Embeds `MainViewController(reviewTestMode:requestReview:)` and supplies the StoreKit review callback. Debug simulator builds honor `ALPHA_GPS_SCREENSHOT` (store screenshots; `widgets` shows the widget and control preview) and `ALPHA_GPS_REVIEW_TEST=1`. |
 | `AccessoryDiscoveryNaming.swift`, `AccessoryDiscoveryItems.swift` | iOS 26.1+ picker naming customizer. **Currently disabled** (the install call is commented out in `AppDelegate`). |
 | `IosBluetoothController` | Singleton facade used by the Compose UI and owner of the policy: auto-reconnect decisions (`AutoReconnectPolicy`), app/device enable sweeps, pairing-failure state, device-list assembly, forwarding of the AccessorySetupKit APIs. |
 | `IosCentralShell` | The `CBCentralManager` (restore identifier `com.sarmadjari.geoshutter.central`), state restoration (restored peripherals are parked until the central is powered on, see `RestorePolicy`), `retrievePeripheralsWithIdentifiers` plus pending connects with `CBConnectPeripheralOptionEnableAutoReconnect`. It does **not** scan for new cameras. |
@@ -340,10 +340,14 @@ The `foss` guarantee also depends on `:sharednew`: Sentry KMP is declared only i
 | `IosCrashReporting` | Sentry KMP (Cocoa SDK via the SPM package `sentry-cocoa` 8.58.2), started only after consent. The DSN comes from the `SentryDSN` Info.plist key (build setting `SENTRY_DSN`); without it error reporting is hidden. MAC addresses are redacted from messages, breadcrumbs and logs. |
 | `CameraGpsIosApp` | Screen state machine (Welcome, Devices, PairingPreparation, DeviceDetails, Settings, Help, Troubleshooting, Logs). Dialogs are queued through `IosAppDialogState` and the shared `DialogQueue`: error-reporting consent, migration explainer/error, pairing failed, "Always" location, precise location, what's new, donation (opens Saschl's Buy Me a Coffee page). |
 | Preferences | `NSUserDefaults`, keys prefixed `ios.` (`IosAppPreferences`). |
+| Widget and control (`IosWidgetBridge`, `IosStatusPublisher`; Swift `WidgetBridge`, `GeoShutterWidgets`, `WidgetShared`) | The extension can't run the app's code, so the app writes GeoShutter's status (`StatusSnapshot` in `commonMain`: on/off, a headline, each saved camera's name, model, dot state and note, texts localized by the app) as JSON into the app group (`NSUserDefaults` suite `group.com.sarmadjari.geoshutter`, key `status`), only when it changed, and calls the reload hook Swift installed at launch (`WidgetCenter.reloadAllTimelines`, `ControlCenter.reloadAllControls`); iOS rations these reloads while the app is in the background. The widget (`StatusWidget`, small and medium, one timeline entry, policy `.never`) and the control (`GeoShutterControl`, a `ControlWidgetToggle`) read it (`WidgetStatus.load`). The control's action, `SetGeoShutterEnabledIntent`, is a `SetValueIntent` and `LiveActivityIntent`, so iOS runs it in the app's process (launching it in the background if needed), where `GeoShutterAppControl` calls `IosBluetoothController.setAppEnabled`, the same as *Enable App*, which writes the status before it returns. The extension's copy of `GeoShutterAppControl` does nothing. The symbols `geoshutter.status.sending`/`waiting` are custom SF Symbols generated by `tools/app_icon`. Debug simulator builds show both with sample content under `ALPHA_GPS_SCREENSHOT=widgets` (`WidgetPreviewScreen`). |
 
-Build settings: the target's base configuration is `iosApp/Config/GeoShutter.xcconfig`,
+Build settings: both targets' base configuration is `iosApp/Config/GeoShutter.xcconfig`,
 which optionally includes the untracked `iosApp/Config/Local.xcconfig` for
-machine-specific values such as `SENTRY_DSN`.
+machine-specific values such as `SENTRY_DSN`. The extension's `MARKETING_VERSION` and
+`CURRENT_PROJECT_VERSION` must match the app's. Both targets' entitlements
+(`alphagps.entitlements`, `GeoShutterWidgets.entitlements`) hold the app group, which
+needs a paid Apple Developer Program team to sign.
 
 `Info.plist` declares `NSAccessorySetupKitSupports` = Bluetooth, the Sony and Fujifilm
 company IDs (`NSAccessorySetupBluetoothCompanyIdentifiers`; a picker item with an
@@ -360,7 +364,7 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 | Fujifilm cameras | supported (secure protocol; tested on the X100VI) | supported the same way, not yet tested with a camera; paired on the app's first connection instead of in the picker |
 | Background reconnect | CDM presence (Android 12+) starts the foreground service; optional Always On keeps it running with `autoConnect` | pending connections with auto-reconnect + Core Bluetooth state restoration relaunches |
 | Always On / start on boot | yes | not applicable |
-| Status notification | status notification (foreground while the service runs), Quick Settings tile, home-screen widget | optional local notification |
+| Status outside the app | status notification (foreground while the service runs), Quick Settings tile, home-screen widget | optional local notification, home-screen widget, Control Center control |
 | Event sounds | yes (connected, disconnected, location acquired, location invalid; custom sounds) | no |
 | Location provider choice | `gplay` only | no |
 | Location update rate | the provider's interval follows the cameras (§4) | accuracy and distance filter follow the cameras (§4) |

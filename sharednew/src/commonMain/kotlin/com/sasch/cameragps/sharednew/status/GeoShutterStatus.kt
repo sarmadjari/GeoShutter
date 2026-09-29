@@ -96,16 +96,32 @@ fun geoShutterStatus(
             id = id,
             name = name,
             model = cameraModelLine(brand, saved.pairingName)?.takeIf { it != name },
-            state = when {
-                // Sony, switched off but still connected: as off as a disconnected camera.
-                session == null || session.cameraOff -> CameraState.Away
-                session.isLocationReady && !session.wantsLocation -> CameraState.LocationSyncOff
-                session.isLocationReady && session.inStandby -> CameraState.Standby
-                session.takesLocation && transmitting -> CameraState.Sending
-                session.phase in LINKED_PHASES -> CameraState.Connecting
-                else -> CameraState.Away
-            },
+            state = cameraState(session, transmitting),
         )
     }
     return GeoShutterStatus(enabled, cameras)
+}
+
+/** A camera's state from its session; [transmitting] is whether location updates run. */
+fun cameraState(session: CameraSession?, transmitting: Boolean): CameraState = when {
+    // Sony, switched off but still connected: as off as a disconnected camera.
+    session == null || session.cameraOff -> CameraState.Away
+    session.isLocationReady && !session.wantsLocation -> CameraState.LocationSyncOff
+    session.isLocationReady && session.inStandby -> CameraState.Standby
+    session.takesLocation && transmitting -> CameraState.Sending
+    session.phase in LINKED_PHASES -> CameraState.Connecting
+    else -> CameraState.Away
+}
+
+/** The one-line state of GeoShutter as a whole, e.g. the widget's subtitle. */
+enum class StatusHeadline { Off, Sending, Connecting, Standby, LocationSyncOff, Waiting }
+
+/** The most important state first: a camera receiving the location beats one connecting. */
+fun GeoShutterStatus.headline(): StatusHeadline = when {
+    !enabled -> StatusHeadline.Off
+    sending.isNotEmpty() -> StatusHeadline.Sending
+    connecting.isNotEmpty() -> StatusHeadline.Connecting
+    standby.isNotEmpty() -> StatusHeadline.Standby
+    locationSyncOff.isNotEmpty() -> StatusHeadline.LocationSyncOff
+    else -> StatusHeadline.Waiting
 }

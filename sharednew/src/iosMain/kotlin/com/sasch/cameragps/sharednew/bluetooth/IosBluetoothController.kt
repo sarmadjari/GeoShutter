@@ -23,7 +23,9 @@ import com.sasch.cameragps.sharednew.database.LogDatabase
 import com.sasch.cameragps.sharednew.database.devices.CameraDeviceDAO
 import com.sasch.cameragps.sharednew.database.getDatabaseBuilder
 import com.sasch.cameragps.sharednew.database.logging.LogRepository
+import com.sasch.cameragps.sharednew.language.appLanguagePreference
 import com.sasch.cameragps.sharednew.logging.IosLogging
+import com.sasch.cameragps.sharednew.status.IosStatusPublisher
 import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
 import com.sasch.cameragps.sharednew.ui.devicelist.cameraModelLine
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -166,6 +168,22 @@ object IosBluetoothController : BluetoothController {
     )
 
     private var appEnabled = IosAppPreferences.isAppEnabled()
+
+    /** The *Enable App* switch, also changed by the Control Center control. */
+    private val _appEnabledState = MutableStateFlow(appEnabled)
+    val appEnabledState: StateFlow<Boolean> = _appEnabledState
+
+    /**
+     * Turns GeoShutter on or off: from Settings and from the Control Center control,
+     * whose action runs in the app (`SetGeoShutterEnabledIntent`). The widget status is
+     * written before this returns, so the control shows the new state right away.
+     */
+    fun setAppEnabled(enabled: Boolean) {
+        IosAppPreferences.setAppEnabled(enabled)
+        _appEnabledState.value = enabled
+        statusPublisher.publishNow()
+        controllerScope.launch { applyAppEnabledState(enabled) }
+    }
 
     /**
      * Whether the current central is powered on. Exposed for platform UI state;
@@ -348,6 +366,16 @@ object IosBluetoothController : BluetoothController {
 
     fun hasPreciseAccuracyAuthorization(): Boolean = locationSource.hasPreciseAuthorization()
 
+    /** The status the iPhone widget and Control Center control show. */
+    private val statusPublisher = IosStatusPublisher(
+        scope = controllerScope,
+        language = appLanguagePreference.selected,
+        appEnabled = appEnabledState,
+        devices = devices,
+        sessions = orchestrator.sessions,
+        transmitting = orchestrator.locationManager.isActive,
+    )
+
     init {
         locationSource.onAuthorizationChanged = {
             _needsAlwaysLocationAuthorization.value =
@@ -357,6 +385,7 @@ object IosBluetoothController : BluetoothController {
         _needsAlwaysLocationAuthorization.value =
             locationSource.needsAlwaysAuthorizationFromSettings()
         orchestrator.start()
+        statusPublisher.start()
 
         controllerScope.launch {
             repository.sync()
@@ -547,6 +576,7 @@ object IosBluetoothController : BluetoothController {
 
     suspend fun applyAppEnabledState(enabled: Boolean) {
         appEnabled = enabled
+        _appEnabledState.value = enabled
         if (enabled) {
             startScan()
             reconnectToPersistedPeripherals()

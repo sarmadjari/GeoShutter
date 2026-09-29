@@ -49,4 +49,12 @@
         <item quantity="other">Standortdaten werden an %1$d Kameras übertragen</item>
     </plurals>
 
+    <!-- iPhone widget and Control Center control (GeoShutterWidgets extension) -->
+    <string name="widget_status_off">Aus</string>
+    <string name="widget_status_sending">Sendet Standort</string>
+    <string name="widget_status_connecting">Verbindet</string>
+    <string name="widget_status_standby">Standby</string>
+    <string name="widget_status_sync_off">Standortsync aus</string>
+    <string name="widget_status_waiting">Wartet</string>
+    <string name="widget_no_cameras">Noch keine Kameras hinzugefügt</string>
 </resources>
