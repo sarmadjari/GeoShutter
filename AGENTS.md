@@ -161,7 +161,7 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
     state restoration, created in `AppDelegate` via `ensureInitialized()`),
     `IosBleTransport` (pairing gate), AccessorySetupKit (`IosAccessoryShell`/`Coordinator`)
     for adding, migrating, renaming and removing cameras.
-- Persistence: shared Room DB `LogDatabase` v7 (`camera_devices`, `log_entries`), schemas
+- Persistence: shared Room DB `LogDatabase` v8 (`camera_devices`, `log_entries`), schemas
   in `sharednew/schemas`. Preferences: Android `SharedPreferences` `camera_gps_prefs`,
   iOS `NSUserDefaults` keys `ios.*`.
 - Logging: KmLogging in shared code → Timber (Android) / `IosLogging` (iOS) → Room log
@@ -272,6 +272,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   after switching on is tagged; while every such camera is off the phone's location is
   refreshed about once a minute instead of every 5 s (user's choice over full rate or
   stopping).
+- 2026-09-29: the Fujifilm camera details also offer *Stay connected when switched off*
+  (the camera's CONNECT WHILE POWER OFF), *Location updates while on* (the camera's
+  request interval, 10 s–8 min, recommended 10 s; the phone's GPS follows it, as in
+  Fujifilm's app) and *Location updates in standby* (30 s–5 min, recommended 1 min).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -480,3 +484,11 @@ fork's site. GitHub Pages is not enabled on the fork.
   the first build treated as awake. Now anything but `01 02` counts as standby; the state
   and texts are "Standby" (switched off or asleep) instead of "Camera off", and the raw
   value is logged on changes ("is in standby (power switch 01 01)"). Verified on the camera.
+- 2026-09-29 (afternoon): camera settings from the app. `REMOTE_BOOT_SETTING` (`7170fd5a`)
+  is the X100VI's CONNECT WHILE POWER OFF: it reads `01 00` (two bytes, although
+  Fujifilm's app writes one), and writing `00 00`/`01 00` switched the menu setting (checked
+  on the camera). The sync interval is now per camera (database v8) and written at setup
+  and at once when changed (20 s verified: requests every 20 s). The phone's location
+  interval follows the most demanding camera (Sony 5 s, Fujifilm its interval, standby its
+  standby interval); a stationary phone may get fewer GPS fixes (Google's service). The
+  camera settings controller logs values it can't decode.

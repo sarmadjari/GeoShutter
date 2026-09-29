@@ -73,6 +73,21 @@ class DeviceDetailViewModel(
         }
     }
 
+    /** Fujifilm: takes effect at once while the camera is connected. */
+    fun setLocationInterval(seconds: Int, device: String) {
+        viewModelScope.launch {
+            stateStore.setLocationIntervalS(device, seconds)
+            cameraSettings.applyLocationIntervals(device)
+        }
+    }
+
+    fun setStandbyInterval(seconds: Int, device: String) {
+        viewModelScope.launch {
+            stateStore.setStandbyIntervalS(device, seconds)
+            cameraSettings.applyLocationIntervals(device)
+        }
+    }
+
     fun setHandshakeDelay(delayMs: Long, device: String) {
         viewModelScope.launch {
             stateStore.setHandshakeDelayMs(device, delayMs)

@@ -45,8 +45,14 @@ import cameragps.sharednew.generated.resources.dialog_ok
 import cameragps.sharednew.generated.resources.enableConstantly
 import cameragps.sharednew.generated.resources.enable_device
 import cameragps.sharednew.generated.resources.enable_remote_control
+import cameragps.sharednew.generated.resources.fujifilm_connect_while_off
+import cameragps.sharednew.generated.resources.fujifilm_connect_while_off_hint
+import cameragps.sharednew.generated.resources.fujifilm_location_interval
+import cameragps.sharednew.generated.resources.fujifilm_location_interval_hint
 import cameragps.sharednew.generated.resources.fujifilm_location_sync
 import cameragps.sharednew.generated.resources.fujifilm_location_sync_hint
+import cameragps.sharednew.generated.resources.fujifilm_standby_interval
+import cameragps.sharednew.generated.resources.fujifilm_standby_interval_hint
 import cameragps.sharednew.generated.resources.fujifilm_time_sync
 import cameragps.sharednew.generated.resources.fujifilm_time_sync_hint
 import cameragps.sharednew.generated.resources.handshake_delay_description
@@ -55,6 +61,9 @@ import cameragps.sharednew.generated.resources.handshake_delay_seconds
 import cameragps.sharednew.generated.resources.handshake_delay_title
 import cameragps.sharednew.generated.resources.hint_if_issues_after_switching
 import cameragps.sharednew.generated.resources.info_24px
+import cameragps.sharednew.generated.resources.interval_minutes
+import cameragps.sharednew.generated.resources.interval_recommended
+import cameragps.sharednew.generated.resources.interval_seconds
 import cameragps.sharednew.generated.resources.remote_control_hint
 import cameragps.sharednew.generated.resources.rename_camera_hint
 import cameragps.sharednew.generated.resources.rename_camera_label
@@ -62,6 +71,7 @@ import cameragps.sharednew.generated.resources.rename_camera_save
 import cameragps.sharednew.generated.resources.rename_camera_title
 import cameragps.sharednew.generated.resources.setting_info
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraAutoCorrectionSetting
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
@@ -207,6 +217,9 @@ fun DeviceDetailContent(
 
                     CameraAutoCorrectionSetting.FujifilmLocationSync ->
                         Res.string.fujifilm_location_sync to Res.string.fujifilm_location_sync_hint
+
+                    CameraAutoCorrectionSetting.FujifilmConnectWhileOff ->
+                        Res.string.fujifilm_connect_while_off to Res.string.fujifilm_connect_while_off_hint
                 }
                 CameraSettingRow(
                     title = stringResource(title),
@@ -217,7 +230,92 @@ fun DeviceDetailContent(
                     onRetry = { viewModel.refreshCameraSettings(deviceId) },
                 )
             }
+            // Each interval right below the camera setting it belongs to.
+            when (setting) {
+                CameraAutoCorrectionSetting.FujifilmLocationSync -> item(key = "locationInterval") {
+                    IntervalSlider(
+                        title = stringResource(Res.string.fujifilm_location_interval),
+                        infoText = stringResource(Res.string.fujifilm_location_interval_hint),
+                        choices = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVALS_SECONDS,
+                        recommended = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
+                        selected = state.locationIntervalS,
+                        enabled = state.isDeviceEnabled && state.buttonEnabled,
+                        onSelected = { viewModel.setLocationInterval(it, deviceId) },
+                    )
+                }
+
+                CameraAutoCorrectionSetting.FujifilmConnectWhileOff -> item(key = "standbyInterval") {
+                    IntervalSlider(
+                        title = stringResource(Res.string.fujifilm_standby_interval),
+                        infoText = stringResource(Res.string.fujifilm_standby_interval_hint),
+                        choices = FujifilmBluetoothConstants.STANDBY_INTERVALS_SECONDS,
+                        recommended = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS,
+                        selected = state.standbyIntervalS,
+                        enabled = state.isDeviceEnabled && state.buttonEnabled,
+                        onSelected = { viewModel.setStandbyInterval(it, deviceId) },
+                    )
+                }
+
+                else -> Unit
+            }
         }
+    }
+}
+
+/**
+ * Picks one of [choices] (seconds) with a slider; the label shows the value and marks the
+ * [recommended] one.
+ */
+@Composable
+private fun IntervalSlider(
+    title: String,
+    infoText: String,
+    choices: List<Int>,
+    recommended: Int,
+    selected: Int,
+    enabled: Boolean,
+    onSelected: (Int) -> Unit,
+) {
+    val selectedIndex = choices.indexOf(selected).takeIf { it >= 0 } ?: choices.indexOf(recommended)
+    // Local value while dragging; saved only on release.
+    var position by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
+    val seconds = choices[position.roundToInt().coerceIn(choices.indices)]
+    val value = if (seconds < 60) {
+        stringResource(Res.string.interval_seconds, seconds)
+    } else {
+        stringResource(Res.string.interval_minutes, seconds / 60)
+    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            SettingInfoButton(title = title, text = infoText)
+            Text(
+                text = if (seconds == recommended) {
+                    stringResource(Res.string.interval_recommended, value)
+                } else {
+                    value
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        Slider(
+            value = position,
+            onValueChange = { position = it },
+            onValueChangeFinished = {
+                onSelected(choices[position.roundToInt().coerceIn(choices.indices)])
+            },
+            valueRange = 0f..(choices.size - 1).toFloat(),
+            steps = choices.size - 2,
+            enabled = enabled,
+        )
     }
 }
 

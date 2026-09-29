@@ -1,5 +1,6 @@
 package com.sasch.cameragps.sharednew.ui.device
 
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,14 @@ interface DeviceDetailDataSource {
     /** Fujifilm: set the camera's date, time and time zone on connect (default on). */
     suspend fun isTimeSyncEnabled(deviceId: String): Boolean = true
     suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) = Unit
+
+    /** Fujifilm: seconds between the camera's location requests while it is on. */
+    suspend fun getLocationIntervalS(deviceId: String): Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS
+    suspend fun setLocationIntervalS(deviceId: String, seconds: Int) = Unit
+
+    /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
+    suspend fun getStandbyIntervalS(deviceId: String): Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS
+    suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) = Unit
 }
 
 interface DeviceDetailServiceActions {
@@ -39,6 +48,8 @@ data class DeviceDetailToggleState(
     val isRemoteControlEnabled: Boolean = false,
     val handshakeDelayMs: Long = 0,
     val isTimeSyncEnabled: Boolean = true,
+    val locationIntervalS: Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
+    val standbyIntervalS: Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS,
 )
 
 class DeviceDetailStateStore(
@@ -58,6 +69,8 @@ class DeviceDetailStateStore(
                 isRemoteControlEnabled = dataSource.isRemoteControlEnabled(normalized),
                 handshakeDelayMs = dataSource.getHandshakeDelayMs(normalized),
                 isTimeSyncEnabled = dataSource.isTimeSyncEnabled(normalized),
+                locationIntervalS = dataSource.getLocationIntervalS(normalized),
+                standbyIntervalS = dataSource.getStandbyIntervalS(normalized),
             )
         }
     }
@@ -99,6 +112,20 @@ class DeviceDetailStateStore(
         dataSource.ensureDeviceExists(normalized, deviceName)
         dataSource.setTimeSyncEnabled(normalized, enabled)
         _uiState.update { it.copy(isTimeSyncEnabled = enabled) }
+    }
+
+    suspend fun setLocationIntervalS(deviceId: String, seconds: Int) {
+        val normalized = deviceId.uppercase()
+        dataSource.ensureDeviceExists(normalized)
+        dataSource.setLocationIntervalS(normalized, seconds)
+        _uiState.update { it.copy(locationIntervalS = seconds) }
+    }
+
+    suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
+        val normalized = deviceId.uppercase()
+        dataSource.ensureDeviceExists(normalized)
+        dataSource.setStandbyIntervalS(normalized, seconds)
+        _uiState.update { it.copy(standbyIntervalS = seconds) }
     }
 
     suspend fun setDeviceName(deviceId: String, name: String) {

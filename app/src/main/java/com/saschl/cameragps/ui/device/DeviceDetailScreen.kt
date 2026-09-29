@@ -36,6 +36,7 @@ import cameragps.sharednew.generated.resources.back
 import cameragps.sharednew.generated.resources.device_name_with_address
 import cameragps.sharednew.generated.resources.help_menu_item
 import cameragps.sharednew.generated.resources.remove
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.database.LogDatabase
 import com.sasch.cameragps.sharednew.database.devices.CameraDevice
 import com.sasch.cameragps.sharednew.database.devices.CameraDeviceDAO
@@ -100,6 +101,20 @@ private fun createAndroidDataSource(dao: CameraDeviceDAO): DeviceDetailDataSourc
 
         override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
             dao.setTimeSyncEnabled(deviceId, enabled)
+        }
+
+        override suspend fun getLocationIntervalS(deviceId: String) =
+            dao.findLocationIntervalS(deviceId) ?: FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS
+
+        override suspend fun setLocationIntervalS(deviceId: String, seconds: Int) {
+            dao.setLocationIntervalS(deviceId, seconds)
+        }
+
+        override suspend fun getStandbyIntervalS(deviceId: String) =
+            dao.findStandbyIntervalS(deviceId) ?: FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS
+
+        override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
+            dao.setStandbyIntervalS(deviceId, seconds)
         }
     }
 }

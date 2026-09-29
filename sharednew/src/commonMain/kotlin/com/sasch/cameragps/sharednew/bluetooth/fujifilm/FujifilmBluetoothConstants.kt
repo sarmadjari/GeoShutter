@@ -76,6 +76,13 @@ object FujifilmBluetoothConstants {
     const val GEOTAG_SYNC_INTERVAL_UUID = "c95d91ae-b247-4d6d-8661-7dd5d6a0f85b"
     const val GEOTAG_SYNC_INTERVAL_SECONDS = 10
 
+    /** The sync intervals Fujifilm's app offers, in seconds. */
+    val GEOTAG_SYNC_INTERVALS_SECONDS = listOf(10, 15, 20, 30, 60, 120, 240, 480)
+
+    /** How often the phone refreshes its location while every camera is in standby, in seconds. */
+    val STANDBY_INTERVALS_SECONDS = listOf(30, 60, 120, 300)
+    const val STANDBY_INTERVAL_SECONDS = 60
+
     /** Geotag service and characteristic: 23-byte packet, written with response (Fujifilm.h:98-99, .cpp:93-130). */
     const val GEOTAG_SERVICE_UUID = "3b46ec2b-48ba-41fd-b1b8-ed860b60d22b"
     const val GEOTAG_CHARACTERISTIC_UUID = "0f36ec14-29e5-411a-a1b6-64ee8383f090"
@@ -91,6 +98,13 @@ object FujifilmBluetoothConstants {
      * furble; see docs/fujifilm-protocol.md.
      */
     const val POWER_SWITCH_UUID = "f90f7d3a-3b64-45c6-ab21-933900184837"
+
+    /**
+     * The camera's CONNECT WHILE POWER OFF setting (Fujifilm's app: REMOTE_BOOT_SETTING,
+     * in the camera startup information service): off 0, on 1. Fujifilm's app writes one
+     * byte; the X100VI reads `01 00`. Not in furble; see docs/fujifilm-protocol.md.
+     */
+    const val CONNECT_WHILE_OFF_UUID = "7170fd5a-56d9-4c19-b043-7a7047d8e1a0"
 
     // ---- Date, time and time zone (not in furble; see docs/fujifilm-protocol.md) ----
 

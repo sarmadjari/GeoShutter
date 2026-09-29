@@ -10,7 +10,6 @@ import android.os.Looper
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 import com.sasch.cameragps.sharednew.bluetooth.location.GeoLocation
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
-import com.sasch.cameragps.sharednew.bluetooth.location.STANDBY_LOCATION_UPDATE_INTERVAL_MS
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -30,7 +29,7 @@ class PlatformLocationSource(
     override val locations: Flow<GeoLocation> = locationChannel.receiveAsFlow()
 
     private var started = false
-    private var slow = false
+    private var intervalMs = LOCATION_UPDATE_INTERVAL_MS
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
 
@@ -62,9 +61,9 @@ class PlatformLocationSource(
     }
 
     @SuppressLint("MissingPermission")
-    override fun setSlowUpdates(slow: Boolean) {
-        if (this.slow == slow) return
-        this.slow = slow
+    override fun setUpdateInterval(intervalMs: Long) {
+        if (this.intervalMs == intervalMs) return
+        this.intervalMs = intervalMs
         if (!started) return
         val locManager = locationManager ?: return
         val listener = locationListener ?: return
@@ -76,8 +75,6 @@ class PlatformLocationSource(
 
     // --- private helpers ---
 
-    private val intervalMs: Long
-        get() = if (slow) STANDBY_LOCATION_UPDATE_INTERVAL_MS else LOCATION_UPDATE_INTERVAL_MS
 
     private fun emitLocation(location: Location) {
         locationChannel.trySend(

@@ -30,11 +30,11 @@ private class SwitchingLocationSource(
     override val locations: Flow<GeoLocation> = merge(fused.locations, platform.locations)
 
     private var active: LocationSource? = null
-    private var slow = false
+    private var intervalMs: Long? = null
 
-    override fun setSlowUpdates(slow: Boolean) {
-        this.slow = slow
-        active?.setSlowUpdates(slow)
+    override fun setUpdateInterval(intervalMs: Long) {
+        this.intervalMs = intervalMs
+        active?.setUpdateInterval(intervalMs)
     }
 
     override fun start(): Boolean {
@@ -47,7 +47,7 @@ private class SwitchingLocationSource(
             } else {
                 platform
             }
-        source.setSlowUpdates(slow)
+        intervalMs?.let(source::setUpdateInterval)
         val startedSuccessfully = source.start()
         if (startedSuccessfully) {
             active = source

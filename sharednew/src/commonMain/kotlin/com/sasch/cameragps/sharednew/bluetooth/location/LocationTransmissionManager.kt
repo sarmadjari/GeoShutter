@@ -56,11 +56,12 @@ class LocationTransmissionManager(
      */
     private val wantsLocation: (String) -> Boolean = { true },
     /**
-     * True for a ready camera that is switched off in standby but still takes locations
-     * (Fujifilm). While every camera that wants locations is in standby, the source only
-     * needs a fix about once a minute.
+     * How often a ready camera needs a fresh fix, in milliseconds (a Fujifilm camera asks
+     * at its own interval, more slowly in standby). The source runs as often as the most
+     * demanding camera that wants locations needs, never faster than every
+     * [SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS].
      */
-    private val inStandby: (String) -> Boolean = { false },
+    private val updateIntervalMsFor: (String) -> Long = { SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS },
 ) {
     private val log = logging()
 
@@ -81,7 +82,7 @@ class LocationTransmissionManager(
     private var hasSessionLocation = false
     private var collectJob: Job? = null
     private var periodicJob: Job? = null
-    private var slowUpdates = false
+    private var updateIntervalMs = SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 
     /** Cameras that asked for a location before one could be sent. */
     private val pendingRequests = mutableSetOf<String>()
@@ -94,7 +95,7 @@ class LocationTransmissionManager(
     fun onDeviceReady(identifier: String) {
         val id = identifier.uppercase()
         startIfNeeded()
-        // A camera that is switched on needs the full rate again.
+        // A camera that needs fixes more often than the others speeds the source up.
         if (_isActive.value) applyUpdateRate()
         if (isPushBased(id)) sendImmediateIfCached(id) else answerPendingRequests()
     }
@@ -135,18 +136,18 @@ class LocationTransmissionManager(
         applyUpdateRate()
     }
 
-    /** Every ready camera that wants locations is switched off in standby. */
-    private fun onlyStandbyCameras(): Boolean {
-        val wanting = readySessions().filter(wantsLocation)
-        return wanting.isNotEmpty() && wanting.all(inStandby)
-    }
+    /** The interval the most demanding ready camera that wants locations needs. */
+    private fun neededUpdateIntervalMs(): Long =
+        readySessions().filter(wantsLocation).minOfOrNull(updateIntervalMsFor)
+            ?.coerceAtLeast(SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS)
+            ?: SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 
     private fun applyUpdateRate() {
-        val slow = onlyStandbyCameras()
-        if (slow == slowUpdates) return
-        slowUpdates = slow
-        log.i { if (slow) "All cameras are off, slowing location updates" else "Location updates at full rate" }
-        source.setSlowUpdates(slow)
+        val intervalMs = neededUpdateIntervalMs()
+        if (intervalMs == updateIntervalMs) return
+        updateIntervalMs = intervalMs
+        log.i { "Location updates every ${intervalMs / 1000} s" }
+        source.setUpdateInterval(intervalMs)
     }
 
     /** Some ready camera wants locations, or asked for one. */
@@ -169,14 +170,14 @@ class LocationTransmissionManager(
         // Discard a fix cached from a previous session if it is too old
         latest = latest?.takeIf { hasSessionLocation || !isTooOld(it) }
 
-        slowUpdates = onlyStandbyCameras()
-        source.setSlowUpdates(slowUpdates)
+        updateIntervalMs = neededUpdateIntervalMs()
+        source.setUpdateInterval(updateIntervalMs)
         if (!source.start()) {
             log.e { "Location source could not be started, cannot begin transmission" }
             return
         }
         _isActive.value = true
-        log.i { "Starting location transmission" }
+        log.i { "Starting location transmission, a fix every ${updateIntervalMs / 1000} s" }
 
         collectJob = scope.launch {
             source.locations.collect { onNewLocation(it) }

@@ -31,5 +31,11 @@ data class CameraDevice(
     /** Fujifilm: set the camera's date, time and time zone from the phone on connect. */
     @ColumnInfo(defaultValue = "1")
     val timeSyncEnabled: Boolean = true,
+    /** Fujifilm: seconds between the camera's location requests while it is awake. */
+    @ColumnInfo(defaultValue = "10")
+    val locationIntervalS: Int = 10,
+    /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
+    @ColumnInfo(defaultValue = "60")
+    val standbyIntervalS: Int = 60,
 )
 

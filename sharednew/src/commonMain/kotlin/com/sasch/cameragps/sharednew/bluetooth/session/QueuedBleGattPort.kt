@@ -31,6 +31,7 @@ internal class QueuedBleGattPort(
                 CameraAutoCorrectionSetting.Time -> it.copy(autoTimeCorrection = state)
                 CameraAutoCorrectionSetting.Area -> it.copy(autoAreaAdjustment = state)
                 CameraAutoCorrectionSetting.FujifilmLocationSync -> it.copy(fujifilmLocationSync = state)
+                CameraAutoCorrectionSetting.FujifilmConnectWhileOff -> it.copy(fujifilmConnectWhileOff = state)
             }
         }
     }

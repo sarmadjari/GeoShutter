@@ -829,5 +829,15 @@ class CameraLocationLinkingTest {
         override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
             timeSyncEnabled = enabled
         }
+        var locationIntervalS: Int? = null
+        var standbyIntervalS: Int? = null
+        override suspend fun findLocationIntervalS(address: String): Int? = locationIntervalS
+        override suspend fun setLocationIntervalS(deviceId: String, seconds: Int) {
+            locationIntervalS = seconds
+        }
+        override suspend fun findStandbyIntervalS(address: String): Int? = standbyIntervalS
+        override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
+            standbyIntervalS = seconds
+        }
     }
 }

@@ -88,6 +88,7 @@ class FujifilmSessionTest {
         ) + timeWrite + // like Fujifilm's app, right after the sync interval
                 // Before the camera counts as ready: does it want locations, is it on?
                 Step.Read(Fuji.LOCATION_SYNC_SETTING_UUID, Fuji.NOTIFICATION_SERVICE_UUID) +
+                Step.Read(Fuji.CONNECT_WHILE_OFF_UUID, null) +
                 Step.Read(Fuji.POWER_SWITCH_UUID, null) +
                 Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) // camera name
         assertEquals(expected, steps)
@@ -588,7 +589,7 @@ class FujifilmSessionTest {
         runCurrent()
         assertTrue(f.session("F").inStandby)
         assertTrue(f.source.active)
-        assertTrue(f.source.slow)
+        assertEquals(60_000L, f.source.intervalMs)
 
         f.fix()
         f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
@@ -600,7 +601,7 @@ class FujifilmSessionTest {
         f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
         runCurrent()
         assertFalse(f.session("F").inStandby)
-        assertFalse(f.source.slow)
+        assertEquals(10_000L, f.source.intervalMs) // back to the camera's interval
         assertEquals(2, f.transport.geotagWrites("F").size)
     }
 
@@ -617,7 +618,7 @@ class FujifilmSessionTest {
         runCurrent()
 
         assertTrue(f.session("F").inStandby)
-        assertTrue(f.source.slow)
+        assertEquals(60_000L, f.source.intervalMs)
     }
 
     @Test
@@ -629,7 +630,7 @@ class FujifilmSessionTest {
         runCurrent()
 
         assertTrue(f.session("F").inStandby)
-        assertFalse(f.source.slow)
+        assertEquals(5_000L, f.source.intervalMs)
     }
 
     @Test
@@ -640,7 +641,77 @@ class FujifilmSessionTest {
 
         assertFalse(f.session("F").inStandby)
         assertTrue(f.session("F").isLocationReady)
-        assertFalse(f.source.slow)
+        assertEquals(10_000L, f.source.intervalMs) // the camera asks every 10 s
+    }
+
+    // ---- intervals and CONNECT WHILE POWER OFF ----
+
+    @Test
+    fun setupWritesTheCamerasChosenInterval() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.locationIntervalS = 30
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        val interval = f.transport.steps("F").filterIsInstance<Step.Write>()
+            .single { it.characteristicUuid == Fuji.GEOTAG_SYNC_INTERVAL_UUID }
+        assertEquals(listOf(30, 0), interval.value)
+        // The phone doesn't need fixes more often than the camera asks.
+        assertEquals(30_000L, f.source.intervalMs)
+    }
+
+    @Test
+    fun aNewIntervalIsWrittenToAConnectedCameraAtOnce() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        f.dao.locationIntervalS = 60
+        f.orchestrator.applyLocationIntervals("F")
+        runCurrent()
+
+        assertEquals(listOf(listOf(10, 0), listOf(60, 0)), f.transport.writes("F", Fuji.GEOTAG_SYNC_INTERVAL_UUID).map { v -> v.map { it.toInt() and 0xFF } })
+        assertEquals(60, f.session("F").locationIntervalS)
+        assertEquals(60_000L, f.source.intervalMs)
+    }
+
+    @Test
+    fun standbyUsesTheStandbyInterval() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.standbyIntervalS = 120
+        f.transport.powerKeyState = byteArrayOf(0x00, 0x01)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        assertEquals(120_000L, f.source.intervalMs)
+    }
+
+    @Test
+    fun anUnknownStoredIntervalFallsBackToTheDefault() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.locationIntervalS = 7
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        assertEquals(Fuji.GEOTAG_SYNC_INTERVAL_SECONDS, f.session("F").locationIntervalS)
+    }
+
+    @Test
+    fun readsAndChangesConnectWhilePowerOff() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        val setting = CameraAutoCorrectionSetting.FujifilmConnectWhileOff
+        assertEquals(
+            CameraSettingState(supported = true, enabled = true),
+            f.session("F").autoCorrectionSetting(setting),
+        )
+
+        f.orchestrator.setAutoCorrectionSetting("F", setting, false)
+        runCurrent()
+
+        assertEquals(listOf(0x00, 0x00), f.transport.writes("F", Fuji.CONNECT_WHILE_OFF_UUID).last().map { it.toInt() and 0xFF })
+        assertEquals(false, f.session("F").autoCorrectionSetting(setting).enabled)
     }
 
     @Test
@@ -714,10 +785,10 @@ class FujifilmSessionTest {
         override val locations = channel.receiveAsFlow()
         var active = false
         var starts = 0
-        var slow = false
+        var intervalMs = Sony.LOCATION_UPDATE_INTERVAL_MS
 
-        override fun setSlowUpdates(slow: Boolean) {
-            this.slow = slow
+        override fun setUpdateInterval(intervalMs: Long) {
+            this.intervalMs = intervalMs
         }
 
         override fun start(): Boolean {
@@ -745,6 +816,7 @@ class FujifilmSessionTest {
         var cameraName = "FUJIFILM-X100VI-1A2B"
         var locationSyncSetting = byteArrayOf(0x01, 0x00)
         var powerKeyState = byteArrayOf(0x01, 0x02)
+        var connectWhileOff = byteArrayOf(0x01, 0x00)
         val reconnects = mutableListOf<String>()
 
         override fun reconnect(identifier: String): Boolean {
@@ -836,6 +908,8 @@ class FujifilmSessionTest {
                     locationSyncSetting
                 characteristicUuid.equals(Fuji.POWER_SWITCH_UUID, ignoreCase = true) ->
                     powerKeyState
+                characteristicUuid.equals(Fuji.CONNECT_WHILE_OFF_UUID, ignoreCase = true) ->
+                    connectWhileOff
                 else -> byteArrayOf(0, 0, 0, 0, 2)
             }
             val event = BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result)
@@ -911,6 +985,16 @@ class FujifilmSessionTest {
         override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
             timeSyncEnabled = enabled
         }
+        var locationIntervalS: Int? = null
+        var standbyIntervalS: Int? = null
+        override suspend fun findLocationIntervalS(address: String): Int? = locationIntervalS
+        override suspend fun setLocationIntervalS(deviceId: String, seconds: Int) {
+            locationIntervalS = seconds
+        }
+        override suspend fun findStandbyIntervalS(address: String): Int? = standbyIntervalS
+        override suspend fun setStandbyIntervalS(deviceId: String, seconds: Int) {
+            standbyIntervalS = seconds
+        }
     }
 
     private companion object {
@@ -921,6 +1005,7 @@ class FujifilmSessionTest {
             Fuji.SHUTTER_CHARACTERISTIC_UUID,
             Fuji.UTC_TIME_ZONE_UUID,
             Fuji.POWER_SWITCH_UUID,
+            Fuji.CONNECT_WHILE_OFF_UUID,
         ) + (Fuji.REQUIRED_SUBSCRIPTIONS + Fuji.OPTIONAL_SUBSCRIPTIONS).map { it.characteristicUuid }
 
         val SONY: Set<String> = setOf(

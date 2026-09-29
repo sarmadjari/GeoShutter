@@ -1,5 +1,6 @@
 package com.sasch.cameragps.sharednew.bluetooth.session
 
+import com.diamondedge.logging.logging
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperation
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationResult
@@ -14,6 +15,7 @@ internal class CameraAutoCorrectionController(
     private val registry: CameraSessionRegistry,
     private val scope: CoroutineScope,
 ) {
+    private val log = logging()
     private val jobs = mutableMapOf<Pair<String, CameraAutoCorrectionSetting>, Job>()
 
     fun refresh(identifier: String) {
@@ -37,7 +39,7 @@ internal class CameraAutoCorrectionController(
                     id, BleOperation.Read(setting.characteristicUuid, setting.serviceUuid),
                 )
                 coroutineContext.ensureActive()
-                val value = setting.decode((result as? BleOperationResult.Success)?.value)
+                val value = decodeOrLog(id, setting, result)
                 port.setAutoCorrectionState(
                     id, setting, CameraSettingState(
                         supported = if (value != null) true else old.supported,
@@ -66,7 +68,7 @@ internal class CameraAutoCorrectionController(
             val result = port.execute(
                 id, BleOperation.Read(setting.characteristicUuid, setting.serviceUuid),
             )
-            val value = setting.decode((result as? BleOperationResult.Success)?.value)
+            val value = decodeOrLog(id, setting, result)
             port.setAutoCorrectionState(
                 id, setting, CameraSettingState(
                     supported = if (value != null) true else null,
@@ -115,6 +117,20 @@ internal class CameraAutoCorrectionController(
                 enabled = enabled,
             ),
         )
+    }
+
+    private fun decodeOrLog(
+        id: String,
+        setting: CameraAutoCorrectionSetting,
+        result: BleOperationResult,
+    ): Boolean? {
+        val bytes = (result as? BleOperationResult.Success)?.value
+        val value = setting.decode(bytes)
+        if (value == null) {
+            val shown = bytes?.joinToString(" ") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') } ?: result
+            log.w { "Camera $id: unexpected value $shown for ${setting.name}" }
+        }
+        return value
     }
 
     fun clear(identifier: String) {

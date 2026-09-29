@@ -337,6 +337,15 @@
     <string name="fujifilm_location_sync">Smartphone location sync</string>
     <string name="fujifilm_location_sync_off_hint">Location sync is off on the camera, so it takes no location. Turn on Smartphone location sync in this camera's details, or SMARTPHONE LOCATION SYNC. on the camera.</string>
     <string name="fujifilm_standby_hint">The camera is switched off or asleep (standby). Its location is kept up to date, so your next photo is tagged right away.</string>
+    <string name="fujifilm_location_interval">Location updates while on</string>
+    <string name="fujifilm_location_interval_hint">How often the camera asks for your location while it is on; your phone's GPS follows. Every 10 s (recommended) keeps tags accurate while you move, with little difference in battery up to about 30 s. Longer intervals save battery on long outings, but a photo can get a location that many seconds old. Takes effect at once while the camera is connected.</string>
+    <string name="fujifilm_connect_while_off">Stay connected when switched off</string>
+    <string name="fujifilm_connect_while_off_hint">The camera's CONNECT WHILE POWER OFF setting. When it is on, the camera stays connected in standby when it is switched off or falls asleep, and GeoShutter keeps its location up to date, so the first photo after switching it on is tagged right away. Uses a little more camera battery. This changes the setting on the connected camera.</string>
+    <string name="fujifilm_standby_interval">Location updates in standby</string>
+    <string name="fujifilm_standby_interval_hint">How often your phone refreshes its location while the camera is switched off or asleep in standby (Stay connected when switched off). Every minute (recommended) balances battery and accuracy: the first photo after switching the camera on gets a location at most about a minute old, and the phone's GPS can rest in between.</string>
+    <string name="interval_seconds">Every %1$d s</string>
+    <string name="interval_minutes">Every %1$d min</string>
+    <string name="interval_recommended">%1$s (recommended)</string>
     <string name="fujifilm_location_sync_hint">The camera's SMARTPHONE LOCATION SYNC. setting. When it is on, the camera asks your phone for its location and saves it with every photo. This changes the setting on the connected camera.</string>
     <string name="camera_setting_connect">(Camera must be connected)</string>
     <string name="camera_setting_pending">Waiting for the camera…</string>

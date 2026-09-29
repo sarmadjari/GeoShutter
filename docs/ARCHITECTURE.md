@@ -143,8 +143,9 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
    sets the camera's date, time and time zone (`syncTime`, unless the camera's
    `timeSyncEnabled` option is off; the camera applies it only when it asked, on the
    first connection after it is switched on or wakes), reads the camera's SMARTPHONE
-   LOCATION SYNC. setting (`CameraAutoCorrectionController.readDuringSetup`) and its power
-   switch (`readPowerSwitch` → `CameraSession.inStandby`) before it counts as ready, and then
+   LOCATION SYNC. and CONNECT WHILE POWER OFF settings
+   (`CameraAutoCorrectionController.readDuringSetup`) and its power switch
+   (`readPowerSwitch` → `CameraSession.inStandby`) before it counts as ready, and then
    continues with step 5; the legacy Fujifilm pairing characteristic ends the session
    with an error; anything else takes the Sony path, as before. The detected protocol is
    stored in `CameraSession.protocol` on every connect; the Sony event handlers and remote
@@ -193,12 +194,14 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
   ready and stop when none is left (or, on iOS, when the app is disabled). Nothing
   reads location while no camera is connected, also in Android's Always On mode. A
   Fujifilm camera whose location sync is off wants no location
-  (`CameraSession.wantsLocation`); a geotag request still starts updates. While every
-  camera that wants locations is switched off or asleep in standby (`CameraSession.inStandby`),
-  the source is asked for one fix about every 60 s (`LocationSource.setSlowUpdates`,
-  `STANDBY_LOCATION_UPDATE_INTERVAL_MS`); a camera that is on brings it back to the
-  full rate. The orchestrator calls `updateTracking` whenever the set of cameras with
-  location sync off or in standby changes.
+  (`CameraSession.wantsLocation`); a geotag request still starts updates. The source
+  delivers fixes as often as the most demanding ready camera that wants locations needs
+  (`CameraSession.locationUpdateIntervalMs` → `LocationSource.setUpdateInterval`): a Sony
+  camera every 5 s, a Fujifilm camera at its sync interval (`locationIntervalS`, default
+  10 s), or at its standby interval (`standbyIntervalS`, default 60 s) while it is
+  switched off or asleep in standby (`CameraSession.inStandby`); never more often than
+  every 5 s. The orchestrator calls `updateTracking` whenever a ready camera's location
+  sync, standby state or intervals change.
 - Stale fixes (older than 30 s) are ignored: iOS checks every fix, Android checks
   the initial/last-known seed fix, and a fix cached from a previous session is
   discarded when it is older than 30 s. A new fix replaces the current one unless
@@ -212,8 +215,8 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
   only (`LocationManager`: FUSED provider on Android 12+, else GPS, else network);
   iOS = `IosLocationSource` (`CLLocationManager`, best accuracy, 2 m distance
   filter, background updates allowed, no automatic pausing). Both Android sources
-  switch to a 60 s interval with `setSlowUpdates(true)` (standby, above); iOS ignores
-  it (no Fujifilm support there).
+  take their interval from `setUpdateInterval` (above); iOS ignores it (no Fujifilm
+  support there).
 
 ### Remote control and shutter
 
@@ -235,13 +238,16 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
 
 Only while the camera is `Transmitting`, and only the settings of its protocol
 (`CameraAutoCorrectionSetting.forProtocol`): Sony's `DD32`/`DD33` (one byte) and
-Fujifilm's SMARTPHONE LOCATION SYNC. on NOT7 (little-endian uint16, read and written in
-its service). Reads each if the characteristic supports write-with-response (otherwise
+Fujifilm's SMARTPHONE LOCATION SYNC. on NOT7 and CONNECT WHILE POWER OFF on `7170fd5a`
+(both little-endian uint16). Reads each if the characteristic supports write-with-response (otherwise
 the UI shows *unsupported*), writes `0`/`1` on toggle and reports pending/failed states
 (*Refresh camera settings*); Fujifilm's change notifications update it too
 (`onNotified`). These change settings **on the camera**; an unknown value is never
-assumed to be "off". The per-camera *Set date, time and time zone* option (Fujifilm) is
-stored by the app instead (`CameraDevice.timeSyncEnabled`).
+assumed to be "off"; a value that doesn't decode is logged. The per-camera Fujifilm
+options *Set date, time and time zone*, *Location updates while on* (the sync interval,
+written at setup and at once when changed: `applyLocationIntervals`) and *Location
+updates in standby* are stored by the app instead (`CameraDevice.timeSyncEnabled`,
+`locationIntervalS`, `standbyIntervalS`).
 
 ## 5. Android shell (`app/`)
 
@@ -325,11 +331,12 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 
 - Room database shared by both platforms (`sharednew/.../database/LogDatabase.kt`,
   bundled SQLite driver), file `log_database` (Android database directory) /
-  `Documents/log_database.db` (iOS). Version 7, auto-migrations 1→7, schemas
+  `Documents/log_database.db` (iOS). Version 8, auto-migrations 1→8, schemas
   exported to `sharednew/schemas/` (commit the new schema JSON with every change).
   - `camera_devices`: `mac` (PK), `deviceEnabled`, `alwaysOnEnabled`,
     `deviceName`, `deviceNameIsCustom`, `remoteControlEnabled`,
-    `handshakeDelayMs`, `timeSyncEnabled` (Fujifilm, default on; version 7).
+    `handshakeDelayMs`, `timeSyncEnabled` (Fujifilm, default on; version 7),
+    `locationIntervalS` and `standbyIntervalS` (Fujifilm, defaults 10 and 60 s; version 8).
   - `log_entries`: the in-app log, written by `LogRepository`: one write at a time in
     call order, database failures dropped (logging must never crash the app, e.g. while
     the iOS file is still protected before the first unlock), and every 50 inserts the

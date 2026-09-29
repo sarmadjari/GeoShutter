@@ -22,6 +22,16 @@ enum class CameraAutoCorrectionSetting(
         FujifilmBluetoothConstants.NOTIFICATION_SERVICE_UUID,
         valueSize = 2,
         protocol = CameraProtocol.FujifilmSecure,
+    ),
+
+    /**
+     * Fujifilm's CONNECT WHILE POWER OFF menu setting. Fujifilm's app writes one byte; the
+     * X100VI reads as two (`01 00`), so it is read and written as a uint16.
+     */
+    FujifilmConnectWhileOff(
+        FujifilmBluetoothConstants.CONNECT_WHILE_OFF_UUID,
+        valueSize = 2,
+        protocol = CameraProtocol.FujifilmSecure,
     );
 
     fun encode(enabled: Boolean): ByteArray =
@@ -65,4 +75,7 @@ interface CameraAutoCorrectionControls {
         setting: CameraAutoCorrectionSetting,
         enabled: Boolean
     )
+
+    /** Fujifilm: the camera's intervals changed in the database; use them now. */
+    fun applyLocationIntervals(identifier: String) = Unit
 }

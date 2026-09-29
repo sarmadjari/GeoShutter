@@ -149,6 +149,9 @@ Tap a camera on **My Cameras** to open its details:
 | Automatic time correction, Automatic area adjustment | Sony. Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
 | Set date, time and time zone | Fujifilm, Android, on by default. When the camera is switched on or wakes up and connects, sets its clock, time zone (AREA SETTING) and daylight saving time to the phone's. The camera accepts the time only then, so turning this on takes effect the next time you switch the camera on. |
 | Smartphone location sync | Fujifilm, Android. Reads and changes the camera's SMARTPHONE LOCATION SYNC. setting; while it is off the camera doesn't ask for the location, and GeoShutter doesn't use your phone's location for it. The camera must be connected. |
+| Location updates while on | Fujifilm, Android. How often the camera asks for your location while it is on (10 s to 8 min); your phone's GPS follows. **Every 10 s is recommended**: accurate tags while you move, with little battery difference up to about 30 s. |
+| Stay connected when switched off | Fujifilm, Android. Reads and changes the camera's CONNECT WHILE POWER OFF setting (see below). The camera must be connected. |
+| Location updates in standby | Fujifilm, Android. How often your phone refreshes its location while the camera is in standby (30 s to 5 min). **Every minute is recommended**: the first photo after switching on gets a location at most about a minute old, and the GPS can rest in between. |
 
 To remove a camera, swipe its card to the left (on Android also *Remove* in the details).
 Removing it also deletes the Android companion association or the iOS accessory pairing.
@@ -228,11 +231,12 @@ Add the camera like a Sony camera (pairing mode, then *Add camera*). The camera 
 the location itself. Remote control is a Sony feature; a Fujifilm camera's details offer
 *Set date, time and time zone* and *Smartphone location sync* instead.
 Geotagging works on an X100VI. With the camera's *CONNECT WHILE POWER OFF* setting on
-(camera menu: NETWORK/USB SETTING → Bluetooth/SMARTPHONE SETTING), a camera that is
+(camera menu: NETWORK/USB SETTING → Bluetooth/SMARTPHONE SETTING, or *Stay connected when
+switched off* in the camera's details in GeoShutter), a camera that is
 switched off or asleep stays connected in standby: GeoShutter shows it as *Standby* (blue)
 and keeps its
-location up to date, refreshing your phone's location about once a minute, so the first
-photo after switching the camera on is tagged right away. With the setting off, the camera
+location up to date, refreshing your phone's location once a minute by default, so the
+first photo after switching the camera on is tagged right away. With the setting off, the camera
 disconnects when switched off. Switching the camera on drops the connection; GeoShutter
 reconnects within about 10 seconds. The camera list shows the camera's own name (for
 example `X100VI-…`) with the model underneath. [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md) has the details

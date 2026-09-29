@@ -16,7 +16,6 @@ import com.google.android.gms.location.Priority
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
 import com.sasch.cameragps.sharednew.bluetooth.location.GeoLocation
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
-import com.sasch.cameragps.sharednew.bluetooth.location.STANDBY_LOCATION_UPDATE_INTERVAL_MS
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -35,7 +34,7 @@ class FusedLocationSource(
     override val locations: Flow<GeoLocation> = locationChannel.receiveAsFlow()
 
     private var started = false
-    private var slow = false
+    private var intervalMs = LOCATION_UPDATE_INTERVAL_MS
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private var locationCallback: LocationCallback? = null
 
@@ -66,9 +65,9 @@ class FusedLocationSource(
         started = false
     }
 
-    override fun setSlowUpdates(slow: Boolean) {
-        if (this.slow == slow) return
-        this.slow = slow
+    override fun setUpdateInterval(intervalMs: Long) {
+        if (this.intervalMs == intervalMs) return
+        this.intervalMs = intervalMs
         if (!started) return
         val client = fusedLocationClient ?: return
         val callback = locationCallback ?: return
@@ -142,7 +141,7 @@ class FusedLocationSource(
 
     @SuppressLint("MissingPermission")
     private fun requestLocationUpdates(fusedClient: FusedLocationProviderClient) {
-        val intervalMs = if (slow) STANDBY_LOCATION_UPDATE_INTERVAL_MS else LOCATION_UPDATE_INTERVAL_MS
+        val intervalMs = intervalMs
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
             .setWaitForAccurateLocation(true)
             .setMinUpdateDistanceMeters(2f)

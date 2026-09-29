@@ -68,6 +68,7 @@ The characteristics GeoShutter uses:
 | Geotag packet | `3b46ec2b-48ba-41fd-b1b8-ed860b60d22b` | `0f36ec14-29e5-411a-a1b6-64ee8383f090` | write | 23 bytes |
 | Time packet | `e872b11f-d526-4ae1-9bb4-89a99d48fa59` | `c52edbce-1fe2-4ecc-9483-907e6592be9e` | write | 12 bytes |
 | Power switch | `804daa8e-ffeb-4ab3-8e75-6edd7303208d` | `f90f7d3a-3b64-45c6-ab21-933900184837` | read | uint16 |
+| CONNECT WHILE POWER OFF | `804daa8e-…` | `7170fd5a-56d9-4c19-b043-7a7047d8e1a0` | read, write | uint16, 0 or 1 |
 
 ## 2. Sources and evidence
 
@@ -129,6 +130,7 @@ numbers where they exist.
 | `c52edbce` | (comment only) | `UTC_AND_TIMEZONE` | the time packet |
 | `b9bfd37f` | none | `DATE_TIME` | local date and time (not used) |
 | `f90f7d3a` | none | `CAMERA_POWER_KEY_STATE` | the power switch position |
+| `7170fd5a` | none | `REMOTE_BOOT_SETTING` | CONNECT WHILE POWER OFF |
 | `049ec406`, `2f6cb772`, `11438c83`, `4b3a413c` | none | `FWUPDATE_STATE`, `LOG_TRANSFER_STATE`, `BACKUP_STATE`, `RESTORE_STATE` | not used |
 | `caedb497`, `98934b2c`, `bd45f887` | none | `IMAGE_TRANSFER_SETTING`, `IMAGE_TRANSFER_SETTING_EX`, `SETTING_RESERVATION_AFTER_SHOOTING` | not used |
 
@@ -146,7 +148,6 @@ protocol (A; not checked on the camera):
 |---|---|---|
 | `8b5ecf55-fc6b-40d0-b4c1-76f64e5453c7` | `CONNECTED_APPLICATION_INFORMATION` | 3 bytes, written during setup: application `80`, protocol version `01 01` |
 | `7ede1988-b27e-43fc-80f4-6fec994f0552` | `CONNECTED_DEVICE_DISCONNECTED_REASON` | uint16 written before disconnecting: 0 none, 1 user stop, 2 timeout |
-| `7170fd5a-56d9-4c19-b043-7a7047d8e1a0` | `REMOTE_BOOT_SETTING` | 1 byte: 0 off, 1 on |
 | `43070f6c-51e0-4887-86a7-5f762bda5791` | `POWER_CONTROL_REQUEST` | uint16: 1 power off, `0x0100` normal boot (wake) |
 
 The complete list is in the analysis (A).
@@ -219,7 +220,7 @@ I indicate.
 | `3b46ec2b-…` current location | `0f36ec14` geotag packet (W) |
 | `e872b11f-…` current time | `c52edbce` time packet (W, 12 bytes; the X100VI accepted it), `b9bfd37f` local date and time (W, 7 bytes). Sizes, and `b9bfd37f` itself, from T |
 | `6514eb81-…` shutter | `7fcf49c6` shutter and eight more (W) |
-| `804daa8e-…` camera startup information | `f90f7d3a` power switch (R) and further characteristics (A: remote boot setting), not used |
+| `804daa8e-…` camera startup information | `f90f7d3a` power switch (R), `7170fd5a` CONNECT WHILE POWER OFF (R, W), further characteristics not used |
 | `af854c2e-…`, `fcc1` | further write-only and read/write characteristics, not used |
 
 NOT8 (`2a125640-…`) and NOT10 (`deef7187-…`) do not exist on the X100VI. furble lists them
@@ -248,7 +249,7 @@ sequenceDiagram
     P->>C: write sync interval: 0A 00
     C-->>P: sync interval 0a 00 (echo)
     P->>C: write time packet (12 bytes), applied because the camera asked (NOT1)
-    P->>C: read location sync setting (NOT7), read power switch
+    P->>C: read location sync setting (NOT7), CONNECT WHILE POWER OFF, power switch
     Note over P: ready: location updates start
     P->>C: read camera name (NOT4)
     P->>C: geotag packet (answers the request above)
@@ -267,15 +268,16 @@ sequenceDiagram
 | 4 | write | client name | `47 65 6F 53 68 75 74 74 65 72` ("GeoShutter") | |
 | 5–10 | subscribe | IND1, IND2 (indications, CCCD `02 00`); NOT1, geotag request, NOT4, NOT5 (notifications, CCCD `01 00`) | | required, in this order |
 | 11–16 | subscribe | NOT6, NOT7, NOT8, NOT9, NOT10, sync interval (notifications) | | failures skipped, except the sync interval |
-| 17 | write | sync interval | `0A 00` (10 s) | the camera echoes it as a notification |
+| 17 | write | sync interval | `0A 00` (10 s, the default) | the camera's *Location updates while on* setting; the camera echoes it as a notification |
 | 18 | write | time packet | `EA 07 09 1C 16 24 37 64 00 00 00 01` | only with the option *Set date, time and time zone* on and the characteristic present; applied only if the camera asked (NOT1) |
 | 19 | read | location sync setting (NOT7) | `01 00` | `00 00`: shown as "Location sync off"; the phone's location isn't used for this camera |
-| 20 | read | power switch | `01 02` awake; `00 01` switched off, `01 01` asleep, both in standby | standby: shown as "Standby" (blue) |
-| | ready | | | location updates start (about once a minute if every camera is off); geotag requests are answered |
-| 21 | read | camera name (NOT4) | "FUJIFILM-X100VI-" and four characters | stored for the camera list |
+| 20 | read | CONNECT WHILE POWER OFF | `01 00` | shown in the camera details |
+| 21 | read | power switch | `01 02` awake; `00 01` switched off, `01 01` asleep, both in standby | standby: shown as "Standby" (blue) |
+| | ready | | | location updates start, as often as the most demanding camera needs; geotag requests are answered |
+| 22 | read | camera name (NOT4) | "FUJIFILM-X100VI-" and four characters | stored for the camera list |
 
 Steps 2 to 17 follow furble's `_connect` (F); step 18 is where Fujifilm's app sets the
-clock (A); steps 19 and 20 let GeoShutter know the camera's state before it counts as
+clock (A); steps 19 to 21 let GeoShutter know the camera's state before it counts as
 ready, so nothing is shown or started that doesn't apply. In a working connection the camera notifies NOT1 `01 00` and the geotag request
 `01 00` as soon as they are subscribed (X). A geotag request that arrives during setup is
 answered once the camera is ready and a location fix exists.
@@ -333,9 +335,13 @@ looks it up in `123d8f06-…`. Whether the camera shows this name anywhere was n
 
 ### 8.3 Sync interval
 
-`c95d91ae`: seconds between geotag requests, uint16 (F, A). GeoShutter writes `0A 00`
-(10 s) and subscribes to it first, as furble requires; the X100VI echoes the value as a
-notification and then asks every 10 s (X). The choices in Fujifilm's app (A):
+`c95d91ae`: seconds between geotag requests, uint16 (F, A). GeoShutter subscribes to it
+first, as furble requires, and writes the camera's *Location updates while on* setting
+(default `0A 00`, 10 s) during setup and again at once when it is changed while the camera
+is connected; the X100VI echoes the value as a notification and then asks at that
+interval (X: `14 00` written at 12:43:40 on 2026-09-29, then requests at 12:43:45,
+12:44:05 and 12:44:25). The phone's location updates follow the most demanding camera
+(9). The choices, the same as in Fujifilm's app (A):
 
 | Seconds | 10 | 15 | 20 | 30 | 60 | 120 | 240 | 480 |
 |---|---|---|---|---|---|---|---|---|
@@ -505,7 +511,18 @@ camera is in standby, shown as "Standby" (blue), and it still gets locations; se
 [Power off](#power-off). An earlier build treated `01 01` as awake and showed a sleeping
 camera as receiving the location (green).
 
-### 8.12 Remote shutter (not used)
+### 8.12 CONNECT WHILE POWER OFF
+
+`7170fd5a-56d9-4c19-b043-7a7047d8e1a0` in the camera startup information service: the
+camera's CONNECT WHILE POWER OFF menu setting (A: `REMOTE_BOOT_SETTING`, one byte, 0 off
+and 1 on, readable, writable and notified). The X100VI reads it as two bytes, `01 00`
+while the setting is on; GeoShutter reads and writes it as a uint16, and writing
+`00 00` and `01 00` switched the camera's menu setting off and on (X, 2026-09-29 12:40:39
+and 12:40:50). GeoShutter reads it during setup and shows it in the camera details
+(*Stay connected when switched off*); it doesn't subscribe to it, so a change made in the
+camera menu shows after the details are opened again.
+
+### 8.13 Remote shutter (not used)
 
 `7fcf49c6-4ff0-4777-a03d-1a79166af7a8` in `6514eb81-4e8f-458d-aa2a-e691336cdfac` (F):
 `01 00` then `02 00` presses the shutter, `03 00` focuses, `00 00` releases. Not implemented
@@ -516,9 +533,13 @@ in GeoShutter; furble requires the characteristic, GeoShutter only logs when it 
 - **Location:** the camera asks every sync interval (exactly every 10 s on the X100VI, X).
   GeoShutter answers each request with its latest location fix; a request that comes
   before the first fix is answered as soon as one exists. The phone's location is tracked
-  only while a ready camera wants it (location sync on), about once a minute while every
-  such camera is switched off in standby, and at full rate (every 5 s) otherwise. A
-  request always starts it, even from a camera whose location sync looked off.
+  only while a ready camera wants it (location sync on), as often as the most demanding
+  of them needs: a Sony camera every 5 s, a Fujifilm camera at its *Location updates while
+  on* interval (default 10 s), or at its *Location updates in standby* interval (30 s to
+  5 min, default 1 min) while it is in standby; never more often than every 5 s. A request
+  always starts it, even from a camera whose location sync looked off. For a phone that
+  isn't moving, Google's location service may take fewer GPS fixes than requested (seen:
+  a 4-minute gap with 2 minutes requested).
 - **Time:** GeoShutter writes the time packet during setup (step 18) and when the camera
   notifies NOT1 later, at most every 10 s. The camera applies it only when it asked (8.7).
 - **Location sync setting:** updated from NOT7 notifications (camera menu) and written from
@@ -553,7 +574,8 @@ Everything in this section was observed on the X100VI (X).
 ### Power off
 
 The setting CONNECT WHILE POWER OFF (MENU/OK → NETWORK/USB SETTING → Bluetooth/SMARTPHONE
-SETTING) decides what happens when the camera is switched off. The manual: "Select ON to
+SETTING, or *Stay connected when switched off* in GeoShutter's camera details, 8.12)
+decides what happens when the camera is switched off. The manual: "Select ON to
 maintain a Bluetooth connection with a smartphone even when the camera is turned off."
 
 - **Off:** switching the camera off ends the connection (`0x13`), and GeoShutter shows the
@@ -613,11 +635,11 @@ built.
 | `sharednew/…/bluetooth/fujifilm/FujifilmPacketBuilder.kt` | geotag packet, time packet, status acknowledgement, sync interval, power switch (`isAwake`) |
 | `sharednew/…/bluetooth/fujifilm/FujifilmSessionController.kt` | detection, setup (`runHandshake`), `syncTime`, `readPowerSwitch`, `readCameraName`, notification parsing |
 | `sharednew/…/bluetooth/session/CameraSessionOrchestrator.kt` | runs detection and setup (including the reads before the camera counts as ready), keeps Fujifilm events away from the Sony handlers, decides when to set the time, power switch, silence watchdog, `CameraSession.cameraResponding` and `inStandby`, camera name; re-evaluates location tracking when a camera's location sync or power switch changes |
-| `sharednew/…/bluetooth/session/CameraAutoCorrectionSetting.kt`, `CameraAutoCorrectionController.kt` | camera-owned settings per brand; `FujifilmLocationSync` (uint16, looked up in its service), read during setup (`readDuringSetup`) |
+| `sharednew/…/bluetooth/session/CameraAutoCorrectionSetting.kt`, `CameraAutoCorrectionController.kt` | camera-owned settings per brand; `FujifilmLocationSync` and `FujifilmConnectWhileOff` (uint16), read during setup (`readDuringSetup`); a value that doesn't decode is logged |
 | `sharednew/…/bluetooth/location/LocationTransmissionManager.kt` | answers geotag requests (`onLocationRequested`); Sony cameras get locations pushed; tracks the phone's location only while a ready camera wants it, slowly while every such camera is in standby |
-| `sharednew/…/bluetooth/location/LocationSource.kt`, `app/…/location/FusedLocationSource.kt`, `PlatformLocationSource.kt` | `setSlowUpdates`: one fix about every 60 s instead of every 5 s |
-| `sharednew/…/database/devices/CameraDevice.kt` | `timeSyncEnabled`, the per-camera time option (database version 7, default on) |
-| `sharednew/…/ui/device/DeviceDetailScreen.kt` | camera details: *Set date, time and time zone*, *Smartphone location sync* for Fujifilm; Sony-only rows hidden |
+| `sharednew/…/bluetooth/location/LocationSource.kt`, `app/…/location/FusedLocationSource.kt`, `PlatformLocationSource.kt` | `setUpdateInterval`: the fix interval the location manager needs |
+| `sharednew/…/database/devices/CameraDevice.kt` | `timeSyncEnabled` (database version 7, default on), `locationIntervalS` and `standbyIntervalS` (version 8, defaults 10 and 60) |
+| `sharednew/…/ui/device/DeviceDetailScreen.kt` | camera details for Fujifilm: *Set date, time and time zone*, *Smartphone location sync*, *Location updates while on*, *Stay connected when switched off*, *Location updates in standby* (the intervals as sliders marking the recommended value); Sony-only rows hidden |
 | `sharednew/…/status/GeoShutterStatus.kt`, `app/…/status/` | states shown in the notification, tile and widget: a silent Fujifilm camera is "Connecting", one with location sync off "Location sync off" (amber), one switched off or asleep in standby "Standby" (blue) |
 | `sharednew/…/ui/devicelist/` | the camera card: blue dot and a note for a camera in standby, a note for location sync off |
 | `app/…/service/transport/AndroidBleTransport.kt` | direct connections with three retries before `autoConnect`, `reconnect()`, characteristic lookup by service, indications for indication-only characteristics, writes with response |
@@ -629,12 +651,12 @@ Values:
 
 | Setting | Value |
 |---|---|
-| Sync interval | 10 s |
+| Sync interval | 10 s by default; 10, 15, 20, 30, 60, 120, 240 or 480 s per camera |
 | Client name | `GeoShutter` |
 | Direct connection retries | 3 (about 30 s each), then `autoConnect`; a connection that lasted 30 s starts a new round |
 | Silence watchdog | 15 s, repeat the setup; 15 s more, reconnect |
 | Time on NOT1 | at most every 10 s |
-| Phone location updates | every 5 s; every 60 s while every camera that wants locations is in standby |
+| Phone location updates | as often as the most demanding camera needs: Sony 5 s, Fujifilm its sync interval, or in standby its standby interval (30 s, 1, 2 or 5 min; default 1 min); at least 5 s apart |
 | Operation timeout | 15 s (service discovery 30 s) |
 | Authentication error retries | 3 (first immediately, then after 3 s) |
 
@@ -665,6 +687,8 @@ reason of Fujifilm's app, waking the camera.
 | The camera asks for the time (NOT1) | A | yes: on the first connection after switching on or waking only |
 | Location sync setting | A | yes: read, written (the menu followed), notified; no requests while off |
 | Power switch | A | yes: `01 02` awake, `00 01` switched off and `01 01` asleep (standby) |
+| CONNECT WHILE POWER OFF | A | yes: reads `01 00` (two bytes, not one); writing switches the menu setting |
+| A changed sync interval | F, A | yes: 20 s written and followed |
 | Standby with CONNECT WHILE POWER OFF on | M, X | yes: switched off (reconnects in standby) and asleep (keeps the link); keeps asking for locations; a photo right after switching on was tagged |
 | CONNECT WHILE POWER OFF off | M | yes: switching off ends the connection |
 | Setup on the pairing connection | F, A | yes: accepted 2.3 s after a fresh pairing |
@@ -680,8 +704,10 @@ reason of Fujifilm's app, waking the camera.
 - The camera ends the next connection by itself about 20 s after the phone closed one;
   writing the disconnect reason before disconnecting, as Fujifilm's app does, might
   avoid that (not tried).
-- The power switch in the startup information service of older cameras (`731893f9-…`) was
-  not tried.
+- The power switch and CONNECT WHILE POWER OFF in the startup information service of
+  older cameras (`731893f9-…`) were not tried.
+- CONNECT WHILE POWER OFF isn't subscribed to: a change made in the camera menu shows in
+  GeoShutter once the camera details are opened again.
 - Only the X100VI with firmware 01.32 was tested.
 - No capture of Fujifilm's app exists (see below).
 

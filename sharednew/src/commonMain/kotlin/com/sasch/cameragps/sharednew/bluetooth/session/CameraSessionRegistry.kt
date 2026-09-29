@@ -1,6 +1,8 @@
 package com.sasch.cameragps.sharednew.bluetooth.session
 
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -34,6 +36,7 @@ data class CameraSession(
     val autoTimeCorrection: CameraSettingState = CameraSettingState(),
     val autoAreaAdjustment: CameraSettingState = CameraSettingState(),
     val fujifilmLocationSync: CameraSettingState = CameraSettingState(),
+    val fujifilmConnectWhileOff: CameraSettingState = CameraSettingState(),
     /**
      * Fujifilm: the camera sent a notification since it connected. A connected camera
      * can stay silent, ignoring the phone, until it is reconnected.
@@ -45,12 +48,17 @@ data class CameraSession(
      * its next photo.
      */
     val inStandby: Boolean = false,
+    /** Fujifilm: seconds between the camera's location requests while it is awake. */
+    val locationIntervalS: Int = FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS,
+    /** Fujifilm: seconds between the phone's location fixes while the camera is in standby. */
+    val standbyIntervalS: Int = FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS,
 ) {
     fun autoCorrectionSetting(setting: CameraAutoCorrectionSetting): CameraSettingState =
         when (setting) {
             CameraAutoCorrectionSetting.Time -> autoTimeCorrection
             CameraAutoCorrectionSetting.Area -> autoAreaAdjustment
             CameraAutoCorrectionSetting.FujifilmLocationSync -> fujifilmLocationSync
+            CameraAutoCorrectionSetting.FujifilmConnectWhileOff -> fujifilmConnectWhileOff
         }
 
     val isLocationReady: Boolean
@@ -67,6 +75,17 @@ data class CameraSession(
     val takesLocation: Boolean
         get() = isLocationReady && wantsLocation &&
                 (protocol != CameraProtocol.FujifilmSecure || cameraResponding)
+
+    /**
+     * How often this camera needs a fresh fix from the phone: Sony every few seconds, a
+     * Fujifilm camera as often as it asks, or its standby interval while in standby.
+     */
+    val locationUpdateIntervalMs: Long
+        get() = when {
+            protocol != CameraProtocol.FujifilmSecure -> SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
+            inStandby -> standbyIntervalS * 1000L
+            else -> locationIntervalS * 1000L
+        }
 }
 
 /**

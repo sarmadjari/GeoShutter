@@ -106,7 +106,9 @@ class CameraSessionOrchestrator(
         isTransmissionAllowed = isTransmissionAllowed,
         protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
         wantsLocation = { id -> registry.get(id)?.wantsLocation != false },
-        inStandby = { id -> registry.get(id)?.inStandby == true },
+        updateIntervalMsFor = { id ->
+            registry.get(id)?.locationUpdateIntervalMs ?: SonyBluetoothConstants.LOCATION_UPDATE_INTERVAL_MS
+        },
     )
 
     /**
@@ -126,6 +128,20 @@ class CameraSessionOrchestrator(
 
     override fun refreshAutoCorrectionSettings(identifier: String) =
         autoCorrection.refresh(identifier)
+
+    override fun applyLocationIntervals(identifier: String) {
+        val id = identifier.uppercase()
+        val session = registry.get(id) ?: return
+        if (session.protocol != CameraProtocol.FujifilmSecure) return
+        scope.launch {
+            val before = registry.get(id)?.locationIntervalS
+            val intervalS = loadFujifilmIntervals(id)
+            // The camera takes a new request interval at once (it echoes it).
+            if (intervalS != before && registry.get(id)?.phase == BleSessionPhase.Transmitting) {
+                fujifilm.writeSyncInterval(id, intervalS)
+            }
+        }
+    }
 
     override fun setAutoCorrectionSetting(
         identifier: String,
@@ -149,15 +165,16 @@ class CameraSessionOrchestrator(
                 handleTransportEvent(event, completedOperation)
             }
         }
-        // A Fujifilm camera's location sync or power switched off or on: the phone's
-        // location is only tracked while a ready camera wants it, and slowly while every
-        // such camera is off in standby.
+        // A Fujifilm camera's location sync, power switch or intervals changed: the
+        // phone's location is only tracked while a ready camera wants it, as often as the
+        // most demanding one needs.
         scope.launch {
             registry.sessions
                 .map { sessions ->
                     val ready = sessions.values.filter { it.isLocationReady }
                     ready.filter { !it.wantsLocation }.map { it.identifier }.toSet() to
-                            ready.filter { it.inStandby }.map { it.identifier }.toSet()
+                            ready.filter { it.wantsLocation }
+                                .map { it.identifier to it.locationUpdateIntervalMs }.toSet()
                 }
                 .distinctUntilChanged()
                 .drop(1)
@@ -337,6 +354,7 @@ class CameraSessionOrchestrator(
                 autoTimeCorrection = CameraSettingState(),
                 autoAreaAdjustment = CameraSettingState(),
                 fujifilmLocationSync = CameraSettingState(),
+                fujifilmConnectWhileOff = CameraSettingState(),
                 cameraResponding = false,
                 inStandby = false,
             )
@@ -583,7 +601,8 @@ class CameraSessionOrchestrator(
         registry.updateIfPresent(id) {
             it.copy(protocol = CameraProtocol.FujifilmSecure, phase = BleSessionPhase.EnablingGps)
         }
-        val result = fujifilm.runHandshake(id)
+        val intervalS = loadFujifilmIntervals(id)
+        val result = fujifilm.runHandshake(id, intervalS)
         // A restarted setup (services changed) reports its own result.
         if (setupGeneration[id] != generation) return
         when (result) {
@@ -655,7 +674,8 @@ class CameraSessionOrchestrator(
             delay(FUJIFILM_SILENCE_TIMEOUT)
             if (!isSilentFujifilm(id)) return@launch
             log.w { "Fujifilm camera $id stays silent after setup, repeating the setup" }
-            if (fujifilm.runHandshake(id) == FujifilmHandshakeResult.Success) syncFujifilmTime(id)
+            val intervalS = registry.get(id)?.locationIntervalS ?: FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS
+            if (fujifilm.runHandshake(id, intervalS) == FujifilmHandshakeResult.Success) syncFujifilmTime(id)
             delay(FUJIFILM_SILENCE_TIMEOUT)
             if (!isSilentFujifilm(id)) return@launch
             log.w { "Fujifilm camera $id is still silent, reconnecting" }
@@ -699,6 +719,18 @@ class CameraSessionOrchestrator(
 
             FujifilmNotification.Other -> Unit
         }
+    }
+
+    /** Reads the camera's intervals into its session; returns the location request interval. */
+    private suspend fun loadFujifilmIntervals(id: String): Int {
+        val intervalS = runCatching { deviceDao.findLocationIntervalS(id) }.getOrNull()
+            ?.takeIf { it in FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVALS_SECONDS }
+            ?: FujifilmBluetoothConstants.GEOTAG_SYNC_INTERVAL_SECONDS
+        val standbyS = runCatching { deviceDao.findStandbyIntervalS(id) }.getOrNull()
+            ?.takeIf { it in FujifilmBluetoothConstants.STANDBY_INTERVALS_SECONDS }
+            ?: FujifilmBluetoothConstants.STANDBY_INTERVAL_SECONDS
+        registry.updateIfPresent(id) { it.copy(locationIntervalS = intervalS, standbyIntervalS = standbyS) }
+        return intervalS
     }
 
     /**

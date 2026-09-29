@@ -73,4 +73,17 @@ interface CameraDeviceDAO {
 
     @Query("UPDATE camera_devices SET timeSyncEnabled = :enabled WHERE mac = UPPER(:deviceId)")
     suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean)
+
+    /** Null when the camera has no row (the defaults apply). */
+    @Query("SELECT locationIntervalS FROM camera_devices WHERE mac = UPPER(:address)")
+    suspend fun findLocationIntervalS(address: String): Int?
+
+    @Query("UPDATE camera_devices SET locationIntervalS = :seconds WHERE mac = UPPER(:deviceId)")
+    suspend fun setLocationIntervalS(deviceId: String, seconds: Int)
+
+    @Query("SELECT standbyIntervalS FROM camera_devices WHERE mac = UPPER(:address)")
+    suspend fun findStandbyIntervalS(address: String): Int?
+
+    @Query("UPDATE camera_devices SET standbyIntervalS = :seconds WHERE mac = UPPER(:deviceId)")
+    suspend fun setStandbyIntervalS(deviceId: String, seconds: Int)
 }

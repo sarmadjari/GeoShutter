@@ -90,7 +90,10 @@ internal class FujifilmSessionController(
      * client name → required subscriptions → optional subscriptions (the sync
      * interval one is required) → write the sync interval.
      */
-    suspend fun runHandshake(identifier: String): FujifilmHandshakeResult {
+    suspend fun runHandshake(
+        identifier: String,
+        syncIntervalSeconds: Int = Fuji.GEOTAG_SYNC_INTERVAL_SECONDS,
+    ): FujifilmHandshakeResult {
         val id = identifier.uppercase()
 
         val statusResult = execute(
@@ -118,7 +121,7 @@ internal class FujifilmSessionController(
             log.w { "Fujifilm[$id]: optional subscription ${subscription.characteristicUuid} failed, continuing" }
         }
 
-        val interval = FujifilmPacketBuilder.syncInterval()
+        val interval = FujifilmPacketBuilder.syncInterval(syncIntervalSeconds)
         log.d { "Fujifilm[$id]: setting the geotag sync interval to ${interval.toHex()}" }
         write(id, Fuji.GEOTAG_SYNC_INTERVAL_UUID, Fuji.NOTIFICATION_SERVICE_UUID, interval)
             ?.let { return it }
@@ -175,6 +178,18 @@ internal class FujifilmSessionController(
             return false
         }
         return true
+    }
+
+    /** Changes how often the camera asks for the location (the sync interval). */
+    suspend fun writeSyncInterval(identifier: String, seconds: Int): Boolean {
+        val id = identifier.uppercase()
+        val value = FujifilmPacketBuilder.syncInterval(seconds)
+        log.i { "Fujifilm[$id]: setting the geotag sync interval to ${value.toHex()}" }
+        val result = execute(
+            id,
+            BleOperation.Write(Fuji.GEOTAG_SYNC_INTERVAL_UUID, value, Fuji.NOTIFICATION_SERVICE_UUID),
+        )
+        return result is BleOperationResult.Success
     }
 
     /** The power switch value (see [FujifilmPacketBuilder.isAwake]), or null if unavailable. */
