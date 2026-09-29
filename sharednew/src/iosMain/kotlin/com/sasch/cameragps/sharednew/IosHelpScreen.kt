@@ -53,6 +53,7 @@ import cameragps.sharednew.generated.resources.is_there_documenation
 import cameragps.sharednew.generated.resources.is_there_documenation_answer
 import cameragps.sharednew.generated.resources.is_there_documenation_answer_coffee
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
+import com.sasch.cameragps.sharednew.ui.help.ProjectLinks
 import com.sasch.cameragps.sharednew.ui.help.TroubleshootingGuideContent
 import com.sasch.cameragps.sharednew.ui.settings.SharedSettingsScreen
 import org.jetbrains.compose.resources.StringResource
@@ -193,7 +194,7 @@ internal fun IosHelpScreen(
                                         append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "https://github.com/Saschl/camera-gps/blob/main/README.md",
+                                                ProjectLinks.DOCUMENTATION,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,
@@ -202,12 +203,12 @@ internal fun IosHelpScreen(
                                                 ),
                                             ),
                                         ) {
-                                            append("https://github.com/Saschl/camera-gps")
+                                            append(ProjectLinks.display(ProjectLinks.REPOSITORY))
                                         }
                                         append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "mailto:saschl.ra@web.de",
+                                                ProjectLinks.ISSUES,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,
@@ -216,13 +217,14 @@ internal fun IosHelpScreen(
                                                 ),
                                             ),
                                         ) {
-                                            append("saschl.ra@web.de")
+                                            append(ProjectLinks.display(ProjectLinks.ISSUES))
                                         }
                                         append("\n\n")
                                         append(stringResource(Res.string.is_there_documenation_answer_coffee))
+                                        append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "https://buymeacoffee.com/wj8tism4dq",
+                                                ProjectLinks.ORIGINAL_AUTHOR_DONATION,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,

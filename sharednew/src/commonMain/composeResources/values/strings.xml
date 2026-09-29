@@ -17,9 +17,9 @@
     <string name="rename_camera_title">Rename</string>
     <string name="rename_camera_label">Camera name</string>
     <string name="rename_camera_save">Save</string>
-    <string name="rename_camera_hint">This name is used in Alpha GPS only.</string>
-    <string name="app_name" translatable="false">AlphaGPS</string>
-    <string name="app_name_ui" translatable="false">Alpha GPS</string>
+    <string name="rename_camera_hint">This name is used in GeoShutter only.</string>
+    <string name="app_name" translatable="false">GeoShutter</string>
+    <string name="app_name_ui" translatable="false">GeoShutter</string>
     <string name="header_device_list">My Cameras</string>
     <string name="foreground_service_notification">Transmitting location data to %1$d cameras</string>
     <string name="scan_for_devices">Click to find &amp; associate your camera</string>
@@ -41,7 +41,7 @@
     <string name="logs_title">Logs</string>
     <string name="logs_clear_all">Clear all logs</string>
     <string name="logs_empty">No logs available yet. Logs will appear here as the app runs.</string>
-    <string name="camera_gps_permissions">Alpha GPS Permissions</string>
+    <string name="camera_gps_permissions">GeoShutter Permissions</string>
     <!-- Permission request strings -->
     <string name="grant_permissions">Grant permissions</string>
     <string name="permissions_missing_title">Permissions missing</string>
@@ -80,7 +80,7 @@
     <string name="scanning_paused_message">Turn on automatic scanning in Settings to look for nearby cameras.</string>
     <string name="scanning_for_cameras">Scanning for cameras...</string>
     <!-- Welcome screen strings -->
-    <string name="welcome_title">Welcome to Alpha GPS Geotagging</string>
+    <string name="welcome_title">Welcome to GeoShutter</string>
     <string name="welcome_subtitle">Real-time GPS coordinates for your camera via Bluetooth</string>
     <string name="welcome_feature_connect_title">Connect Your Camera</string>
     <string name="welcome_feature_connect_description">Pair your Sony camera with your phone via Bluetooth for seamless GPS data transfer</string>
@@ -89,7 +89,7 @@
     <string name="welcome_feature_device_management_title">Device Management</string>
     <string name="welcome_get_started_button">Get Started</string>
     <string name="welcome_settings_note">You can access these settings later from the main menu</string>
-    <string name="welcome_app_icon_description">Alpha GPS App Icon</string>
+    <string name="welcome_app_icon_description">GeoShutter App Icon</string>
     <!-- Settings screen strings -->
     <string name="settings">Settings</string>
     <string name="app_controls">App Controls</string>
@@ -146,7 +146,7 @@
     <!-- Help & FAQ strings -->
     <string name="help_faq_title">Help &amp; FAQ</string>
     <string name="help_close_description">Close</string>
-    <string name="help_about_title">About Alpha GPS</string>
+    <string name="help_about_title">About GeoShutter</string>
     <string name="help_about_description">This app provides real-time GPS coordinates to your camera via Bluetooth, allowing for automatic geotagging of your photos without needing a camera's built-in GPS.</string>
     <string name="help_need_more_title">Need more help?</string>
     <string name="help_need_more_description">Check the app logs in the top menu for troubleshooting information, or review your device settings to ensure all permissions are granted.</string>
@@ -158,7 +158,7 @@
     <string name="faq_disconnects_question">My camera is losing connection all the time</string>
     <string name="faq_disconnects_answer">Try these solutions:\n• Keep your phone closer to the camera\n• Disable battery optimization for the app\n• Check whether your camera has power-saving modes that affect Bluetooth\n• Restart both devices and pair them again if needed</string>
     <string name="faq_enable_service_question">How do I enable the service permanently? It seems to stop after a while</string>
-    <string name="faq_enable_service_answer">Please visit the App Settings and try the options in the Battery &amp; Background section. Alternatively try the following: \nTo keep GPS data syncing with your camera:\n1. Go to your device\'s Settings &gt; Apps\n2. Find \'Alpha GPS\' in the app list\n3. Tap on it and select \'Battery\'\n4. Choose \'Don\'t optimize\' or \'Allow background activity\'\n5. This prevents the system from stopping the GPS service\n\nYou can also access this through the device details page in the app.</string>
+    <string name="faq_enable_service_answer">Please visit the App Settings and try the options in the Battery &amp; Background section. Alternatively try the following: \nTo keep GPS data syncing with your camera:\n1. Go to your device\'s Settings &gt; Apps\n2. Find \'GeoShutter\' in the app list\n3. Tap on it and select \'Battery\'\n4. Choose \'Don\'t optimize\' or \'Allow background activity\'\n5. This prevents the system from stopping the GPS service\n\nYou can also access this through the device details page in the app.</string>
     <string name="faq_camera_not_connecting_question">My camera does not connect automatically, what can I do?</string>
     <string name="faq_camera_not_connecting_answer">Unfortunately, there might be situations, where the automatic connection does not work. If you encounter issues please do the following:  On the main screen, tap on your camera to open the details screen. There you have an option to enable the "Always On" mode, which will keep the app in the foreground. \nOtherwise try toggling bluetooth or remove the device from the app and associate it again.</string>
     <string name="faq_permissions_question">What permissions does the app need?</string>
@@ -181,7 +181,7 @@
     <string name="guide_link_location_a6400">Sony Help Guide: Loc. Info. Link Set. (α6400)</string>
     <string name="guide_link_location_zve10">Sony Help Guide: Location Info. Link Set. (ZV-E10)</string>
     <string name="guide_repair_title">Camera connects but GPS doesn't work</string>
-    <string name="guide_repair_description">Typical when the camera was set up with Sony's Creators' App or Imaging Edge Mobile before: the phone is already paired with the camera, so no new pairing is requested — but location transfer doesn't work properly with Alpha GPS. Removing the old pairing everywhere fixes this.</string>
+    <string name="guide_repair_description">Typical when the camera was set up with Sony's Creators' App or Imaging Edge Mobile before: the phone is already paired with the camera, so no new pairing is requested — but location transfer doesn't work properly with GeoShutter. Removing the old pairing everywhere fixes this.</string>
     <string name="guide_repair_step_phone">Remove the camera from your phone's Bluetooth settings:</string>
     <string name="guide_repair_step_phone_path_android">Settings → Connected devices (Bluetooth) → your camera → Forget</string>
     <string name="guide_repair_step_phone_path_ios">Settings → Bluetooth → ⓘ next to the camera → Forget This Device</string>
@@ -189,21 +189,21 @@
     <string name="guide_repair_step_camera_path">MENU → Network → Bluetooth → Manage Paired Device</string>
     <string name="guide_repair_step_sony_app">If a Sony app is still installed, remove the camera there as well:</string>
     <string name="guide_repair_step_sony_app_path">Creators' App → Cameras → Setup → Unpair</string>
-    <string name="guide_repair_step_pair_again">Set up the camera again in Alpha GPS: put it into pairing mode and start a new scan.</string>
+    <string name="guide_repair_step_pair_again">Set up the camera again in GeoShutter: put it into pairing mode and start a new scan.</string>
     <string name="guide_remote_title">Turn off the Bluetooth remote (older cameras)</string>
     <string name="guide_remote_description">Cameras like the α6400 cannot use the Bluetooth remote and location linking at the same time — with the remote on, the connection or GPS transfer stops working. Newer models (e.g. α7 IV and later) support both.</string>
     <string name="guide_remote_step_camera">On the camera, switch the Bluetooth remote off:</string>
     <string name="guide_remote_step_camera_path">MENU → Network → Bluetooth Rmt Ctrl → Off</string>
-    <string name="guide_remote_step_app">In Alpha GPS, tap the camera on the main screen and turn off 'Enable remote control'.</string>
+    <string name="guide_remote_step_app">In GeoShutter, tap the camera on the main screen and turn off 'Enable remote control'.</string>
     <string name="guide_link_remote_a6400">Sony Help Guide: Bluetooth Rmt Ctrl (α6400)</string>
     <string name="guide_accuracy_title">Location is imprecise or outdated</string>
     <string name="guide_accuracy_description">If photos are tagged with a position that is noticeably off, the app usually isn't allowed to use your precise location.</string>
-    <string name="guide_accuracy_step_precise">Allow precise location for Alpha GPS:</string>
-    <string name="guide_accuracy_step_precise_path_android">Settings → Apps → Alpha GPS → Permissions → Location → Use precise location</string>
-    <string name="guide_accuracy_step_precise_path_ios">Settings → Privacy &amp; Security → Location Services → Alpha GPS → Precise Location → On</string>
-    <string name="guide_accuracy_step_battery">Exclude the app from battery optimization so transmission keeps running in the background: Settings → Apps → Alpha GPS → Battery → Unrestricted.</string>
+    <string name="guide_accuracy_step_precise">Allow precise location for GeoShutter:</string>
+    <string name="guide_accuracy_step_precise_path_android">Settings → Apps → GeoShutter → Permissions → Location → Use precise location</string>
+    <string name="guide_accuracy_step_precise_path_ios">Settings → Privacy &amp; Security → Location Services → GeoShutter → Precise Location → On</string>
+    <string name="guide_accuracy_step_battery">Exclude the app from battery optimization so transmission keeps running in the background: Settings → Apps → GeoShutter → Battery → Unrestricted.</string>
     <string name="guide_startup_title">Camera starts slowly or its screen stays black</string>
-    <string name="guide_startup_description">On some cameras, allowing smartphone connections while the camera is off can delay startup when Alpha GPS is enabled.</string>
+    <string name="guide_startup_description">On some cameras, allowing smartphone connections while the camera is off can delay startup when GeoShutter is enabled.</string>
     <string name="guide_startup_step_disable">In the camera's Network menu, set 'Cnct. while Power OFF' or 'Cnct. during Power OFF' to Off. The name and menu location vary by model. This disables smartphone access while the camera is off; keep Bluetooth enabled for GPS and remote control when the camera is on.</string>
     <!-- Contextual pairing-failure troubleshooting (shown when the camera rejects pairing) -->
     <string name="pairing_failed_device_message">The camera '%1$s' refused the pairing.</string>
@@ -262,8 +262,8 @@
     <string name="reset_welcome">Show welcome screen on next launch</string>
     <string name="will_show_welcome">Will show welcome screen on next launch!</string>
     <string name="is_there_documenation">Is there any documentation?</string>
-    <string name="is_there_documenation_answer">Yes! Please visit the Github page \nYou can also report issues with the App there or contact us via email:</string>
-    <string name="is_there_documenation_answer_coffee">If you like the app and want to support development, you can buy me a coffee ☕️</string>
+    <string name="is_there_documenation_answer">Yes! The GitHub page has the documentation, and you can report issues there:</string>
+    <string name="is_there_documenation_answer_coffee">GeoShutter builds on Alpha GPS by Saschl. If you like the app, you can support its original author ☕️</string>
     <string name="app_standby_title">Standby</string>
     <string name="app_standby_content">Waiting for camera to connect</string>
     <!-- Language settings -->
@@ -274,7 +274,7 @@
     <string name="language_german">Deutsch</string>
     <string name="language_chinese">简体中文</string>
     <string name="how_about_privacy">How about privacy?</string>
-    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. All collected information (location data) is only used to transfer GPS coordinates to your connected camera and is not permanently stored. Location collection stops as soon as the connection to the camera is disconnected. If you have any questions or concerns, please contact us via the email address mentioned above.</string>
+    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. All collected information (location data) is only used to transfer GPS coordinates to your connected camera and is not permanently stored. Location collection stops as soon as the connection to the camera is disconnected. If you have any questions or concerns, please contact us through the GitHub page mentioned above.</string>
     <!-- Device management strings -->
     <string name="device_management">Device Management</string>
     <string name="no_devices_found">No devices found</string>
@@ -302,7 +302,7 @@
     <string name="enable_auto_start_description">Auto starts the app after a device reboot for configured "Always On" devices.</string>
     <string name="hint_if_issues_after_switching">Note: Due to recent changes in the app, you may need to perform a one-time action if you encounter issues after disabling Always On mode. Simply deactivate and reactivate the device once in these settings. This is only needed once after the app update – subsequent mode changes will work immediately.</string>
     <!-- Sentry Consent Dialog -->
-    <string name="sentry_consent_title">Help Improve Alpha GPS</string>
+    <string name="sentry_consent_title">Help Improve GeoShutter</string>
     <string name="sentry_consent_message">Would you like to help us improve the app by sending anonymous crash reports and error logs? This information helps us identify and fix issues. No personal data or location information is transmitted. You can change this setting later in the app settings.</string>
     <string name="sentry_consent_allow">Allow</string>
     <string name="sentry_consent_decline">Decline</string>
@@ -317,15 +317,15 @@
     <string name="bluetooth_connect_permanently_denied">Bluetooth permission has been permanently denied. Please open App Settings, navigate to Permissions → Nearby devices, and grant the permission manually.</string>
     <!-- Tip Jar -->
     <string name="tip_jar">Tip Jar</string>
-    <string name="tip_jar_description">Enjoying the app? Tips help cover the Apple Developer Program fee ($99/year) required to keep this app on the App Store. It's completely optional — thank you for using Alpha GPS! ❤️</string>
+    <string name="tip_jar_description">GeoShutter builds on Alpha GPS by Saschl. Tips go to him and help cover the Apple Developer Program fee ($99/year) that keeps Alpha GPS on the App Store. It's completely optional — thank you! ❤️</string>
     <string name="tip_jar_loading">Loading…</string>
     <string name="tip_jar_thank_you">Thank you so much for your support!</string>
     <string name="tip_jar_unavailable">Tip options are not available right now.</string>
     <string name="tip_jar_error_prefix">Something went wrong:</string>
     <string name="tip_jar_dismiss">Dismiss</string>
     <!-- Donation prompt -->
-    <string name="donation_dialog_title">Enjoying Alpha GPS?</string>
-    <string name="donation_dialog_message">If the app helps your photography, a small donation helps keep development going. It is completely optional.</string>
+    <string name="donation_dialog_title">Enjoying GeoShutter?</string>
+    <string name="donation_dialog_message">GeoShutter builds on Alpha GPS by Saschl. If the app helps your photography, a small donation supports its original author. It is completely optional.</string>
     <string name="donation_dialog_confirm">Support project</string>
     <string name="donation_dialog_dismiss">Not now</string>
     <string name="auto_time_correction">Automatic time correction</string>

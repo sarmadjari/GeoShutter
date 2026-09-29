@@ -15,7 +15,7 @@
     <string name="step2_grant">バックグランドでの位置情報を許可してください</string>
     <string name="step2_granted">✓ 許可済み</string>
     <string name="view_logs">ログを参照</string>
-    <string name="camera_gps_permissions">Alpha GPSの権限</string>
+    <string name="camera_gps_permissions">GeoShutterの権限</string>
     <string name="permissions_missing_title">権限なし</string>
     <string name="continue_button">進む</string>
     <string name="cancel_button">キャンセル</string>
@@ -40,7 +40,7 @@
     <string name="location_services_disabled_title">位置情報サービスは無効です</string>
     <string name="location_services_disabled_message">GPSによる位置情報サービスを有効にしてください。</string>
     <string name="open_location_settings">位置情報設定を開いてください</string>
-    <string name="welcome_title">ようこそAlpha GPSへ</string>
+    <string name="welcome_title">ようこそGeoShutterへ</string>
     <string name="welcome_feature_connect_title">カメラに接続してください</string>
     <string name="welcome_feature_gps_sync_title">リアルタイムのGPS同期</string>
     <string name="settings">設定</string>
@@ -49,7 +49,7 @@
     <string name="enable_app">アプリを有効にしてください</string>
     <string name="help_faq_title">ヘルプ&amp;質問</string>
     <string name="help_close_description">閉じる</string>
-    <string name="help_about_title">Alpha GPSについて</string>
+    <string name="help_about_title">GeoShutterについて</string>
     <string name="log_level">ログレベル</string>
     <string name="location_provider_title">位置情報プロバイダー</string>
     <string name="location_provider_play_services">Google Play サービス(推奨)</string>

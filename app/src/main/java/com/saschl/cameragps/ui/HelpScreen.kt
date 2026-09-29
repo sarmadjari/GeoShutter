@@ -66,6 +66,7 @@ import cameragps.sharednew.generated.resources.is_there_documenation
 import cameragps.sharednew.generated.resources.is_there_documenation_answer
 import cameragps.sharednew.generated.resources.is_there_documenation_answer_coffee
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
+import com.sasch.cameragps.sharednew.ui.help.ProjectLinks
 import com.saschl.cameragps.R
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -243,7 +244,7 @@ fun HelpScreen(
                                         append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "https://github.com/Saschl/camera-gps/blob/main/README.md",
+                                                ProjectLinks.DOCUMENTATION,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,
@@ -252,12 +253,12 @@ fun HelpScreen(
                                                 )
                                             )
                                         ) {
-                                            append("https://github.com/Saschl/camera-gps")
+                                            append(ProjectLinks.display(ProjectLinks.REPOSITORY))
                                         }
                                         append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "mailto:saschl.ra@web.de",
+                                                ProjectLinks.ISSUES,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,
@@ -266,13 +267,14 @@ fun HelpScreen(
                                                 )
                                             )
                                         ) {
-                                            append("saschl.ra@web.de")
+                                            append(ProjectLinks.display(ProjectLinks.ISSUES))
                                         }
                                         append("\n\n")
                                         append(stringResource(Res.string.is_there_documenation_answer_coffee))
+                                        append("\n")
                                         withLink(
                                             LinkAnnotation.Url(
-                                                "https://buymeacoffee.com/wj8tism4dq",
+                                                ProjectLinks.ORIGINAL_AUTHOR_DONATION,
                                                 TextLinkStyles(
                                                     style = SpanStyle(
                                                         color = MaterialTheme.colorScheme.primary,
@@ -284,7 +286,9 @@ fun HelpScreen(
                                             append("Buy Me A Coffee")
                                         }
 
-                                    }
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
                                 Text(

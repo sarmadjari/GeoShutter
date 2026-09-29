@@ -21,13 +21,18 @@ Last full code review: 2026-09-28, app version 1.6.3 (Android `versionCode` 163,
   built with Kotlin Multiplatform and Compose Multiplatform. License GPL-3.0.
 - **Naming decision (2026-09-28):** the repository documentation is branded GeoShutter.
   The **Android app ID is GeoShutter's own, `com.sarmadjari.geoshutter`, with the
-  launcher label "GeoShutter"** (user decision, so it installs next to Alpha GPS). Everything
-  else still belongs to upstream (Saschl): the code namespace/packages
-  (`com.saschl.cameragps`, `com.sasch.cameragps.sharednew`), the in-app name "Alpha GPS"
-  (strings), the iOS bundle ID `com.saschl.cameragps` and display name, StoreKit product
-  IDs, the Core Bluetooth restore identifier and the store listings. Do not rename further
-  identifiers unless the user asks for it; changing an app ID changes the app identity
-  (new store listing, lost settings/pairings).
+  launcher label "GeoShutter"** (user decision, so it installs next to Alpha GPS). Since
+  2026-09-29 the **app calls itself GeoShutter** too: all strings in every language, the
+  iOS display name (`INFOPLIST_KEY_CFBundleDisplayName`, `InfoPlist.xcstrings`) and the
+  Help links (`ui/help/ProjectLinks.kt`: this repository's README and Issues, no personal
+  e-mail). "Alpha GPS" remains only where the app credits it: donations (Help, the
+  donation prompt, the iOS Tip Jar) say they go to Saschl, the original author. Still
+  upstream's: the code namespace/packages (`com.saschl.cameragps`,
+  `com.sasch.cameragps.sharednew`), the Xcode project/target/scheme `alphagps`, the iOS
+  bundle ID `com.saschl.cameragps`, StoreKit product IDs (the Tip Jar pays Saschl), the
+  Core Bluetooth restore identifier, the `ALPHA_GPS_*` debug environment variables and the
+  store listings. Do not rename these identifiers unless the user asks for it; changing an
+  app ID changes the app identity (new store listing, lost settings/pairings).
 - **Upstream is ignored from 2026-09-28 on:** the fork is developed independently; there
   is no need to keep changes merge-friendly with `Saschl/alpha-gps`.
 - Cameras: **Sony** (Android and iOS) and, experimentally on Android, **Fujifilm** with the
@@ -230,7 +235,7 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | `privacy.md` (policy of the published Alpha GPS app; provider/contact stay Saschl) | every data flow: location use, on-device data, Sentry opt-in and payload, Google Play services / Apple services. Bump "effective as of" on content changes |
 | `website/src/pages/index.astro` | features, FAQ (also emitted as JSON-LD), min OS versions, confirmed cameras (keep in sync with README), links |
 | `website/public/seo/og-image.svg` | brand text in link previews |
-| `fastlane/metadata/android/en-US/*` | F-Droid listing of the `foss` build (Alpha GPS name) |
+| `fastlane/metadata/android/en-US/*` | F-Droid listing of the `foss` build (GeoShutter name; changelogs of old upstream versions unchanged) |
 | `tools/*/README.md` | tool CLIs; the simulator README mirrors the GATT table |
 | `.claude/skills/accessorysetupkit.md` | iOS AccessorySetupKit flow |
 | In-app help (strings `faq_*`, `guide_*`, `ios_troubleshooting_*`, `HelpScreen.kt`, `IosHelpScreen.kt`) | user-facing docs inside the app; see §8 for open issues |
@@ -246,11 +251,10 @@ fork's site. GitHub Pages is not enabled on the fork.
 - 2026-09-28: rebrand repository docs to GeoShutter; keep describing the shipped app as
   Alpha GPS; privacy provider/contact remain Saschl; repo/issue/privacy links point to
   `sarmadjari/GeoShutter`; store buttons stay on the Alpha GPS listings; GitHub Issues
-  were enabled on the fork; in-app text changes were deferred (see §8).
+  were enabled on the fork; in-app text changes were deferred (done 2026-09-29, below).
 - 2026-09-28: the Android app gets its own permanent app ID `com.sarmadjari.geoshutter`
   and launcher label "GeoShutter" in all flavors and build types, so it runs next to the
-  Play Store Alpha GPS on the maintainer's phone. The iOS bundle ID and in-app texts are
-  unchanged.
+  Play Store Alpha GPS on the maintainer's phone. The iOS bundle ID is unchanged.
 - 2026-09-28: every camera, Sony included, connects directly (fast) when Android reports
   it nearby; the camera list shows each camera's own name with brand and model underneath
   (for example "Sony α1 II", "Fujifilm X100VI"; Sony model codes as marketing names).
@@ -286,6 +290,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   color (`SharedSettingsCard`, also used by the Settings screen). One status palette for
   the app (`ui/TransmissionDot.kt`: green, blue, amber, red, grey), the same as the
   widget's. Keep new setting texts short (one line in English at phone width).
+- 2026-09-29: the app is named **GeoShutter** inside the app on both platforms (all
+  languages, iOS home screen). Help links go to this repository (README, Issues) instead
+  of Saschl's old repository and personal e-mail; donations stay with Saschl and say so
+  (user's choice over removing them or leaving the links).
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -341,8 +349,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   integration).
 - The Settings screen still mixes styles: *App Controls* and *Log Settings* are
   `SharedSettingsCard`s (the log level in a nested surface), the entries below them
-  (*Location Provider*, *Transmission Event Sounds*, …) are plain navigation cards; the
-  in-app texts still say "Alpha GPS" in places (for example the rename hint and Help).
+  (*Location Provider*, *Transmission Event Sounds*, …) are plain navigation cards.
+- `privacy.md` is still the policy of the published Alpha GPS app (provider and contact
+  Saschl); GeoShutter needs its own before it is published. The privacy FAQ answer says
+  the app sends no personal data, without mentioning the opt-in error reporting.
 
 ### Fork status (checked 2026-09-28)
 

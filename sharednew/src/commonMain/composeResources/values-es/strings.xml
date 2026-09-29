@@ -16,7 +16,7 @@
     <string name="step2_grant">Concede el acceso a la Ubicación en Segundo Plano</string>
     <string name="step2_granted">✓ Concedido</string>
     <string name="view_logs">Ver registros</string>
-    <string name="camera_gps_permissions">Permisos de Alpha GPS</string>
+    <string name="camera_gps_permissions">Permisos de GeoShutter</string>
     <string name="permissions_missing_title">Faltan permisos</string>
     <string name="permissions_missing_description">Es posible que algunas funciones no funcionen hasta que se concedan estos permisos:\n%1$s</string>
     <string name="continue_button">Continuar</string>
@@ -43,7 +43,7 @@
     <string name="location_services_disabled_title">Los servicios de localización están desactivados</string>
     <string name="location_services_disabled_message">Activa los servicios de localización para poder utilizar el GPS.</string>
     <string name="open_location_settings">Abrir Ajustes de Localización</string>
-    <string name="welcome_title">Bienvenido a Alpha GPS</string>
+    <string name="welcome_title">Bienvenido a GeoShutter</string>
     <string name="welcome_subtitle">Coordenadas GPS en tiempo real para tu cámara a través de Bluetooth</string>
     <string name="welcome_feature_connect_title">Conectar Tu Cámara</string>
     <string name="welcome_feature_connect_description">Empareja tu cámara Sony con tu teléfono mediante Bluetooth para transferir datos GPS sin problemas</string>
@@ -52,7 +52,7 @@
     <string name="welcome_feature_device_management_title">Gestión de Dispositivos</string>
     <string name="welcome_get_started_button">Comenzar</string>
     <string name="welcome_settings_note">Puedes acceder a estos ajustes más tarde desde el menú principal</string>
-    <string name="welcome_app_icon_description">Icono de la aplicación Alpha GPS</string>
+    <string name="welcome_app_icon_description">Icono de la aplicación GeoShutter</string>
     <string name="settings">Ajustes</string>
     <string name="app_controls">Controles App</string>
     <string name="enable_app">Habilitar App</string>
@@ -73,7 +73,7 @@
     <string name="unknown_error">Error desconocido</string>
     <string name="help_faq_title">Ayuda y P+F</string>
     <string name="help_close_description">Cerrar</string>
-    <string name="help_about_title">Acerca de Alpha GPS</string>
+    <string name="help_about_title">Acerca de GeoShutter</string>
     <string name="help_about_description">Esta aplicación envía las coordenadas GPS en tiempo real a tu cámara a través de Bluetooth, lo que permite geolocalizar automáticamente tus fotos sin necesidad de utilizar el GPS integrado de la cámara.</string>
     <string name="help_need_more_title">¿Requiere más ayuda?</string>
     <string name="help_need_more_description">Consulta los registros de la aplicación en el menú superior para obtener información sobre la resolución de problemas, o revisa la configuración de tu dispositivo para asegurarte de que se han concedido todos los permisos.</string>
@@ -121,7 +121,7 @@
     <string name="reset_welcome">Muestra la pantalla bienvenida en el siguiente lanzamiento</string>
     <string name="will_show_welcome">Mostrará la pantalla bienvenida en el siguiente lanzamiento.</string>
     <string name="is_there_documenation">¿Hay algún documento?</string>
-    <string name="is_there_documenation_answer">¡Sí!, visite la página de Github.\nPuede además informar sobre las cuestiones con la App allí o contáctenos por vía de correo:</string>
+    <string name="is_there_documenation_answer">¡Sí! En la página de GitHub encontrará la documentación y también puede informar de problemas allí:</string>
     <string name="language_settings">Ajustes del Idioma</string>
     <string name="language_selection">Selección de Idioma</string>
     <string name="language_system">Sistema</string>
@@ -129,7 +129,7 @@
     <string name="language_german">Alemán</string>
     <string name="language_chinese">Chino</string>
     <string name="how_about_privacy">¿Qué hay de la privacidad?</string>
-    <string name="how_about_privacy_answer">La aplicación no transmite datos personales al desarrollador ni a terceros. Toda la información recopilada (datos de ubicación) se utiliza únicamente para transferir las coordenadas GPS a la cámara conectada y no se almacena de forma permanente. La recopilación de ubicación se detiene en cuanto se desconecta la cámara. Para analizar problemas y fallos, se pueden enviar registros anonimizados al servicio de informes de errores de Sentry. Puede desactivar esta función en cualquier momento en la configuración de la aplicación, en «Configuración de informes de errores». Si tiene alguna pregunta o duda, póngase en contacto con nosotros a través de la dirección de correo electrónico mencionada anteriormente.</string>
+    <string name="how_about_privacy_answer">La aplicación no transmite datos personales al desarrollador ni a terceros. Toda la información recopilada (datos de ubicación) se utiliza únicamente para transferir las coordenadas GPS a la cámara conectada y no se almacena de forma permanente. La recopilación de ubicación se detiene en cuanto se desconecta la cámara. Para analizar problemas y fallos, se pueden enviar registros anonimizados al servicio de informes de errores de Sentry. Puede desactivar esta función en cualquier momento en la configuración de la aplicación, en «Configuración de informes de errores». Si tiene alguna pregunta o duda, póngase en contacto con nosotros a través de la página de GitHub mencionada anteriormente.</string>
     <string name="device_management">Gestión de Dispositivo</string>
     <string name="no_devices_found">No se ha encontrado ningún dispositivo</string>
     <string name="delete_device">Eliminar Dispositivo</string>
@@ -149,7 +149,7 @@
     <string name="cancel">Cancelar</string>
     <string name="enable_auto_start_description">Auto‐inicia la app tras un re‐arranque del dispositivo para configurarlo en los dispositivos Siempre Encendido.</string>
     <string name="hint_if_issues_after_switching">Nota: Debido a cambios recientes en la aplicación, es posible que deba realizar una acción única si experimenta problemas después de desactivar el modo Siempre Activa. Simplemente desactive y vuelva a activar el dispositivo una vez en esta configuración. Esto solo es necesario una vez después de la actualización de la aplicación; los cambios de modo posteriores funcionarán de inmediato.</string>
-    <string name="sentry_consent_title">Ayudar a Mejorar Alpha GPS</string>
+    <string name="sentry_consent_title">Ayudar a Mejorar GeoShutter</string>
     <string name="sentry_consent_allow">Conceder</string>
     <string name="sentry_consent_decline">Declinar</string>
     <string name="sentry_consent_dont_show">No mostrar de nuevo</string>
@@ -219,7 +219,7 @@
     <string name="always_on_description">Ejecute la app en al primer plano. Útil si la conexión no se puede establecer con seguridad en dispositivos con medidas de ahorro de batería agresiva (p.e., Xiaomi y probablemente más)</string>
     <string name="app_standby_title">En Espera</string>
     <string name="app_standby_content">Esperando que la cámara se conecte</string>
-    <string name="is_there_documenation_answer_coffee">Si le gusta la aplicación y desea apoyar el desarrollo, puede comprarme un café ☕️</string>
+    <string name="is_there_documenation_answer_coffee">GeoShutter se basa en Alpha GPS de Saschl. Si le gusta la aplicación, puede apoyar a su autor original ☕️</string>
     <string name="quick_start_feature_description">En la siguiente pantalla, siga las instrucciones para emparejar su cámara. Una vez que está completado el emparejado, esta aplicación conectará automáticamente a su cámara e iniciará la transmisión de datos locales. Si no inicia inmediatamente, intente reiniciar su cámara.</string>
     <string name="always_on_quickstart_description">Si el modo de conexión por defecto no funciona, pude habilitar al modo Siempre Encendido tras emparejar su dispositivo. Toque el apunte del dispositivo en la pantalla principal y active el conmutador. Este modo puede utilizar una batería, pero solo transmite datos de ubicación cuando se conecta a la cámara.</string>
     <string name="notification_channel_name">Estado de transmisión</string>
@@ -230,14 +230,14 @@
     <string name="bluetooth_connect_grant_button">Concede Permisos de Bluetooth</string>
     <string name="bluetooth_connect_permanently_denied">Permisos de Bluetooth han sido denegados permanentemente. Abra los Ajustes de App, navegue a Permisos → Dispositivos cercanos, y conceda el permiso manualmente.</string>
     <string name="tip_jar">Consejo Jar</string>
-    <string name="tip_jar_description">¿Te gusta la app? Las propinas ayudan a cubrir la cuota del Programa para Desarrolladores de Apple (99 $/año) necesaria para mantener esta app en la App Store. Es totalmente opcional. ¡Gracias por usar Alpha GPS! ❤️</string>
+    <string name="tip_jar_description">GeoShutter se basa en Alpha GPS de Saschl. Las propinas van a él y ayudan a cubrir la tarifa del Apple Developer Program (99 $/año) que mantiene Alpha GPS en la App Store. Es totalmente opcional. ¡Gracias! ❤️</string>
     <string name="tip_jar_loading">Cargando…</string>
     <string name="tip_jar_thank_you">¡Muchas gracias por su apoyo!</string>
     <string name="tip_jar_unavailable">Justo ahora no están disponibles las opciones de consejo.</string>
     <string name="tip_jar_error_prefix">Algo ha ido mal:</string>
     <string name="tip_jar_dismiss">Despedir</string>
     <string name="donation_dialog_title">¿Disfruta del GPS Alpha?</string>
-    <string name="donation_dialog_message">Si la aplicación le ayuda en su fotografía, una pequeña donación ayuda a continuar con el desarrollo. Esto es completamente opcional.</string>
+    <string name="donation_dialog_message">GeoShutter se basa en Alpha GPS de Saschl. Si la aplicación le ayuda en su fotografía, una pequeña donación apoya a su autor original. Esto es completamente opcional.</string>
     <string name="donation_dialog_confirm">Apoyar proyecto</string>
     <string name="trigger_shutter">Disparador remoto</string>
     <string name="remote_feature_inactive">Conectado. Desactivado de forma remota desde la cámara o la aplicación</string>
@@ -262,7 +262,7 @@
     <string name="guide_repair_step_camera_path">MENÚ → Red → Bluetooth → Gestionar emparejado de dispositivo</string>
     <string name="guide_repair_step_sony_app">Si una app Sony aún está instalada, extraiga la cámara de allí también:</string>
     <string name="guide_repair_step_sony_app_path">App de Creadores → Cámaras → Instalación → Desemparejado</string>
-    <string name="guide_repair_step_pair_again">Configure la cámara otra vez en Alpha GPS: póngala en modo emparejado e inicie un análisis nuevo.</string>
+    <string name="guide_repair_step_pair_again">Configure la cámara otra vez en GeoShutter: póngala en modo emparejado e inicie un análisis nuevo.</string>
     <string name="guide_remote_title">Apague el Bluetooth remoto (cámara más antigua)</string>
     <string name="guide_remote_description">Las cámaras como la α6400 no puede utilizar el Bluetooth remoto y enlace de localización al mismo tiempo; con el remoto activo, la conexión o la transferencia de GPS detiene el funcionamiento. Los modelos más nuevos (p.ej. α7 IV y posteriores) admiten ambos.</string>
     <string name="guide_remote_step_camera">En la cámara, apague el Bluetooth remoto:</string>
@@ -273,9 +273,9 @@
     <string name="guide_accuracy_title">La localización es imprecisa o antigua</string>
     <string name="guide_accuracy_description">Si las fotos están etiquetadas con una posición que sea novedosa fuera, la app usualmente no está concedida utilizar lugares precisos.</string>
     <string name="guide_accuracy_step_precise">Concede lugar preciso para GPS Alpha:</string>
-    <string name="guide_accuracy_step_precise_path_android">Ajustes → Apps → Alpha GPS → Permisos → Ubicación → Utilizar lugar preciso</string>
+    <string name="guide_accuracy_step_precise_path_android">Ajustes → Apps → GeoShutter → Permisos → Ubicación → Utilizar lugar preciso</string>
     <string name="guide_accuracy_step_precise_path_ios">Ajustes → Privacidad y seguridad → Servicios de Ubicación → GPS Alpha → Lugar preciso → Activo</string>
-    <string name="guide_accuracy_step_battery">Excluya la app desde optimización de batería tal que la transmisión mantenga la ejecución en segundo plano: Ajustes → Apps → Alpha GPS → Batería → No restringida.</string>
+    <string name="guide_accuracy_step_battery">Excluya la app desde optimización de batería tal que la transmisión mantenga la ejecución en segundo plano: Ajustes → Apps → GeoShutter → Batería → No restringida.</string>
     <string name="pairing_failed_device_message">La cámara '%1$s' rechazó el emparejado.</string>
     <string name="pairing_failed_hint_intro">A menudo esto sucede cuando la cámara no está en modo emparejado o aún está emparejado con otro dispositivo:</string>
     <string name="pairing_failed_hint_pairing_mode">• Ponga la cámara en modo emparejado: MENÚ → Red → Bluetooth → Emparejar.</string>

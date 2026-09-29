@@ -25,7 +25,7 @@
     <string name="logs_title">Nhật ký</string>
     <string name="logs_clear_all">Xóa tất cả nhật ký</string>
     <string name="logs_empty">Chưa có nhật ký. Nhật ký sẽ xuất hiện ở đây khi ứng dụng chạy.</string>
-    <string name="camera_gps_permissions">Quyền Alpha GPS</string>
+    <string name="camera_gps_permissions">Quyền GeoShutter</string>
     <string name="grant_permissions">Cấp quyền</string>
     <string name="permissions_missing_title">Thiếu quyền</string>
     <string name="permissions_missing_description">Some features may not work until these permissions are granted: %1$s</string>
@@ -59,7 +59,7 @@
     <string name="scanning_paused_title">Scanning is paused</string>
     <string name="scanning_paused_message">Turn on automatic scanning in Cài đặt to look for nearby máy ảnh.</string>
     <string name="scanning_for_cameras">Scanning for máy ảnh</string>
-    <string name="welcome_title">Welcome to Alpha GPS Gắn thẻ địa lý</string>
+    <string name="welcome_title">Welcome to GeoShutter</string>
     <string name="welcome_subtitle">Real-time GPS coordinates for your máy ảnh via Bluetooth</string>
     <string name="welcome_feature_connect_title">Connect Your Máy ảnh</string>
     <string name="welcome_feature_connect_description">Ghép nối your Sony máy ảnh with your phone via Bluetooth for seamless GPS data transfer</string>
@@ -68,7 +68,7 @@
     <string name="welcome_feature_device_management_title">Thiết bị Management</string>
     <string name="welcome_get_started_button">Get Started</string>
     <string name="welcome_settings_note">You can access these Cài đặt later from the main menu</string>
-    <string name="welcome_app_icon_description">Alpha GPS App Biểu tượng</string>
+    <string name="welcome_app_icon_description">GeoShutter App Biểu tượng</string>
     <string name="settings">Cài đặt</string>
     <string name="app_controls">App Controls</string>
     <string name="enable_app">Bật App</string>
@@ -119,7 +119,7 @@
     <string name="unknown_error">Unknown Lỗi</string>
     <string name="help_faq_title">Trợ giúp &amp; FAQ</string>
     <string name="help_close_description">Đóng</string>
-    <string name="help_about_title">Giới thiệu Alpha GPS</string>
+    <string name="help_about_title">Giới thiệu GeoShutter</string>
     <string name="help_about_description">This app provides real-time GPS coordinates to your máy ảnh via Bluetooth, allowing for automatic gắn thẻ địa lý of your ảnh without needing a camera's built-in GPS.</string>
     <string name="help_need_more_title">Need more Trợ giúp</string>
     <string name="help_need_more_description">Check the app nhật ký in the top menu for troubleshooting information, or review your thiết bị Cài đặt to ensure tất cả permissions are granted.</string>
@@ -130,7 +130,7 @@
     <string name="faq_disconnects_question">My máy ảnh is losing kết nối tất cả the thời gian</string>
     <string name="faq_disconnects_answer">Try these solutions: • Keep your phone closer to the máy ảnh • Tắt battery optimization for the app • Check whether your máy ảnh has power-saving modes that affect Bluetooth • Khởi động lại both devices and ghép nối them again if needed</string>
     <string name="faq_enable_service_question">How do I Bật the dịch vụ permanently? It seems to stop after a while</string>
-    <string name="faq_enable_service_answer">Please visit the App Cài đặt and try the options in the Battery &amp; Nền section. Alternatively try the following: To keep GPS data syncing with your máy ảnh: 1. Go to your device\\'s Cài đặt &gt; Apps 2. Tìm \\'Alpha GPS\\' in the app list 3. Tap on it and select \\'Battery\\' 4. Choose \\'Don\\'t optimize\\' or \\'Allow nền activity\\' 5. This prevents the system from stopping the GPS dịch vụ You can also access this through the thiết bị details page in the app.</string>
+    <string name="faq_enable_service_answer">Please visit the App Cài đặt and try the options in the Battery &amp; Nền section. Alternatively try the following: To keep GPS data syncing with your máy ảnh: 1. Go to your device\\'s Cài đặt &gt; Apps 2. Tìm \\'GeoShutter\\' in the app list 3. Tap on it and select \\'Battery\\' 4. Choose \\'Don\\'t optimize\\' or \\'Allow nền activity\\' 5. This prevents the system from stopping the GPS dịch vụ You can also access this through the thiết bị details page in the app.</string>
     <string name="faq_camera_not_connecting_question">My máy ảnh does not connect automatically, what can I do?</string>
     <string name="faq_camera_not_connecting_answer">Unfortunately, there might be situations, where the automatic kết nối does not work. If you encounter issues please do the following: On the main screen, tap on your máy ảnh to Mở the details screen. There you have an option to Bật the Always On mode, which will keep the app in the foreground. Otherwise try toggling Bluetooth or Xóa the thiết bị from the app and ghép nối it again.</string>
     <string name="faq_permissions_question">What permissions does the app need?</string>
@@ -152,7 +152,7 @@
     <string name="guide_link_location_a6400">Sony Trợ giúp Guide: Loc. Thông tin. Liên kết Set. (α6400)</string>
     <string name="guide_link_location_zve10">Sony Trợ giúp Guide: Location Thông tin. Liên kết Set. (ZV-E10)</string>
     <string name="guide_repair_title">Máy ảnh connects but GPS doesn't work</string>
-    <string name="guide_repair_description">Typical when the máy ảnh was set up with Sony's Creators' App or Imaging Edge Mobile before: the phone is already paired with the máy ảnh, so Không Mới ghép nối is requested — but location transfer doesn't work properly with Alpha GPS. Removing the Cũ ghép nối everywhere fixes this.</string>
+    <string name="guide_repair_description">Typical when the máy ảnh was set up with Sony's Creators' App or Imaging Edge Mobile before: the phone is already paired with the máy ảnh, so Không Mới ghép nối is requested — but location transfer doesn't work properly with GeoShutter. Removing the Cũ ghép nối everywhere fixes this.</string>
     <string name="guide_repair_step_phone">Xóa the camera from your phone's Bluetooth settings:</string>
     <string name="guide_repair_step_phone_path_android">Cài đặt → Connected devices (Bluetooth) → your máy ảnh → Forget</string>
     <string name="guide_repair_step_phone_path_ios">Cài đặt → Bluetooth → ⓘ Tiếp to the máy ảnh → Forget This Thiết bị</string>
@@ -160,19 +160,19 @@
     <string name="guide_repair_step_camera_path">Menu → Network → Bluetooth → Manage Paired Thiết bị</string>
     <string name="guide_repair_step_sony_app">If a Sony app is still installed, Xóa the máy ảnh there as well:</string>
     <string name="guide_repair_step_sony_app_path">Creators' App → Máy ảnh → Setup → Unpair</string>
-    <string name="guide_repair_step_pair_again">Set up the máy ảnh again in Alpha GPS: put it into ghép nối mode and start a Mới scan.</string>
+    <string name="guide_repair_step_pair_again">Set up the máy ảnh again in GeoShutter: put it into ghép nối mode and start a Mới scan.</string>
     <string name="guide_remote_title">Turn off the Bluetooth remote (older cameras)</string>
     <string name="guide_remote_description">Máy ảnh like the α6400 cannot use the Bluetooth remote and location linking at the same thời gian — with the remote on, the kết nối or GPS transfer stops working. Newer models (e.g. α7 IV and later) support both.</string>
     <string name="guide_remote_step_camera">On the máy ảnh, switch the Bluetooth remote off:</string>
     <string name="guide_remote_step_camera_path">Menu → Network → Bluetooth Rmt Ctrl → Off</string>
-    <string name="guide_remote_step_app">In Alpha GPS, tap the máy ảnh on the main screen and turn off Bậte remote control'.</string>
+    <string name="guide_remote_step_app">In GeoShutter, tap the máy ảnh on the main screen and turn off Bậte remote control'.</string>
     <string name="guide_link_remote_a6400">Sony Trợ giúp Guide: Bluetooth Rmt Ctrl (α6400)</string>
     <string name="guide_accuracy_title">Location is imprecise or outdated</string>
     <string name="guide_accuracy_description">If ảnh are tagged with a position that is noticeably off, the app usually isn't allowed to use your precise location.</string>
-    <string name="guide_accuracy_step_precise">Allow precise location for Alpha GPS:</string>
-    <string name="guide_accuracy_step_precise_path_android">Cài đặt → Apps → Alpha GPS → Permissions → Location → Use precise location</string>
-    <string name="guide_accuracy_step_precise_path_ios">Cài đặt → Privacy &amp; Security → Location Services → Alpha GPS → Precise Location → On</string>
-    <string name="guide_accuracy_step_battery">Exclude the app from battery optimization so transmission keeps running in the nền: Cài đặt → Apps → Alpha GPS → Battery → Unrestricted.</string>
+    <string name="guide_accuracy_step_precise">Allow precise location for GeoShutter:</string>
+    <string name="guide_accuracy_step_precise_path_android">Cài đặt → Apps → GeoShutter → Permissions → Location → Use precise location</string>
+    <string name="guide_accuracy_step_precise_path_ios">Cài đặt → Privacy &amp; Security → Location Services → GeoShutter → Precise Location → On</string>
+    <string name="guide_accuracy_step_battery">Exclude the app from battery optimization so transmission keeps running in the nền: Cài đặt → Apps → GeoShutter → Battery → Unrestricted.</string>
     <string name="pairing_failed_device_message">The máy ảnh '%1$s' refused the ghép nối.</string>
     <string name="pairing_failed_hint_intro">This often happens when the máy ảnh is not in ghép nối mode or is still paired with another thiết bị:</string>
     <string name="pairing_failed_hint_pairing_mode">• Put the máy ảnh into ghép nối mode: Menu → Network → Bluetooth → Ghép nối.</string>
@@ -224,8 +224,8 @@
     <string name="reset_welcome">Hiện welcome screen on Tiếp khởi chạy</string>
     <string name="will_show_welcome">Will Hiện welcome screen on Tiếp khởi chạy!</string>
     <string name="is_there_documenation">Is there any documentation?</string>
-    <string name="is_there_documenation_answer">Có! Please visit the Github page You can also report issues with the App there or contact us via Email:</string>
-    <string name="is_there_documenation_answer_coffee">If you like the app and want to support development, you can buy me a coffee ☕️</string>
+    <string name="is_there_documenation_answer">Có! Tài liệu có trên trang GitHub, và bạn cũng có thể báo cáo sự cố tại đó:</string>
+    <string name="is_there_documenation_answer_coffee">GeoShutter được phát triển dựa trên Alpha GPS của Saschl. Nếu bạn thích ứng dụng, bạn có thể ủng hộ tác giả gốc ☕️</string>
     <string name="language_settings">Ngôn ngữ Cài đặt</string>
     <string name="language_selection">Ngôn ngữ Selection</string>
     <string name="language_system">System</string>
@@ -233,7 +233,7 @@
     <string name="language_german">Deutsch</string>
     <string name="language_chinese">简体中文</string>
     <string name="how_about_privacy">How Giới thiệu privacy?</string>
-    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. Tất cả collected information (location data) is only used to transfer GPS coordinates to your connected máy ảnh and is not permanently stored. Location collection stops as soon as the kết nối to the máy ảnh is disconnected. If you have any questions or concerns, please contact us via the Email address mentioned above.</string>
+    <string name="how_about_privacy_answer">The app does not transmit any personal data to the developer or third parties. Tất cả collected information (location data) is only used to transfer GPS coordinates to your connected máy ảnh and is not permanently stored. Location collection stops as soon as the kết nối to the máy ảnh is disconnected. Nếu bạn có bất kỳ câu hỏi hoặc thắc mắc nào, vui lòng liên hệ với chúng tôi qua trang GitHub được đề cập ở trên.</string>
     <string name="device_management">Thiết bị Management</string>
     <string name="no_devices_found">Không devices found</string>
     <string name="delete_device">Xóa Thiết bị</string>
@@ -255,7 +255,7 @@
     <string name="setting_info">More information</string>
     <string name="enable_auto_start_description">Auto starts the app after a thiết bị reboot for configured Always On devices.</string>
     <string name="hint_if_issues_after_switching">Note: Due to recent changes in the app, you may need to perform a one-time action if you encounter issues after disabling Always On mode. Simply deactivate and reactivate the thiết bị once in these Cài đặt. This is only needed once after the app Cập nhật – subsequent mode changes will work immediately.</string>
-    <string name="sentry_consent_title">Trợ giúp Improve Alpha GPS</string>
+    <string name="sentry_consent_title">Trợ giúp Improve GeoShutter</string>
     <string name="sentry_consent_message">Would you like to Trợ giúp us improve the app by sending anonymous crash reports and Lỗi nhật ký? This information helps us identify and fix issues. Không personal data or location information is transmitted. You can change this setting later in the app Cài đặt.</string>
     <string name="sentry_consent_allow">Allow</string>
     <string name="sentry_consent_decline">Decline</string>
@@ -267,14 +267,14 @@
     <string name="bluetooth_connect_grant_button">Grant Bluetooth Permission</string>
     <string name="bluetooth_connect_permanently_denied">Bluetooth permission has been permanently denied. Please Mở App Cài đặt, navigate to Permissions → Nearby devices, and grant the permission manually.</string>
     <string name="tip_jar">Tip Jar</string>
-    <string name="tip_jar_description">Enjoying the app? Tips Trợ giúp cover the Apple Developer Program fee ($99/year) bắt buộc to keep this app on the App Store. It's completely tùy chọn — thank you for using Alpha GPS! ❤️</string>
+    <string name="tip_jar_description">GeoShutter được phát triển dựa trên Alpha GPS của Saschl. Tiền tip được gửi đến tác giả và giúp trang trải phí Apple Developer Program ($99/năm) để duy trì Alpha GPS trên App Store. Việc này hoàn toàn tùy chọn — cảm ơn bạn! ❤️</string>
     <string name="tip_jar_loading">Loading…</string>
     <string name="tip_jar_thank_you">Thank you so much for your support!</string>
     <string name="tip_jar_unavailable">Tip options are not có sẵn right now.</string>
     <string name="tip_jar_error_prefix">Something went wrong:</string>
     <string name="tip_jar_dismiss">Bỏ qua</string>
-    <string name="donation_dialog_title">Enjoying Alpha GPS?</string>
-    <string name="donation_dialog_message">If the app helps your photography, a small donation helps keep development going. It is completely tùy chọn.</string>
+    <string name="donation_dialog_title">Enjoying GeoShutter?</string>
+    <string name="donation_dialog_message">GeoShutter được phát triển dựa trên Alpha GPS của Saschl. Nếu ứng dụng hữu ích cho việc chụp ảnh của bạn, một khoản đóng góp nhỏ sẽ ủng hộ tác giả gốc. Việc này hoàn toàn tùy chọn.</string>
     <string name="donation_dialog_confirm">Support project</string>
     <string name="donation_dialog_dismiss">Not now</string>
 </resources>

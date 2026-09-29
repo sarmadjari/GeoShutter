@@ -1,4 +1,4 @@
-Alpha GPS geotags your photos by transmitting your phone's GPS location to Sony cameras (Alpha, ZV and other models with Bluetooth location linking) over Bluetooth LE — a lightweight alternative to the official apps. It also offers a Bluetooth remote shutter.
+GeoShutter geotags your photos by transmitting your phone's GPS location to Sony cameras (Alpha, ZV and other models with Bluetooth location linking) over Bluetooth LE — a lightweight alternative to the official apps. It also offers a Bluetooth remote shutter.
 
 <b>Features</b>
 

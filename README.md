@@ -9,11 +9,12 @@ GeoShutter is a fork of [Alpha GPS](https://alphagps.app) by
 licensed under the [GPL-3.0](LICENSE).
 
 > [!IMPORTANT]
-> On Android this fork builds as its own app, **GeoShutter** (app ID
-> `com.sarmadjari.geoshutter`), so it installs next to Alpha GPS. Inside the app, and on
-> iOS (bundle ID `com.saschl.cameragps`), it is still named **Alpha GPS**. The store
-> listings and APK releases linked below are the published Alpha GPS app. GeoShutter does
-> not publish its own builds yet; [build from source](#build-from-source) to run this fork.
+> This fork builds as **GeoShutter** on both platforms: the app, its texts in every
+> language and the iPhone home screen say GeoShutter. On Android it has its own app ID
+> (`com.sarmadjari.geoshutter`), so it installs next to Alpha GPS; the iOS project still
+> uses Alpha GPS's bundle ID (`com.saschl.cameragps`). The store listings and APK releases
+> linked below are the published Alpha GPS app. GeoShutter does not publish its own builds
+> yet; [build from source](#build-from-source) to run this fork.
 
 ## What it does
 
@@ -197,9 +198,9 @@ or *Need help?* below the camera list). The most common fixes:
 - **Bluetooth remote and location linking conflict** on older cameras such as the α6400:
   set *Bluetooth Rmt Ctrl* to Off on the camera and turn off *Enable remote control* in
   the app. Newer models (α7 IV and later) support both.
-- **Imprecise positions**: allow precise location (Android: *Settings → Apps → Alpha GPS →
+- **Imprecise positions**: allow precise location (Android: *Settings → Apps → GeoShutter →
   Permissions → Location → Use precise location*; iPhone: *Settings → Privacy & Security →
-  Location Services → Alpha GPS → Precise Location*).
+  Location Services → GeoShutter → Precise Location*).
 - **The camera starts slowly or its screen stays black**: set *Cnct. while Power OFF* (or
   *Cnct. during Power OFF*) to Off on the camera, or use *Delay connection setup* for that
   camera.

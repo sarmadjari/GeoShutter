@@ -57,6 +57,7 @@ import cameragps.sharednew.generated.resources.pairing_failed_title
 import com.sasch.cameragps.sharednew.database.LogDatabase
 import com.sasch.cameragps.sharednew.database.devices.CameraDevice
 import com.sasch.cameragps.sharednew.database.getDatabaseBuilder
+import com.sasch.cameragps.sharednew.ui.help.ProjectLinks
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewDialog
 import com.sasch.cameragps.sharednew.whatsnew.WhatsNewState
 import com.saschl.cameragps.AppServices
@@ -417,7 +418,7 @@ fun CameraDeviceManager(
                     TextButton(
                         onClick = {
                             showDonationDialog = false
-                            val intent = Intent(Intent.ACTION_VIEW, BUY_ME_A_COFFEE_URL.toUri())
+                            val intent = Intent(Intent.ACTION_VIEW, ProjectLinks.ORIGINAL_AUTHOR_DONATION.toUri())
                             runCatching { context.startActivity(intent) }
                                 .onFailure { Timber.w(it, "Failed to open donation link") }
                         }
@@ -433,7 +434,6 @@ fun CameraDeviceManager(
     }
 }
 
-private const val BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/wj8tism4dq"
 
 /** Starts the location service for [address], which connects to the camera immediately. */
 private fun connectNow(context: Context, address: String) {
