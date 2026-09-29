@@ -43,6 +43,7 @@ import com.sasch.cameragps.sharednew.database.getDatabaseBuilder
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailContent
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailDataSource
 import com.sasch.cameragps.sharednew.ui.device.DeviceDetailViewModel
+import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
 import com.saschl.cameragps.AppServices
 import com.saschl.cameragps.R
 import com.saschl.cameragps.service.AssociatedDeviceCompat
@@ -92,6 +93,13 @@ private fun createAndroidDataSource(dao: CameraDeviceDAO): DeviceDetailDataSourc
         // name, which Android never shows to the user once a custom one exists.
         override suspend fun setDeviceName(deviceId: String, name: String) {
             dao.setDeviceName(deviceId, name, isCustom = true)
+        }
+
+        override suspend fun isTimeSyncEnabled(deviceId: String) =
+            dao.findTimeSyncEnabled(deviceId) ?: true
+
+        override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
+            dao.setTimeSyncEnabled(deviceId, enabled)
         }
     }
 }
@@ -158,6 +166,11 @@ fun DeviceDetailScreen(
             viewModel = viewModel,
             deviceId = device.address,
             modifier = Modifier.padding(innerPadding),
+            brand = when {
+                device.isFujifilm -> CameraBrand.Fujifilm
+                device.isSony -> CameraBrand.Sony
+                else -> null
+            },
             headerContent = { resolvedName ->
                 Row(
                     modifier = Modifier

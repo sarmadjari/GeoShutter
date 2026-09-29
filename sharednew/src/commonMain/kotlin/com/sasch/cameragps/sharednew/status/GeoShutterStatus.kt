@@ -76,13 +76,15 @@ fun geoShutterStatus(
             ?: saved.pairingName
         val brand = saved.brand
             ?: CameraBrand.Fujifilm.takeIf { session?.protocol == CameraProtocol.FujifilmSecure }
+        // A Fujifilm camera gets the location only when it asks; a silent one doesn't.
+        val listening = session?.protocol != CameraProtocol.FujifilmSecure || session.cameraResponding
         CameraStatus(
             id = id,
             name = name,
             model = cameraModelLine(brand, saved.pairingName)?.takeIf { it != name },
             state = when {
                 session == null -> CameraState.Away
-                session.isLocationReady && transmitting -> CameraState.Sending
+                session.isLocationReady && transmitting && listening -> CameraState.Sending
                 session.phase in LINKED_PHASES -> CameraState.Connecting
                 else -> CameraState.Away
             },

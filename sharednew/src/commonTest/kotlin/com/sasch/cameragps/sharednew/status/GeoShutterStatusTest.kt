@@ -76,4 +76,25 @@ class GeoShutterStatusTest {
         assertEquals("X100VI", status.cameras.single().name)
         assertEquals("Fujifilm X100VI", status.cameras.single().model)
     }
+
+    @Test
+    fun aSilentFujifilmCameraIsStillConnecting() {
+        fun status(responding: Boolean) = geoShutterStatus(
+            enabled = true,
+            savedCameras = listOf(fuji),
+            devices = emptyList(),
+            sessions = mapOf(
+                "BB:02" to CameraSession(
+                    "BB:02",
+                    BleSessionPhase.Transmitting,
+                    protocol = CameraProtocol.FujifilmSecure,
+                    cameraResponding = responding,
+                ),
+            ),
+            transmitting = true,
+        ).cameras.single().state
+
+        assertEquals(CameraState.Connecting, status(responding = false))
+        assertEquals(CameraState.Sending, status(responding = true))
+    }
 }

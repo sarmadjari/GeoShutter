@@ -63,6 +63,14 @@ class DeviceDetailViewModel(
         }
     }
 
+    /** Fujifilm: turning it on sets a connected camera's clock right away. */
+    fun setTimeSyncEnabled(enabled: Boolean, device: String) {
+        viewModelScope.launch {
+            stateStore.setTimeSyncEnabled(device, enabled)
+            if (enabled) cameraSettings.syncCameraTime(device)
+        }
+    }
+
     fun setHandshakeDelay(delayMs: Long, device: String) {
         viewModelScope.launch {
             stateStore.setHandshakeDelayMs(device, delayMs)

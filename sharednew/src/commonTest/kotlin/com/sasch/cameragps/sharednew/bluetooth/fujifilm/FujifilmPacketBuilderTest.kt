@@ -3,7 +3,9 @@
  *
  * Expected packets were generated independently of this code with Python's
  * struct.pack('<iii4sHBBBBB', ...), the layout of furble's packed geotag struct
- * (https://github.com/gkoh/furble, lib/furble/Fujifilm.h, MIT License).
+ * (https://github.com/gkoh/furble, lib/furble/Fujifilm.h, MIT License). The time
+ * packet example is the worked example of the maintainer's analysis of Fujifilm's
+ * app (struct.pack('<HBBBBBiB', ...)); see docs/fujifilm-protocol.md.
  */
 package com.sasch.cameragps.sharednew.bluetooth.fujifilm
 
@@ -81,6 +83,62 @@ class FujifilmPacketBuilderTest {
             ),
             packet,
         )
+    }
+
+    @Test
+    fun timeSyncPacketCarriesUtcTheStandardOffsetAndTheDaylightSavingFlag() {
+        // 2026-09-29 12:34:56 UTC, UTC+1:00 with daylight saving time (e.g. Oslo in summer).
+        val packet = FujifilmPacketBuilder.buildTimeSyncPacket(
+            standardOffsetMinutes = 60,
+            dstOffsetMinutes = 60,
+            utc = LocalDateTime(2026, 9, 29, 12, 34, 56),
+        )
+
+        assertContentEquals(
+            bytes(0xEA, 0x07, 0x09, 0x1D, 0x0C, 0x22, 0x38, 0x64, 0x00, 0x00, 0x00, 0x01),
+            packet,
+        )
+    }
+
+    @Test
+    fun timeZoneOffsetsAreSentInHundredthsOfAnHour() {
+        fun offset(standardOffsetMinutes: Int, dstOffsetMinutes: Int = 0): Int {
+            val packet = FujifilmPacketBuilder.buildTimeSyncPacket(
+                standardOffsetMinutes,
+                dstOffsetMinutes,
+                LocalDateTime(2026, 1, 15, 8, 0, 0),
+            )
+            return (packet[7].toInt() and 0xFF) or ((packet[8].toInt() and 0xFF) shl 8) or
+                    ((packet[9].toInt() and 0xFF) shl 16) or ((packet[10].toInt() and 0xFF) shl 24)
+        }
+
+        assertEquals(0, offset(0))
+        assertEquals(100, offset(60))
+        assertEquals(550, offset(330)) // India
+        assertEquals(575, offset(345)) // Nepal
+        assertEquals(1275, offset(765)) // Chatham Islands
+        assertEquals(-350, offset(-210)) // Newfoundland
+        assertEquals(-950, offset(-570)) // Marquesas
+        assertEquals(-500, offset(-300))
+        // Daylight saving time stays out of the offset: it has its own flag.
+        assertEquals(100, offset(60, dstOffsetMinutes = 60))
+    }
+
+    @Test
+    fun theDaylightSavingFlagFollowsThePhone() {
+        val winter = FujifilmPacketBuilder.buildTimeSyncPacket(60, 0, LocalDateTime(2026, 1, 15, 8, 0))
+        val summer = FujifilmPacketBuilder.buildTimeSyncPacket(60, 60, LocalDateTime(2026, 7, 15, 8, 0))
+        assertEquals(0, winter[11].toInt())
+        assertEquals(1, summer[11].toInt())
+    }
+
+    @Test
+    fun negativeDaylightSavingIsSentAsTheCurrentOffset() {
+        // Europe/Dublin in winter, as the tz database models it: standard +1:00, "DST" -1:00.
+        val packet = FujifilmPacketBuilder.buildTimeSyncPacket(60, -60, LocalDateTime(2026, 1, 15, 8, 0))
+
+        assertContentEquals(bytes(0x00, 0x00, 0x00, 0x00), packet.copyOfRange(7, 11))
+        assertEquals(0, packet[11].toInt())
     }
 
     @Test

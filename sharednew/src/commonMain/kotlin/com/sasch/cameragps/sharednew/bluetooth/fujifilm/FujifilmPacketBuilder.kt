@@ -8,12 +8,14 @@
  * MIT License: the packed geotag struct in lib/furble/Fujifilm.h:72-92, filled
  * in Fujifilm.cpp:93-130, and the status ack and sync interval in
  * FujifilmSecure.cpp:118-128 and 186-192. furble runs on a little-endian ESP32.
+ * The time packet is not in furble; its sources are in docs/fujifilm-protocol.md.
  */
 package com.sasch.cameragps.sharednew.bluetooth.fujifilm
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
 import kotlin.time.Clock
 
 object FujifilmPacketBuilder {
@@ -61,6 +63,44 @@ object FujifilmPacketBuilder {
     fun statusAck(status: ByteArray): ByteArray? {
         if (status.size != FujifilmBluetoothConstants.STATUS_LENGTH) return null
         return byteArrayOf(status[0], status[1], status[2], FujifilmBluetoothConstants.STATUS_ACK_BYTE)
+    }
+
+    /**
+     * The packet that sets the camera clock and time zone
+     * ([FujifilmBluetoothConstants.UTC_TIME_ZONE_UUID]), little-endian: `uint16 year,
+     * month, day, hour, minute, second` in UTC, `int32` standard offset from UTC in
+     * hundredths of an hour (+1:00 → 100, +5:30 → 550, −3:30 → −350, +5:45 → 575),
+     * then 1 while daylight saving time is in effect, else 0.
+     *
+     * A negative daylight saving amount (Europe/Dublin's winter time in the tz
+     * database) is sent as the current offset without daylight saving time.
+     */
+    @Suppress("DEPRECATION")
+    fun buildTimeSyncPacket(
+        standardOffsetMinutes: Int,
+        dstOffsetMinutes: Int,
+        utc: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.UTC),
+    ): ByteArray {
+        val daylightSaving = dstOffsetMinutes > 0
+        val offsetMinutes =
+            if (daylightSaving) standardOffsetMinutes else standardOffsetMinutes + dstOffsetMinutes
+        val magnitude = abs(offsetMinutes)
+        val hundredthsOfHour = (magnitude / 60 * 100 + magnitude % 60 * 100 / 60) *
+                (if (offsetMinutes < 0) -1 else 1)
+        return byteArrayOf(
+            utc.year.toByte(),
+            (utc.year shr 8).toByte(),
+            utc.monthNumber.toByte(),
+            utc.dayOfMonth.toByte(),
+            utc.hour.toByte(),
+            utc.minute.toByte(),
+            utc.second.toByte(),
+            hundredthsOfHour.toByte(),
+            (hundredthsOfHour shr 8).toByte(),
+            (hundredthsOfHour shr 16).toByte(),
+            (hundredthsOfHour shr 24).toByte(),
+            if (daylightSaving) 1 else 0,
+        )
     }
 
     /** The sync interval in seconds as a little-endian uint16. */

@@ -66,4 +66,11 @@ interface CameraDeviceDAO {
 
     @Query("UPDATE camera_devices SET handshakeDelayMs = :delayMs WHERE mac = UPPER(:deviceId)")
     suspend fun setHandshakeDelayMs(deviceId: String, delayMs: Long)
+
+    /** Null when the camera has no row (the default, on, applies). */
+    @Query("SELECT timeSyncEnabled FROM camera_devices WHERE mac = UPPER(:address)")
+    suspend fun findTimeSyncEnabled(address: String): Boolean?
+
+    @Query("UPDATE camera_devices SET timeSyncEnabled = :enabled WHERE mac = UPPER(:deviceId)")
+    suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean)
 }

@@ -13,6 +13,7 @@ package com.sasch.cameragps.sharednew.bluetooth.fujifilm
 
 import com.diamondedge.logging.logging
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants
+import com.sasch.cameragps.sharednew.bluetooth.coordinator.PlatformTimeZoneInfo
 import com.sasch.cameragps.sharednew.bluetooth.session.PairingRetryPolicy
 import com.sasch.cameragps.sharednew.bluetooth.session.QueuedBleGattPort
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperation
@@ -44,7 +45,16 @@ internal sealed interface FujifilmHandshakeResult {
     data object PairingRejected : FujifilmHandshakeResult
 }
 
-internal enum class FujifilmNotification { GeotagRequested, Configured, Other }
+internal enum class FujifilmNotification {
+    GeotagRequested,
+
+    /** NOT1 changed: Fujifilm's app sets the camera clock again on every such event. */
+    DateSyncRequested,
+
+    /** NOT7 changed: the camera's SMARTPHONE LOCATION SYNC. setting. */
+    LocationSyncSettingChanged,
+    Other,
+}
 
 /**
  * Runs the Fujifilm secure handshake as one sequence of queued operations and
@@ -139,6 +149,34 @@ internal class FujifilmSessionController(
             .takeIf { name -> name.isNotEmpty() && name.all { it.code in 32..126 } }
     }
 
+    /**
+     * Sets the camera clock and time zone to the phone's
+     * ([Fuji.UTC_TIME_ZONE_UUID]). False when the camera has no time service or the
+     * write failed.
+     */
+    suspend fun syncTime(identifier: String): Boolean {
+        val id = identifier.uppercase()
+        if (!port.hasCharacteristic(id, Fuji.UTC_TIME_ZONE_UUID)) {
+            log.w { "Fujifilm[$id]: no time characteristic, the camera clock is left alone" }
+            return false
+        }
+        val zone = PlatformTimeZoneInfo()
+        val packet = FujifilmPacketBuilder.buildTimeSyncPacket(
+            standardOffsetMinutes = zone.standardOffsetMinutes,
+            dstOffsetMinutes = zone.dstOffsetMinutes,
+        )
+        log.i { "Fujifilm[$id]: setting the date, time and time zone to ${packet.toHex()}" }
+        val result = execute(
+            id,
+            BleOperation.Write(Fuji.UTC_TIME_ZONE_UUID, packet, Fuji.TIME_SERVICE_UUID),
+        )
+        if (result !is BleOperationResult.Success) {
+            log.w { "Fujifilm[$id]: setting the time failed: $result" }
+            return false
+        }
+        return true
+    }
+
     /** Interpret a notification or indication from a Fujifilm camera. */
     fun onCharacteristicChanged(
         identifier: String,
@@ -150,8 +188,11 @@ internal class FujifilmSessionController(
             characteristicUuid.equals(Fuji.GEOTAG_REQUEST_UUID, ignoreCase = true) &&
                     FujifilmPacketBuilder.isGeotagRequest(value) -> FujifilmNotification.GeotagRequested
 
-            characteristicUuid.equals(Fuji.NOTIFICATION_1_UUID, ignoreCase = true) &&
-                    FujifilmPacketBuilder.isConfigured(value) -> FujifilmNotification.Configured
+            characteristicUuid.equals(Fuji.NOTIFICATION_1_UUID, ignoreCase = true) ->
+                FujifilmNotification.DateSyncRequested
+
+            characteristicUuid.equals(Fuji.LOCATION_SYNC_SETTING_UUID, ignoreCase = true) ->
+                FujifilmNotification.LocationSyncSettingChanged
 
             else -> FujifilmNotification.Other
         }

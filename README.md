@@ -21,7 +21,8 @@ licensed under the [GPL-3.0](LICENSE).
   the same Bluetooth location-linking feature as Sony's Imaging Edge Mobile and Creators'
   App. Location is only used while a camera is connected.
 - **Time sync**: sets the camera's date and time when it connects, and adds time zone and
-  daylight-saving information to each position when the camera supports it.
+  daylight-saving information to each position when the camera supports it. On Fujifilm
+  cameras it also sets the time zone (AREA SETTING) and daylight saving time.
 - **Automatic reconnect**: pair once, and the app reconnects whenever you switch the
   camera on, also in the background and with the phone locked.
 - **Several cameras** at the same time.
@@ -37,7 +38,8 @@ licensed under the [GPL-3.0](LICENSE).
 - **Fujifilm (experimental, Android)**: cameras of the FUJIFILM XApp generation such as
   the X100VI, using Fujifilm's own Bluetooth geotagging protocol (the camera asks for the
   location every 10 seconds). Ported from [furble](https://github.com/gkoh/furble);
-  geotagging works on an X100VI. See [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
+  geotagging and setting the date, time and time zone work on an X100VI. See
+  [docs/fujifilm-protocol.md](docs/fujifilm-protocol.md).
 - **Private by design**: no account, no ads, no tracking. Crash reporting is opt-in, only
   exists in builds configured with a Sentry DSN, and the FOSS Android build (`foss`
   flavor, intended for F-Droid) has no crash reporter at all. See the
@@ -139,9 +141,11 @@ Tap a camera on **My Cameras** to open its details:
 | Rename | Changes the name shown in the app. On iPhone, cameras added through the accessory picker are renamed in the iOS accessory record instead. |
 | Enable device | Stops or resumes using this camera without removing it. |
 | Keep active (Always On) | Android only, see above. |
-| Enable remote control | Watches the camera's Bluetooth remote. When the camera allows remote control (camera menu *Bluetooth Rmt Ctrl*), a **Trigger remote shutter** button appears on the camera card. |
+| Enable remote control | Sony. Watches the camera's Bluetooth remote. When the camera allows remote control (camera menu *Bluetooth Rmt Ctrl*), a **Trigger remote shutter** button appears on the camera card. |
 | Delay connection setup | Waits 1–10 s (default: off) after the camera connects before the GPS setup starts. Try it if the camera starts slowly or its screen stays black. |
-| Automatic time correction, Automatic area adjustment | Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
+| Automatic time correction, Automatic area adjustment | Sony. Reads and changes these settings **on the camera**. The camera must be connected, and not every model supports it. |
+| Set date, time and time zone | Fujifilm, Android, on by default. Every time the camera connects, sets its clock, time zone (AREA SETTING) and daylight saving time to the phone's. |
+| Smartphone location sync | Fujifilm, Android. Reads and changes the camera's SMARTPHONE LOCATION SYNC. setting; while it is off the camera doesn't ask for the location. The camera must be connected. |
 
 To remove a camera, swipe its card to the left (on Android also *Remove* in the details).
 Removing it also deletes the Android companion association or the iOS accessory pairing.

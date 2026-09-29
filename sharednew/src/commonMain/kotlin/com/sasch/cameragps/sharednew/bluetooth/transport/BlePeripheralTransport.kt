@@ -151,4 +151,10 @@ interface BlePeripheralTransport {
      * iOS: two-phase service/characteristic discovery followed by the pairing gate.
      */
     fun initiateDiscoverServices(identifier: String): Boolean
+
+    /**
+     * Drops the connection and connects again right away. The session ends with a
+     * [BleTransportEvent.Disconnected]. False when unsupported or the device is unknown.
+     */
+    fun reconnect(identifier: String): Boolean = false
 }

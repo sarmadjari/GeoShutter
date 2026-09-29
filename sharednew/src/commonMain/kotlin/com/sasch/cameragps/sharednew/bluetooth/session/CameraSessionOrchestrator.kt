@@ -11,6 +11,7 @@ import com.sasch.cameragps.sharednew.bluetooth.fujifilm.CameraDetection
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmHandshakeResult
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmNotification
+import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmPacketBuilder
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmSessionController
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationEvent
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
@@ -23,6 +24,7 @@ import com.sasch.cameragps.sharednew.bluetooth.transport.BlePeripheralTransport
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleTransportEvent
 import com.sasch.cameragps.sharednew.database.devices.CameraDeviceDAO
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +33,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 /**
  * The common session orchestrator. Owns the per-device session registry, the
@@ -124,6 +129,12 @@ class CameraSessionOrchestrator(
     ) =
         autoCorrection.set(identifier, setting, enabled)
 
+    override fun syncCameraTime(identifier: String) {
+        val id = identifier.uppercase()
+        if (!isFujifilm(id) || registry.get(id)?.phase != BleSessionPhase.Transmitting) return
+        scope.launch { syncFujifilmTime(id) }
+    }
+
     private var started = false
 
     fun start() {
@@ -198,6 +209,7 @@ class CameraSessionOrchestrator(
 
     fun clearDevice(identifier: String) {
         val id = identifier.uppercase()
+        forgetFujifilmConnection(id)
         autoCorrection.clear(id)
         queue.cancelOperations(id, "session cleared")
         sessionCoordinator.clearSession(id)
@@ -210,6 +222,10 @@ class CameraSessionOrchestrator(
 
     fun shutdownAll() {
         autoCorrection.clearAll()
+        resyncFujifilmTimeWhenHeard.clear()
+        lastFujifilmTimeRequest.clear()
+        fujifilmWatchdogs.values.forEach { it.cancel() }
+        fujifilmWatchdogs.clear()
         sessionCoordinator.clearAllSessions()
         queue.shutdown("shutdown")
         locationManager.shutdown()
@@ -296,6 +312,7 @@ class CameraSessionOrchestrator(
 
     private fun handleConnected(identifier: String) {
         val id = identifier.uppercase()
+        forgetFujifilmConnection(id)
         autoCorrection.clear(id)
         log.i { "Device $id connected" }
         registry.upsert(id) {
@@ -306,6 +323,8 @@ class CameraSessionOrchestrator(
                 locationDisabledByCamera = false,
                 autoTimeCorrection = CameraSettingState(),
                 autoAreaAdjustment = CameraSettingState(),
+                fujifilmLocationSync = CameraSettingState(),
+                cameraResponding = false,
             )
         }
         _events.tryEmit(OrchestratorEvent.DeviceConnected(id))
@@ -474,10 +493,9 @@ class CameraSessionOrchestrator(
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting) }
         locationManager.onDeviceReady(id)
 
-        // Camera settings and the remote are Sony features.
+        autoCorrection.refresh(id)
+        // The remote is a Sony feature.
         if (!isFujifilm(id)) {
-            autoCorrection.refresh(id)
-
             val remoteEnabled = runCatching { deviceDao.isRemoteControlEnabled(id) }
                 .getOrDefault(false)
             if (remoteEnabled) {
@@ -555,6 +573,13 @@ class CameraSessionOrchestrator(
         if (setupGeneration[id] != generation) return
         when (result) {
             FujifilmHandshakeResult.Success -> {
+                // Like Fujifilm's app: set the clock before answering location requests.
+                syncFujifilmTime(id)
+                if (setupGeneration[id] != generation) return
+                if (registry.get(id)?.cameraResponding == false) {
+                    resyncFujifilmTimeWhenHeard += id
+                    watchFujifilmSilence(id)
+                }
                 handleHandshakeComplete(id)
                 storeCameraName(id)
             }
@@ -588,15 +613,105 @@ class CameraSessionOrchestrator(
         }.onFailure { log.w(it, msg = { "Could not store the name of $id" }) }
     }
 
+    /**
+     * Fujifilm cameras that got the time while silent (see [CameraSession.cameraResponding]):
+     * a silent camera doesn't apply it.
+     */
+    private val resyncFujifilmTimeWhenHeard = mutableSetOf<String>()
+
+    /** When each Fujifilm camera last asked for the time; see [syncFujifilmTime]. */
+    private val lastFujifilmTimeRequest = mutableMapOf<String, TimeMark>()
+
+    /** See [watchFujifilmSilence]. */
+    private val fujifilmWatchdogs = mutableMapOf<String, Job>()
+
+    private fun forgetFujifilmConnection(id: String) {
+        resyncFujifilmTimeWhenHeard -= id
+        lastFujifilmTimeRequest -= id
+        fujifilmWatchdogs.remove(id)?.cancel()
+    }
+
+    /**
+     * A working Fujifilm camera notifies within about a second of setup. One that stays
+     * silent ignores the phone: it asks for no location and doesn't apply the time
+     * (seen on the X100VI, for minutes, after quick reconnects and at power-on); a new
+     * connection brought it back. First repeat the setup on the same link, then reconnect.
+     */
+    private fun watchFujifilmSilence(id: String) {
+        fujifilmWatchdogs.remove(id)?.cancel()
+        fujifilmWatchdogs[id] = scope.launch {
+            delay(FUJIFILM_SILENCE_TIMEOUT)
+            if (!isSilentFujifilm(id)) return@launch
+            log.w { "Fujifilm camera $id stays silent after setup, repeating the setup" }
+            if (fujifilm.runHandshake(id) == FujifilmHandshakeResult.Success) syncFujifilmTime(id)
+            delay(FUJIFILM_SILENCE_TIMEOUT)
+            if (!isSilentFujifilm(id)) return@launch
+            log.w { "Fujifilm camera $id is still silent, reconnecting" }
+            if (!transport.reconnect(id)) log.w { "Could not reconnect to $id" }
+        }
+    }
+
+    private fun isSilentFujifilm(id: String): Boolean {
+        val session = registry.get(id) ?: return false
+        return transport.isConnected(id) && session.protocol == CameraProtocol.FujifilmSecure &&
+                session.phase == BleSessionPhase.Transmitting && !session.cameraResponding
+    }
+
     private fun handleFujifilmNotification(event: BleTransportEvent.CharacteristicChanged) {
         val id = event.identifier.uppercase()
-        when (fujifilm.onCharacteristicChanged(id, event.characteristicUuid, event.value)) {
+        val notification = fujifilm.onCharacteristicChanged(id, event.characteristicUuid, event.value)
+        val firstSign = registry.get(id)?.cameraResponding == false
+        if (firstSign) {
+            registry.updateIfPresent(id) { it.copy(cameraResponding = true) }
+            fujifilmWatchdogs.remove(id)?.cancel()
+        }
+        val resync = firstSign && resyncFujifilmTimeWhenHeard.remove(id)
+        if (resync) {
+            log.i { "Fujifilm camera $id responds now, setting its clock again" }
+            scope.launch { syncFujifilmTime(id) }
+        }
+        when (notification) {
             FujifilmNotification.GeotagRequested -> locationManager.onLocationRequested(id)
-            FujifilmNotification.Configured -> log.i { "Fujifilm camera $id reports it is configured" }
+            FujifilmNotification.DateSyncRequested -> {
+                if (FujifilmPacketBuilder.isConfigured(event.value)) {
+                    log.i { "Fujifilm camera $id reports it is configured" }
+                }
+                // During setup the handshake sets the clock itself.
+                if (!resync && registry.get(id)?.phase == BleSessionPhase.Transmitting) {
+                    scope.launch { syncFujifilmTime(id, onRequest = true) }
+                }
+            }
+
+            FujifilmNotification.LocationSyncSettingChanged -> autoCorrection.onNotified(
+                id, CameraAutoCorrectionSetting.FujifilmLocationSync, event.value,
+            )
+
             FujifilmNotification.Other -> Unit
         }
     }
+
+    /**
+     * Sets a Fujifilm camera's date, time and time zone unless the user turned that off
+     * for the camera. [onRequest]: the camera asked (NOT1), which Fujifilm's app answers
+     * every time; answered at most every [FUJIFILM_TIME_REQUEST_MIN_INTERVAL] so a
+     * camera that reports each new time can't cause a loop.
+     */
+    private suspend fun syncFujifilmTime(id: String, onRequest: Boolean = false) {
+        if (runCatching { deviceDao.findTimeSyncEnabled(id) }.getOrNull() == false) return
+        if (onRequest) {
+            val last = lastFujifilmTimeRequest[id]
+            if (last != null && last.elapsedNow() < FUJIFILM_TIME_REQUEST_MIN_INTERVAL) {
+                log.d { "Camera $id asked for the time again right away, skipping" }
+                return
+            }
+            lastFujifilmTimeRequest[id] = TimeSource.Monotonic.markNow()
+        }
+        fujifilm.syncTime(id)
+    }
 }
+
+private val FUJIFILM_TIME_REQUEST_MIN_INTERVAL = 10.seconds
+private val FUJIFILM_SILENCE_TIMEOUT = 15.seconds
 
 // Rediscovery after a services change: up to 8 × (1 s pause + 2.5 s wait) ≈ 28 s.
 // Android's own re-read of a camera's services took up to about 7 s in tests.

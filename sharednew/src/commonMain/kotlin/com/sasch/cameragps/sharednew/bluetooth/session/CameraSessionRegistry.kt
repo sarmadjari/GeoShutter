@@ -33,11 +33,18 @@ data class CameraSession(
     val locationDisabledByCamera: Boolean = false,
     val autoTimeCorrection: CameraSettingState = CameraSettingState(),
     val autoAreaAdjustment: CameraSettingState = CameraSettingState(),
+    val fujifilmLocationSync: CameraSettingState = CameraSettingState(),
+    /**
+     * Fujifilm: the camera sent a notification since it connected. A connected camera
+     * can stay silent, ignoring the phone, until it is reconnected.
+     */
+    val cameraResponding: Boolean = false,
 ) {
     fun autoCorrectionSetting(setting: CameraAutoCorrectionSetting): CameraSettingState =
         when (setting) {
             CameraAutoCorrectionSetting.Time -> autoTimeCorrection
             CameraAutoCorrectionSetting.Area -> autoAreaAdjustment
+            CameraAutoCorrectionSetting.FujifilmLocationSync -> fujifilmLocationSync
         }
 
     val isLocationReady: Boolean

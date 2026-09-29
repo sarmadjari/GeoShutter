@@ -123,6 +123,12 @@ python3 -m unittest discover -s tools/ios_localization -v
   `adb shell cmd statusbar click-tile com.sarmadjari.geoshutter/com.saschl.cameragps.status.StatusTileService`.
   With the panel closed the click is queued and delivered when the panel next opens (it
   then toggles once more). `cmd statusbar add-tile …` adds the tile.
+- FUJIFILM XApp is installed on this phone for reference. Force-stop it before Fujifilm
+  tests (`adb shell am force-stop com.fujifilm.xapp`): it shares the phone's Bluetooth bond
+  and would set the camera clock itself. Pairing it with the X100VI gave the camera a new
+  identity address, so the camera had to be added to GeoShutter again. The Developer
+  options HCI snoop log produced no file here; `dumpsys bluetooth_manager`'s
+  BTSNOOP_LOG_SUMMARY keeps only pairing (SMP) packets, not GATT traffic.
 - Never run `connectedAndroidTest` on this phone: it uninstalls the app afterwards, which
   deletes the companion associations (every camera must be added again). `am instrument`
   also force-stops the app. Only assemble the instrumented tests
@@ -155,7 +161,7 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
     state restoration, created in `AppDelegate` via `ensureInitialized()`),
     `IosBleTransport` (pairing gate), AccessorySetupKit (`IosAccessoryShell`/`Coordinator`)
     for adding, migrating, renaming and removing cameras.
-- Persistence: shared Room DB `LogDatabase` v6 (`camera_devices`, `log_entries`), schemas
+- Persistence: shared Room DB `LogDatabase` v7 (`camera_devices`, `log_entries`), schemas
   in `sharednew/schemas`. Preferences: Android `SharedPreferences` `camera_gps_prefs`,
   iOS `NSUserDefaults` keys `ios.*`.
 - Logging: KmLogging in shared code → Timber (Android) / `IosLogging` (iOS) → Room log
@@ -253,6 +259,10 @@ fork's site. GitHub Pages is not enabled on the fork.
   the app). Live Updates / promoted notifications were rejected (Google reserves them for
   user-initiated, time-sensitive activities). Turning GeoShutter on connects right away
   to saved cameras that are already on.
+- 2026-09-29: GeoShutter sets a Fujifilm camera's date, time and time zone on every
+  connection, as Fujifilm's app does, with a per-camera option (*Set date, time and time
+  zone*, on by default) to turn it off. The camera details also offer the camera's own
+  SMARTPHONE LOCATION SYNC. setting, like Sony's camera settings.
 
 ## 8. Known issues and follow-ups (not fixed yet)
 
@@ -281,9 +291,13 @@ fork's site. GitHub Pages is not enabled on the fork.
   (`app-*-release.apk`) doesn't match. `deploy-pages.yml` fails while Pages is disabled.
 - `Info.plist` has both `NSAccessorySetupKitSupports` and `NSAccessorySetupSupports`; the
   second looks redundant.
-- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging works on an X100VI
-  (firmware 01.32, 2026-09-28); open: UTC vs local time, registration right after pairing,
-  iOS and legacy firmware unsupported, remote/camera settings Sony-only. The camera stays
+- Fujifilm: see "Known gaps" in `docs/fujifilm-protocol.md`. Geotagging and the date, time
+  and time zone sync work on an X100VI (firmware 01.32, 2026-09-28/29); open: UTC vs local
+  time in EXIF, registration right after pairing, iOS and legacy firmware unsupported,
+  remote Sony-only, the geotag speed field and fix time, the 7-byte local-time fallback.
+  The X100VI sometimes stays silent on a connection (no requests, ignores the time); the
+  watchdog that repeats the setup and then reconnects is only unit-tested so far. Look for
+  "stays silent after setup" in logcat to see it act. The camera stays
   connected while switched off when its CONNECT WHILE POWER OFF setting is on (X100VI
   manual) and gives no Bluetooth sign of on/off (tested with every readable and notifying
   characteristic), so the app can't show it; the phone keeps its location updates running
@@ -413,3 +427,16 @@ fork's site. GitHub Pages is not enabled on the fork.
   0.2–0.3 s after turning on and received locations 2–4 s later; an X100VI that had been
   on without a connection could not be reached (it had stopped advertising). Full suite
   green: 192 JVM tests, app tests, lint (0 errors), four APKs, instrumented-test APK.
+- 2026-09-29 (night): Fujifilm date, time and time zone. A test showed the X100VI doesn't
+  set its clock from the geotag packet. The research agent and the maintainer's static
+  analysis of FUJIFILM XApp 1.0.3/2.7.6(1) (kept outside the repository) found the time
+  service `e872b11f-…`/`c52edbce-…` (12 bytes: UTC, standard offset in hundredths of an
+  hour, DST flag) and NOT7 = SMARTPHONE LOCATION SYNC. (uint16). GeoShutter now writes the
+  time after each Fujifilm handshake, on NOT1 (at most every 10 s), when a silent camera
+  first responds and when the option is turned on; the camera applied the date, time,
+  AREA SETTING and DAYLIGHT SAVINGS. New per-camera option (database version 7,
+  `timeSyncEnabled`) and the Fujifilm location sync setting in the camera details
+  (brand-aware; Sony rows hidden for Fujifilm). Found silent X100VI connections and that
+  the camera drops a connection about 20 s after the phone closed the previous one; added
+  a silence watchdog and made the status show a silent Fujifilm camera as connecting.
+  208 JVM tests pass (16 new).

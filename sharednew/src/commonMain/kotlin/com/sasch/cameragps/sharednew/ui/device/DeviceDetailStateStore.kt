@@ -19,6 +19,10 @@ interface DeviceDetailDataSource {
 
     /** Persists a name a person chose, so it is never replaced by a hardware name. */
     suspend fun setDeviceName(deviceId: String, name: String)
+
+    /** Fujifilm: set the camera's date, time and time zone on connect (default on). */
+    suspend fun isTimeSyncEnabled(deviceId: String): Boolean = true
+    suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) = Unit
 }
 
 interface DeviceDetailServiceActions {
@@ -34,6 +38,7 @@ data class DeviceDetailToggleState(
     val isAlwaysOnEnabled: Boolean = false,
     val isRemoteControlEnabled: Boolean = false,
     val handshakeDelayMs: Long = 0,
+    val isTimeSyncEnabled: Boolean = true,
 )
 
 class DeviceDetailStateStore(
@@ -52,6 +57,7 @@ class DeviceDetailStateStore(
                 isDeviceEnabled = dataSource.isDeviceEnabled(normalized),
                 isRemoteControlEnabled = dataSource.isRemoteControlEnabled(normalized),
                 handshakeDelayMs = dataSource.getHandshakeDelayMs(normalized),
+                isTimeSyncEnabled = dataSource.isTimeSyncEnabled(normalized),
             )
         }
     }
@@ -86,6 +92,13 @@ class DeviceDetailStateStore(
         dataSource.ensureDeviceExists(normalized, deviceName)
         dataSource.setHandshakeDelayMs(normalized, delayMs)
         _uiState.update { it.copy(handshakeDelayMs = delayMs) }
+    }
+
+    suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean, deviceName: String? = null) {
+        val normalized = deviceId.uppercase()
+        dataSource.ensureDeviceExists(normalized, deviceName)
+        dataSource.setTimeSyncEnabled(normalized, enabled)
+        _uiState.update { it.copy(isTimeSyncEnabled = enabled) }
     }
 
     suspend fun setDeviceName(deviceId: String, name: String) {

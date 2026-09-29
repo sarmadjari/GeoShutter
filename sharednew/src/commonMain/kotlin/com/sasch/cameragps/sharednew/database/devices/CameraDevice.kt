@@ -28,5 +28,8 @@ data class CameraDevice(
      */
     @ColumnInfo(defaultValue = "0")
     val handshakeDelayMs: Long = 0,
+    /** Fujifilm: set the camera's date, time and time zone from the phone on connect. */
+    @ColumnInfo(defaultValue = "1")
+    val timeSyncEnabled: Boolean = true,
 )
 

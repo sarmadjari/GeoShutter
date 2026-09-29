@@ -45,6 +45,10 @@ import cameragps.sharednew.generated.resources.dialog_ok
 import cameragps.sharednew.generated.resources.enableConstantly
 import cameragps.sharednew.generated.resources.enable_device
 import cameragps.sharednew.generated.resources.enable_remote_control
+import cameragps.sharednew.generated.resources.fujifilm_location_sync
+import cameragps.sharednew.generated.resources.fujifilm_location_sync_hint
+import cameragps.sharednew.generated.resources.fujifilm_time_sync
+import cameragps.sharednew.generated.resources.fujifilm_time_sync_hint
 import cameragps.sharednew.generated.resources.handshake_delay_description
 import cameragps.sharednew.generated.resources.handshake_delay_off
 import cameragps.sharednew.generated.resources.handshake_delay_seconds
@@ -62,6 +66,7 @@ import com.sasch.cameragps.sharednew.bluetooth.session.CameraAutoCorrectionSetti
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
 import com.sasch.cameragps.sharednew.ui.components.ScrollbarLazyColumn
+import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
 import com.sasch.cameragps.sharednew.util.KotlinPlatform
 import com.sasch.cameragps.sharednew.util.currentPlatform
 import org.jetbrains.compose.resources.painterResource
@@ -82,13 +87,17 @@ fun DeviceDetailContent(
     onDeviceEnabledChanged: ((Boolean) -> Unit)? = null,
     onPresentSystemRename: (() -> Unit)? = null,
     renameEnabled: Boolean = true,
+    /** The brand seen when the camera was added; null when unknown. */
+    brand: CameraBrand? = null,
 ) {
     val state = viewModel.uiState.collectAsState().value
     val sessions by viewModel.sessions.collectAsState()
     val session = sessions[deviceId.uppercase()]
     val cameraReady = session?.phase == BleSessionPhase.Transmitting
-    // Remote control and camera settings are Sony features.
-    val sonyFeatures = session?.protocol != CameraProtocol.FujifilmSecure
+    val fujifilm = brand == CameraBrand.Fujifilm ||
+            session?.protocol == CameraProtocol.FujifilmSecure
+    // The remote is a Sony feature; each brand has its own camera settings.
+    val sonyFeatures = !fujifilm
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshCameraSettings(deviceId)
@@ -173,13 +182,35 @@ fun DeviceDetailContent(
             )
         }
 
-        for (setting in CameraAutoCorrectionSetting.entries.takeIf { sonyFeatures }.orEmpty()) {
+        if (fujifilm) {
+            item {
+                DeviceToggleRow(
+                    title = stringResource(Res.string.fujifilm_time_sync),
+                    checked = state.isTimeSyncEnabled,
+                    enabled = state.isDeviceEnabled && state.buttonEnabled,
+                    onCheckedChange = { enabled -> viewModel.setTimeSyncEnabled(enabled, deviceId) },
+                    infoText = stringResource(Res.string.fujifilm_time_sync_hint),
+                )
+            }
+        }
+
+        val protocol = if (fujifilm) CameraProtocol.FujifilmSecure else CameraProtocol.Sony
+        for (setting in CameraAutoCorrectionSetting.forProtocol(protocol)) {
             val settingState = session?.autoCorrectionSetting(setting) ?: CameraSettingState()
             item(key = setting.name) {
-                val isTime = setting == CameraAutoCorrectionSetting.Time
+                val (title, hint) = when (setting) {
+                    CameraAutoCorrectionSetting.Time ->
+                        Res.string.auto_time_correction to Res.string.auto_time_correction_hint
+
+                    CameraAutoCorrectionSetting.Area ->
+                        Res.string.auto_area_adjustment to Res.string.auto_area_adjustment_hint
+
+                    CameraAutoCorrectionSetting.FujifilmLocationSync ->
+                        Res.string.fujifilm_location_sync to Res.string.fujifilm_location_sync_hint
+                }
                 CameraSettingRow(
-                    title = stringResource(if (isTime) Res.string.auto_time_correction else Res.string.auto_area_adjustment),
-                    infoText = stringResource(if (isTime) Res.string.auto_time_correction_hint else Res.string.auto_area_adjustment_hint),
+                    title = stringResource(title),
+                    infoText = stringResource(hint),
                     state = settingState,
                     cameraReady = cameraReady,
                     onCheckedChange = { viewModel.setAutoCorrectionSetting(deviceId, setting, it) },

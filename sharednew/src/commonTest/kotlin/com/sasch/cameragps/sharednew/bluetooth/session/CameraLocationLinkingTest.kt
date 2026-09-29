@@ -808,6 +808,7 @@ class CameraLocationLinkingTest {
 
     private class FakeDao : CameraDeviceDAO {
         var remoteEnabled = false
+        var timeSyncEnabled: Boolean? = null
         override suspend fun getAllCameraDevices() = emptyList<CameraDevice>()
         override fun observeAllDevices() = flowOf(emptyList<CameraDevice>())
         override suspend fun insertDevice(device: CameraDevice) = Unit
@@ -824,5 +825,9 @@ class CameraLocationLinkingTest {
         override suspend fun isRemoteControlEnabled(address: String) = remoteEnabled
         override suspend fun getHandshakeDelayMs(address: String): Long? = 0
         override suspend fun setHandshakeDelayMs(deviceId: String, delayMs: Long) = Unit
+        override suspend fun findTimeSyncEnabled(address: String): Boolean? = timeSyncEnabled
+        override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
+            timeSyncEnabled = enabled
+        }
     }
 }

@@ -215,6 +215,27 @@ class AndroidBleTransport(
     override fun isConnected(identifier: String): Boolean =
         connections[identifier.uppercase()]?.isActive == true
 
+    @SuppressLint("MissingPermission")
+    override fun reconnect(identifier: String): Boolean {
+        val address = identifier.uppercase()
+        val connection = connections[address] ?: return false
+        if (!connections.remove(address, connection)) return false
+        val wasActive = connection.isActive
+        connection.isActive = false
+        closeQuietly(connection.gatt)
+        // A closed handle reports nothing more: end the session here.
+        if (wasActive) eventChannel.trySend(BleTransportEvent.Disconnected(address, statusCode = null))
+        val gatt = runCatching { openGatt(connection.gatt.device, autoConnect = false) }
+            .onFailure { Timber.w(it, "Could not reconnect to %s", address) }
+            .getOrNull() ?: return false
+        val next = Connection(gatt, direct = true, directAttemptsLeft = DIRECT_RETRIES)
+        if (connections.putIfAbsent(address, next) != null) {
+            closeQuietly(gatt)
+            return false
+        }
+        return true
+    }
+
     override fun hasCharacteristic(identifier: String, characteristicUuid: String): Boolean {
         val connection = connections[identifier.uppercase()] ?: return false
         return findCharacteristic(connection.gatt, characteristicUuid) != null

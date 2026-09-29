@@ -11,10 +11,13 @@ import com.diamondedge.logging.FixedLogLevel
 import com.diamondedge.logging.KmLogging
 import com.diamondedge.logging.PlatformLogger
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
+import com.sasch.cameragps.sharednew.bluetooth.coordinator.PlatformTimeZoneInfo
 import com.sasch.cameragps.sharednew.bluetooth.location.GeoLocation
 import com.sasch.cameragps.sharednew.bluetooth.location.LocationSource
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraAutoCorrectionSetting
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSessionOrchestrator
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
 import com.sasch.cameragps.sharednew.bluetooth.session.OrchestratorEvent
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperation
 import com.sasch.cameragps.sharednew.bluetooth.transport.BleOperationStatus
@@ -32,6 +35,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -39,6 +45,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants as Sony
 import com.sasch.cameragps.sharednew.bluetooth.fujifilm.FujifilmBluetoothConstants as Fuji
 
@@ -61,6 +68,9 @@ class FujifilmSessionTest {
         f.connect("F", FUJIFILM)
         runCurrent()
 
+        val steps = f.transport.steps("F")
+        // Its value depends on the current time; see setupSetsTheCameraClock….
+        val timeWrite = steps.single { it is Step.Write && it.characteristicUuid == Fuji.UTC_TIME_ZONE_UUID }
         val expected: List<Step> = listOf(
             Step.Read(Fuji.STATUS_CHARACTERISTIC_UUID, Fuji.PAIR_SERVICE_UUID),
             Step.Write(Fuji.STATUS_CHARACTERISTIC_UUID, Fuji.PAIR_SERVICE_UUID, listOf(0x07, 0x96, 0x00, 0x20)),
@@ -75,8 +85,10 @@ class FujifilmSessionTest {
             Fuji.GEOTAG_SYNC_INTERVAL_UUID,
             Fuji.NOTIFICATION_SERVICE_UUID,
             listOf(0x0A, 0x00),
-        ) + Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) // camera name
-        assertEquals(expected, f.transport.steps("F"))
+        ) + timeWrite + // like Fujifilm's app, right after the sync interval
+                Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) + // camera name
+                Step.Read(Fuji.LOCATION_SYNC_SETTING_UUID, Fuji.NOTIFICATION_SERVICE_UUID)
+        assertEquals(expected, steps)
         // The two indication characteristics come first, as in furble.
         assertEquals(
             listOf(Fuji.INDICATION_1_UUID, Fuji.INDICATION_2_UUID),
@@ -355,6 +367,204 @@ class FujifilmSessionTest {
         assertTrue(f.session("F").isLocationReady)
     }
 
+    // ---- date, time and time zone ----
+
+    @Test
+    fun setupSetsTheCameraClockAndTimeZoneFromThePhone() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        val write = f.transport.steps("F").filterIsInstance<Step.Write>()
+            .single { it.characteristicUuid == Fuji.UTC_TIME_ZONE_UUID }
+        assertEquals(Fuji.TIME_SERVICE_UUID, write.serviceUuid)
+        assertEquals(Fuji.TIME_SYNC_PACKET_SIZE, write.value.size)
+        val v = write.value
+        val sent = LocalDateTime(v[0] or (v[1] shl 8), v[2], v[3], v[4], v[5], v[6])
+            .toInstant(TimeZone.UTC)
+        assertTrue((Clock.System.now() - sent).absoluteValue < 10.seconds, "UTC date and time")
+        // Zone fields: the phone's standard offset and daylight saving flag.
+        val zone = PlatformTimeZoneInfo()
+        assertEquals(
+            FujifilmPacketBuilder.buildTimeSyncPacket(zone.standardOffsetMinutes, zone.dstOffsetMinutes)
+                .drop(7).map { it.toInt() and 0xFF },
+            v.drop(7),
+        )
+        assertTrue(f.session("F").isLocationReady)
+    }
+
+    @Test
+    fun theClockIsLeftAloneWhenTurnedOffForTheCamera() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.timeSyncEnabled = false
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        f.notify("F", Fuji.NOTIFICATION_1_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+
+        assertTrue(f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).isEmpty())
+        assertTrue(f.session("F").isLocationReady)
+    }
+
+    @Test
+    fun aCameraWithoutTheTimeServiceStillGeotags() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM - Fuji.UTC_TIME_ZONE_UUID)
+        runCurrent()
+
+        assertTrue(f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).isEmpty())
+        assertTrue(f.session("F").isLocationReady)
+    }
+
+    @Test
+    fun aCameraThatWasSilentDuringSetupGetsTheTimeAgainWhenItResponds() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM) // the fake camera sends nothing during setup
+        runCurrent()
+        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+
+        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+    }
+
+    @Test
+    fun aCameraThatSpokeDuringSetupIsNotSentTheTimeTwice() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.holdReads = true
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        // The X100VI notifies right after the subscriptions, before setup ends.
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        f.transport.holdReads = false
+        f.transport.releaseReads()
+        runCurrent()
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+
+        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+    }
+
+    @Test
+    fun aDateSyncEventSetsTheClockAgainButNotInALoop() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        // First sign of life after setup: the time is sent again once.
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+
+        f.notify("F", Fuji.NOTIFICATION_1_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        f.notify("F", Fuji.NOTIFICATION_1_UUID, byteArrayOf(0x02, 0x00))
+        runCurrent()
+
+        // The first date sync event is answered, the one right after it isn't.
+        assertEquals(3, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+    }
+
+    @Test
+    fun turningTheOptionOnSetsAConnectedCamerasClockRightAway() = runTest {
+        val f = Fixture(backgroundScope)
+        f.dao.timeSyncEnabled = false
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        f.dao.timeSyncEnabled = true
+        f.orchestrator.syncCameraTime("F")
+        runCurrent()
+
+        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+    }
+
+    // ---- silent cameras ----
+
+    @Test
+    fun aSilentCameraGetsItsSetupRepeatedAndThenAReconnect() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM) // the fake camera never notifies
+        runCurrent()
+        fun statusReads() = f.transport.steps("F").count {
+            it is Step.Read && it.characteristicUuid == Fuji.STATUS_CHARACTERISTIC_UUID
+        }
+        assertEquals(1, statusReads())
+
+        advanceTimeBy(16_000)
+        runCurrent()
+        assertEquals(2, statusReads())
+        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+        assertTrue(f.transport.reconnects.isEmpty())
+
+        advanceTimeBy(16_000)
+        runCurrent()
+        assertEquals(listOf("F"), f.transport.reconnects)
+    }
+
+    @Test
+    fun aCameraThatAnswersIsLeftAlone() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertFalse(f.session("F").cameraResponding)
+
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertTrue(f.session("F").cameraResponding)
+        advanceTimeBy(40_000)
+        runCurrent()
+
+        assertEquals(
+            1,
+            f.transport.steps("F").count {
+                it is Step.Read && it.characteristicUuid == Fuji.STATUS_CHARACTERISTIC_UUID
+            },
+        )
+        assertTrue(f.transport.reconnects.isEmpty())
+    }
+
+    // ---- SMARTPHONE LOCATION SYNC. ----
+
+    @Test
+    fun readsAndChangesTheCamerasLocationSyncSetting() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        val setting = CameraAutoCorrectionSetting.FujifilmLocationSync
+        assertEquals(
+            CameraSettingState(supported = true, enabled = true),
+            f.session("F").autoCorrectionSetting(setting),
+        )
+
+        f.orchestrator.setAutoCorrectionSetting("F", setting, false)
+        runCurrent()
+        val write = f.transport.steps("F").filterIsInstance<Step.Write>()
+            .last { it.characteristicUuid == Fuji.LOCATION_SYNC_SETTING_UUID }
+        assertEquals(Fuji.NOTIFICATION_SERVICE_UUID, write.serviceUuid)
+        assertEquals(listOf(0x00, 0x00), write.value)
+        assertEquals(false, f.session("F").autoCorrectionSetting(setting).enabled)
+
+        // Switched back on in the camera menu.
+        f.notify("F", Fuji.LOCATION_SYNC_SETTING_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertEquals(true, f.session("F").autoCorrectionSetting(setting).enabled)
+    }
+
+    @Test
+    fun aFujifilmCameraIsNotAskedForSonySettings() = runTest {
+        val f = Fixture(backgroundScope)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        val reads = f.transport.steps("F").filterIsInstance<Step.Read>().map { it.characteristicUuid }
+        assertFalse(Sony.AUTO_TIME_CORRECTION_UUID in reads)
+        assertFalse(Sony.AUTO_AREA_ADJUSTMENT_UUID in reads)
+    }
+
     // ---- fixtures ----
 
     private sealed interface Step {
@@ -437,6 +647,13 @@ class FujifilmSessionTest {
         val failingSubscriptions = mutableSetOf<String>()
         var authErrorsLeft = 0
         var cameraName = "FUJIFILM-X100VI-1A2B"
+        var locationSyncSetting = byteArrayOf(0x01, 0x00)
+        val reconnects = mutableListOf<String>()
+
+        override fun reconnect(identifier: String): Boolean {
+            reconnects += identifier
+            return true
+        }
 
         /** Keeps read responses back (in flight) until [releaseReads]. */
         var holdReads = false
@@ -518,6 +735,8 @@ class FujifilmSessionTest {
                 isStatus -> status
                 characteristicUuid.equals(Fuji.NOTIFICATION_4_UUID, ignoreCase = true) ->
                     cameraName.encodeToByteArray() + ByteArray(5)
+                characteristicUuid.equals(Fuji.LOCATION_SYNC_SETTING_UUID, ignoreCase = true) ->
+                    locationSyncSetting
                 else -> byteArrayOf(0, 0, 0, 0, 2)
             }
             val event = BleTransportEvent.CharacteristicRead(identifier, characteristicUuid, value, result)
@@ -568,6 +787,7 @@ class FujifilmSessionTest {
 
     private class FakeDao : CameraDeviceDAO {
         val devices = mutableMapOf<String, CameraDevice>()
+        var timeSyncEnabled: Boolean? = null
         override suspend fun getAllCameraDevices() = devices.values.toList()
         override fun observeAllDevices() = flowOf(emptyList<CameraDevice>())
         override suspend fun insertDevice(device: CameraDevice) = Unit
@@ -588,6 +808,10 @@ class FujifilmSessionTest {
         override suspend fun isRemoteControlEnabled(address: String) = false
         override suspend fun getHandshakeDelayMs(address: String): Long? = 0
         override suspend fun setHandshakeDelayMs(deviceId: String, delayMs: Long) = Unit
+        override suspend fun findTimeSyncEnabled(address: String): Boolean? = timeSyncEnabled
+        override suspend fun setTimeSyncEnabled(deviceId: String, enabled: Boolean) {
+            timeSyncEnabled = enabled
+        }
     }
 
     private companion object {
@@ -596,6 +820,7 @@ class FujifilmSessionTest {
             Fuji.IDENTIFIER_CHARACTERISTIC_UUID,
             Fuji.GEOTAG_CHARACTERISTIC_UUID,
             Fuji.SHUTTER_CHARACTERISTIC_UUID,
+            Fuji.UTC_TIME_ZONE_UUID,
         ) + (Fuji.REQUIRED_SUBSCRIPTIONS + Fuji.OPTIONAL_SUBSCRIPTIONS).map { it.characteristicUuid }
 
         val SONY: Set<String> = setOf(

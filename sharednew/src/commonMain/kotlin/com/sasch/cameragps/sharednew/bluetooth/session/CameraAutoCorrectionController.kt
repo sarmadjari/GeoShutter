@@ -19,7 +19,8 @@ internal class CameraAutoCorrectionController(
     fun refresh(identifier: String) {
         val id = identifier.uppercase()
         if (!isReady(id)) return
-        for (setting in CameraAutoCorrectionSetting.entries) {
+        val protocol = registry.get(id)?.protocol ?: return
+        for (setting in CameraAutoCorrectionSetting.forProtocol(protocol)) {
             val old = registry.get(id)?.autoCorrectionSetting(setting) ?: continue
             if (old.pending) continue
             if (!port.supportsWriteWithResponse(id, setting.characteristicUuid)) {
@@ -32,14 +33,11 @@ internal class CameraAutoCorrectionController(
                 old.copy(pending = true, failed = false)
             )
             jobs[id to setting] = scope.launch {
-                val result = port.execute(id, BleOperation.Read(setting.characteristicUuid))
+                val result = port.execute(
+                    id, BleOperation.Read(setting.characteristicUuid, setting.serviceUuid),
+                )
                 coroutineContext.ensureActive()
-                val bytes = (result as? BleOperationResult.Success)?.value
-                val value = if (bytes?.size == 1) when (bytes[0].toInt()) {
-                    0 -> false
-                    1 -> true
-                    else -> null
-                } else null
+                val value = setting.decode((result as? BleOperationResult.Success)?.value)
                 port.setAutoCorrectionState(
                     id, setting, CameraSettingState(
                         supported = if (value != null) true else old.supported,
@@ -60,7 +58,7 @@ internal class CameraAutoCorrectionController(
         jobs[id to setting] = scope.launch {
             val result = port.execute(
                 id, BleOperation.Write(
-                    setting.characteristicUuid, byteArrayOf(if (enabled) 1 else 0),
+                    setting.characteristicUuid, setting.encode(enabled), setting.serviceUuid,
                 )
             )
             coroutineContext.ensureActive()
@@ -72,6 +70,23 @@ internal class CameraAutoCorrectionController(
                 )
             )
         }
+    }
+
+    /** The camera reported a new value itself (changed in its menu, or after a write). */
+    fun onNotified(identifier: String, setting: CameraAutoCorrectionSetting, value: ByteArray) {
+        val id = identifier.uppercase()
+        val enabled = setting.decode(value) ?: return
+        val old = registry.get(id)?.autoCorrectionSetting(setting) ?: return
+        // A write in flight reports its own result.
+        if (old.pending) return
+        port.setAutoCorrectionState(
+            id,
+            setting,
+            CameraSettingState(
+                supported = port.supportsWriteWithResponse(id, setting.characteristicUuid),
+                enabled = enabled,
+            ),
+        )
     }
 
     fun clear(identifier: String) {

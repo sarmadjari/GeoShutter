@@ -139,11 +139,18 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
    Then the camera is identified (`FujifilmSessionController.detect`): the Sony location
    characteristic `DD11` means Sony (checked first, so Sony behavior never changes); the
    Fujifilm status characteristic means a Fujifilm camera with the secure protocol, whose
-   handshake runs as one sequence of queued operations (`FujifilmSessionController.runHandshake`)
-   and then continues with step 5; the legacy Fujifilm pairing characteristic ends the
-   session with an error; anything else takes the Sony path, as before. The detected
-   protocol is stored in `CameraSession.protocol` on every connect; the Sony event handlers,
-   camera settings and remote monitoring ignore `FujifilmSecure` sessions.
+   handshake runs as one sequence of queued operations (`FujifilmSessionController.runHandshake`),
+   sets the camera's date, time and time zone (`syncTime`, unless the camera's
+   `timeSyncEnabled` option is off) and then continues with step 5; the legacy Fujifilm
+   pairing characteristic ends the session with an error; anything else takes the Sony
+   path, as before. The detected protocol is stored in `CameraSession.protocol` on every
+   connect; the Sony event handlers and remote monitoring ignore `FujifilmSecure` sessions.
+   A Fujifilm camera's clock is set again when it notifies NOT1 (at most every 10 s) and
+   when it first responds after a silent setup. `CameraSession.cameraResponding` records
+   whether it has sent anything since connecting: a silent camera ignores the phone, so a
+   watchdog repeats the setup after 15 s of silence and reconnects
+   (`BlePeripheralTransport.reconnect`) after another 15 s. See
+   [`fujifilm-protocol.md`](fujifilm-protocol.md).
 4. **Handshake** (`BleSessionCoordinator.beginHandshake`, Sony); each step is skipped
    when its characteristic is missing: subscribe `DD01` → read `DD21` (one
    automatic retry on failure, for Android's intermittent GATT 133) → write
@@ -177,7 +184,7 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
 - Delivery depends on the protocol: Sony cameras get the location pushed (below);
   Fujifilm cameras ask for it with a geotag-request notification and get one answer per
   request (`onLocationRequested`). A request that comes before a fix is answered as soon
-  as one exists. Camera settings and remote control are only set up for Sony cameras.
+  as one exists. Remote control is only set up for Sony cameras.
 
 - Location updates start when the **first** session becomes ready and stop when no
   session is ready (or, on iOS, when the app is disabled). Nothing reads location
@@ -214,10 +221,15 @@ active (exposure running), `02 A0 00` ready, `02 C3 00` remote control **off**
 
 ### Camera settings (`CameraAutoCorrectionController`)
 
-Only while the camera is `Transmitting`: reads `DD32`/`DD33` if the characteristic
-supports write-with-response (otherwise the UI shows *unsupported*), writes `0`/`1`
-on toggle and reports pending/failed states (*Refresh camera settings*). These
-change settings **on the camera**; an unknown value is never assumed to be "off".
+Only while the camera is `Transmitting`, and only the settings of its protocol
+(`CameraAutoCorrectionSetting.forProtocol`): Sony's `DD32`/`DD33` (one byte) and
+Fujifilm's SMARTPHONE LOCATION SYNC. on NOT7 (little-endian uint16, read and written in
+its service). Reads each if the characteristic supports write-with-response (otherwise
+the UI shows *unsupported*), writes `0`/`1` on toggle and reports pending/failed states
+(*Refresh camera settings*); Fujifilm's change notifications update it too
+(`onNotified`). These change settings **on the camera**; an unknown value is never
+assumed to be "off". The per-camera *Set date, time and time zone* option (Fujifilm) is
+stored by the app instead (`CameraDevice.timeSyncEnabled`).
 
 ## 5. Android shell (`app/`)
 
@@ -301,11 +313,11 @@ settings, localized in `iosApp/alphagps/InfoPlist.xcstrings` (en, de); see
 
 - Room database shared by both platforms (`sharednew/.../database/LogDatabase.kt`,
   bundled SQLite driver), file `log_database` (Android database directory) /
-  `Documents/log_database.db` (iOS). Version 6, auto-migrations 1→6, schemas
+  `Documents/log_database.db` (iOS). Version 7, auto-migrations 1→7, schemas
   exported to `sharednew/schemas/` (commit the new schema JSON with every change).
   - `camera_devices`: `mac` (PK), `deviceEnabled`, `alwaysOnEnabled`,
     `deviceName`, `deviceNameIsCustom`, `remoteControlEnabled`,
-    `handshakeDelayMs`.
+    `handshakeDelayMs`, `timeSyncEnabled` (Fujifilm, default on; version 7).
   - `log_entries`: the in-app log, written by `LogRepository`: one write at a time in
     call order, database failures dropped (logging must never crash the app, e.g. while
     the iOS file is still protected before the first unlock), and every 50 inserts the
