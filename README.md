@@ -109,9 +109,10 @@ Android builds:
    *Sending location to X100VI-…* (brand and model underneath), *Connecting to …*,
    *X100VI-… is in standby – Location kept up to date for your next photo*, *X100VI-…: location
    sync is off on the camera* or *GeoShutter is on – Waiting for …*. Its **Turn off**
-   button switches GeoShutter off. Two optional extras:
-   - the **GeoShutter** Quick Settings tile turns GeoShutter on or off; its icon fills
-     while a camera receives your location;
+   button switches GeoShutter off. Its icon, like the tile's and the widget's, is the app
+   icon's frame: with the pin while a camera receives your location, empty otherwise. Two
+   optional extras:
+   - the **GeoShutter** Quick Settings tile turns GeoShutter on or off;
    - the **GeoShutter** home-screen widget only shows the state: each camera with a dot,
      green (receiving your location), blue (Fujifilm in standby: switched off or asleep,
      still receiving it), amber (connecting, or location sync off on the camera), red (away) or

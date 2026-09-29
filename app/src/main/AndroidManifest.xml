@@ -102,7 +102,7 @@
         <service
             android:name=".status.StatusTileService"
             android:exported="true"
-            android:icon="@drawable/ic_gps_not_fixed"
+            android:icon="@drawable/ic_status_waiting"
             android:label="@string/status_app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

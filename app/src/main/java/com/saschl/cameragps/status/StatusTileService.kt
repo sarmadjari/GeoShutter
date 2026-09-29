@@ -39,7 +39,7 @@ class StatusTileService : TileService() {
         tile.state = if (enabled) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.icon = Icon.createWithResource(
             this,
-            if (sending) R.drawable.ic_gps_fixed else R.drawable.ic_gps_not_fixed,
+            if (sending) R.drawable.ic_status_sending else R.drawable.ic_status_waiting,
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tile.subtitle = subtitle(status, enabled)

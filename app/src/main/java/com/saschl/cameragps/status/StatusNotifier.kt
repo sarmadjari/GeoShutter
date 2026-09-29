@@ -167,7 +167,7 @@ internal class StatusNotifier(
         ): Notification = NotificationCompat.Builder(context, channelId)
             .setOngoing(true)
             .setSilent(silent)
-            .setSmallIcon(if (content.sending) R.drawable.ic_gps_fixed else R.drawable.ic_gps_not_fixed)
+            .setSmallIcon(if (content.sending) R.drawable.ic_status_sending else R.drawable.ic_status_waiting)
             .setContentTitle(content.title)
             .setContentText(content.text)
             .setShowWhen(false)

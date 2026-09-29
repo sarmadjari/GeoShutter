@@ -1,19 +1,15 @@
-// Writes every GeoShutter app icon asset from the shapes below (1024 px artwork):
+// Writes every GeoShutter app icon asset from the shapes in shapes.mjs (1024 px artwork):
 // artwork/app-icon.svg, the Android adaptive icon layers, the iOS AppIcon (default,
-// dark and tinted), the F-Droid listing icon and the website icon.
+// dark and tinted), the F-Droid listing icon, the website icon and the Android status
+// icons (status-icons.mjs).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { BOTTOM, BRACKETS, CORAL, DOT, HOLE, PIN, TOP, WHITE } from './shapes.mjs';
+import { writeStatusIcons } from './status-icons.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const TOP = '#1F2A3C', BOTTOM = '#0B111C', CORAL = '#FF5A4E', WHITE = '#FFFFFF';
-const BRACKETS = 'M212 352V268A56 56 0 0 1 268 212H352 M672 212H756A56 56 0 0 1 812 268V352 ' +
-  'M812 672V756A56 56 0 0 1 756 812H672 M352 812H268A56 56 0 0 1 212 756V672';
-const PIN = 'M392 560A150 150 0 1 1 632 560L512 720Z';
-const DOT = 'M454 470a58 58 0 1 0 116 0a58 58 0 1 0 -116 0Z';
-// One-color versions cut the dot out: radius 67, which the pin's 18 px outline narrows to 58.
-const HOLE = 'M445 470a67 67 0 1 0 134 0a67 67 0 1 0 -134 0Z';
 
 const glyph = (color = true) =>
   `<path d="${BRACKETS}" fill="none" stroke="${WHITE}" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>` +
@@ -116,3 +112,6 @@ writeFileSync(resolve(repo, appIcon, 'Contents.json'), JSON.stringify(contents, 
 // F-Droid listing icon (full bleed; stores apply their own mask) and the website icon.
 await png(master, 'fastlane/metadata/android/en-US/images/icon.png', 512, false);
 writeFileSync(resolve(repo, 'website/public/icon.svg'), svg(background + glyph(), 230));
+
+// Android status icons: notification, Quick Settings tile and widget.
+writeStatusIcons(repo);

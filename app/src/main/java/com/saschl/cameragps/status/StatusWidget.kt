@@ -95,9 +95,9 @@ private fun WidgetContent(context: Context, status: GeoShutterStatus) {
             Image(
                 provider = ImageProvider(
                     if (status.enabled && status.sending.isNotEmpty()) {
-                        R.drawable.ic_gps_fixed
+                        R.drawable.ic_status_sending
                     } else {
-                        R.drawable.ic_gps_not_fixed
+                        R.drawable.ic_status_waiting
                     }
                 ),
                 contentDescription = null,
