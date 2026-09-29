@@ -63,11 +63,13 @@ class DeviceDetailViewModel(
         }
     }
 
-    /** Fujifilm: turning it on sets a connected camera's clock right away. */
+    /**
+     * Fujifilm. The camera only accepts the time when it asks for it, after it is switched
+     * on or wakes, so turning this on takes effect then.
+     */
     fun setTimeSyncEnabled(enabled: Boolean, device: String) {
         viewModelScope.launch {
             stateStore.setTimeSyncEnabled(device, enabled)
-            if (enabled) cameraSettings.syncCameraTime(device)
         }
     }
 

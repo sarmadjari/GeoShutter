@@ -49,6 +49,34 @@ internal class CameraAutoCorrectionController(
         }
     }
 
+    /**
+     * Reads the settings of the camera's protocol during setup, before the camera counts
+     * as ready: whether a Fujifilm camera wants locations decides how it is shown and
+     * whether the phone's location is tracked at all.
+     */
+    suspend fun readDuringSetup(identifier: String) {
+        val id = identifier.uppercase()
+        val protocol = registry.get(id)?.protocol ?: return
+        for (setting in CameraAutoCorrectionSetting.forProtocol(protocol)) {
+            if (!port.isConnected(id)) return
+            if (!port.supportsWriteWithResponse(id, setting.characteristicUuid)) {
+                port.setAutoCorrectionState(id, setting, CameraSettingState(supported = false))
+                continue
+            }
+            val result = port.execute(
+                id, BleOperation.Read(setting.characteristicUuid, setting.serviceUuid),
+            )
+            val value = setting.decode((result as? BleOperationResult.Success)?.value)
+            port.setAutoCorrectionState(
+                id, setting, CameraSettingState(
+                    supported = if (value != null) true else null,
+                    enabled = value,
+                    failed = value == null,
+                )
+            )
+        }
+    }
+
     fun set(identifier: String, setting: CameraAutoCorrectionSetting, enabled: Boolean) {
         val id = identifier.uppercase()
         if (!isReady(id)) return

@@ -62,8 +62,9 @@ fun AssociatedDevicesList(
             identifier = compat.address.uppercase(),
             name = name,
             // Drives the card's status line; mirrors the old "remote text only
-            // while transmitting" gating
-            isConnected = item?.isTransmissionActive == true,
+            // while transmitting" gating. A Fujifilm camera with location sync off is
+            // connected too, just not taking locations.
+            isConnected = item?.isTransmissionActive == true || item?.locationSyncOff == true,
             isSaved = true,
             isPaired = compat.isPaired,
             // Brand and model under the name: "Sony α1 II", "Fujifilm X100VI".

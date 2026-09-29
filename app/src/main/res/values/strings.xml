@@ -13,6 +13,9 @@
     <string name="status_sending_many">Sending location to %1$d cameras</string>
     <string name="status_connecting_one">Connecting to %1$s</string>
     <string name="status_connecting_many">Connecting to %1$d cameras</string>
+    <string name="status_sync_off_one">%1$s: location sync is off on the camera</string>
+    <string name="status_sync_off_many">Location sync is off on %1$d cameras</string>
+    <string name="status_sync_off_short">Location sync off</string>
     <string name="status_turn_off">Turn off</string>
     <string name="status_off">Off</string>
     <string name="status_waiting_short">Waiting</string>

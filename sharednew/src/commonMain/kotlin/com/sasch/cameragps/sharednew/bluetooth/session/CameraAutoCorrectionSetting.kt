@@ -65,7 +65,4 @@ interface CameraAutoCorrectionControls {
         setting: CameraAutoCorrectionSetting,
         enabled: Boolean
     )
-
-    /** Fujifilm: set the camera's date, time and time zone now, if it is connected. */
-    fun syncCameraTime(identifier: String) = Unit
 }

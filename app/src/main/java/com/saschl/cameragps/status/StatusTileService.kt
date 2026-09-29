@@ -52,6 +52,7 @@ class StatusTileService : TileService() {
         status.sending.size == 1 -> status.sending.single().name
         status.sending.size > 1 -> getString(R.string.status_sending_count, status.sending.size)
         status.connecting.isNotEmpty() -> getString(R.string.status_connecting_short)
+        status.locationSyncOff.isNotEmpty() -> getString(R.string.status_sync_off_short)
         else -> getString(R.string.status_waiting_short)
     }
 

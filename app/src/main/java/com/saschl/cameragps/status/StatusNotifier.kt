@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.sasch.cameragps.sharednew.bluetooth.SonyBluetoothConstants.locationTransmissionNotificationId
+import com.sasch.cameragps.sharednew.status.CameraState
 import com.sasch.cameragps.sharednew.status.CameraStatus
 import com.sasch.cameragps.sharednew.status.GeoShutterStatus
 import com.saschl.cameragps.MainActivity
@@ -19,6 +20,7 @@ internal data class StatusContent(val title: String, val text: String?, val send
         fun of(context: Context, status: GeoShutterStatus): StatusContent {
             val sending = status.sending
             val connecting = status.connecting
+            val syncOff = status.locationSyncOff
             fun names(cameras: List<CameraStatus>) = cameras.joinToString(", ") { it.name }
             return when {
                 sending.size == 1 -> StatusContent(
@@ -45,6 +47,18 @@ internal data class StatusContent(val title: String, val text: String?, val send
                     sending = false,
                 )
 
+                syncOff.size == 1 -> StatusContent(
+                    context.getString(R.string.status_sync_off_one, syncOff.single().name),
+                    syncOff.single().model,
+                    sending = false,
+                )
+
+                syncOff.isNotEmpty() -> StatusContent(
+                    context.getString(R.string.status_sync_off_many, syncOff.size),
+                    names(syncOff),
+                    sending = false,
+                )
+
                 else -> StatusContent(
                     context.getString(R.string.status_waiting_title),
                     if (status.cameras.isEmpty()) {
@@ -63,8 +77,9 @@ internal data class StatusContent(val title: String, val text: String?, val send
  * Keeps the one status notification in line with [GeoShutterStatus]: the location
  * service's foreground notification while it runs, a quiet "waiting" notification
  * otherwise, and none while GeoShutter is off. It alerts when a camera starts receiving
- * the location, and when one stops if the disconnect channel is on; other changes
- * update it silently.
+ * the location, and when one that was receiving it goes away if the disconnect channel
+ * is on; other changes (a camera's location sync switched off, for example) update it
+ * silently.
  */
 internal class StatusNotifier(
     private val context: Context,
@@ -79,7 +94,7 @@ internal class StatusNotifier(
         context.getSystemService(NotificationManager::class.java).cancel(id)
     },
 ) {
-    private var previousSending = 0
+    private var previousSending: Set<String> = emptySet()
     private var lastContent: StatusContent? = null
     private var lastForeground = false
 
@@ -88,28 +103,31 @@ internal class StatusNotifier(
         if (!status.enabled) {
             // Turned off: the service stops as well; leave without an alert.
             if (!foreground) cancelNotification(locationTransmissionNotificationId)
-            previousSending = 0
+            previousSending = emptySet()
             lastContent = null
             lastForeground = foreground
             return
         }
         val content = StatusContent.of(context, status)
-        val sending = status.sending.size
-        val increasing = sending > previousSending
-        val decreasing = sending < previousSending
-        if (!increasing && !decreasing && content == lastContent && foreground == lastForeground) {
+        val sending = status.sending.mapTo(mutableSetOf()) { it.id }
+        val started = !previousSending.containsAll(sending)
+        // Only a camera that went away is a disconnect; one whose location sync was
+        // switched off, or whose setup restarted, is still there.
+        val present = status.cameras.filter { it.state != CameraState.Away }.mapTo(mutableSetOf()) { it.id }
+        val wentAway = (previousSending - sending).any { it !in present }
+        if (sending == previousSending && content == lastContent && foreground == lastForeground) {
             return
         }
         val disconnectAlert =
-            decreasing && isChannelEnabled(NotificationsHelper.DISCONNECT_NOTIFICATION_CHANNEL)
+            wentAway && isChannelEnabled(NotificationsHelper.DISCONNECT_NOTIFICATION_CHANNEL)
         val channelId = when {
             disconnectAlert -> NotificationsHelper.DISCONNECT_NOTIFICATION_CHANNEL
-            sending > 0 -> NotificationsHelper.TRANSMISSION_NOTIFICATION_CHANNEL
+            sending.isNotEmpty() -> NotificationsHelper.TRANSMISSION_NOTIFICATION_CHANNEL
             else -> NotificationsHelper.NOTIFICATION_CHANNEL_ID
         }
         postNotification(
             locationTransmissionNotificationId,
-            build(context, content, channelId, silent = !increasing && !disconnectAlert),
+            build(context, content, channelId, silent = !started && !disconnectAlert),
         )
         previousSending = sending
         lastContent = content

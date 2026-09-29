@@ -86,8 +86,9 @@ class FujifilmSessionTest {
             Fuji.NOTIFICATION_SERVICE_UUID,
             listOf(0x0A, 0x00),
         ) + timeWrite + // like Fujifilm's app, right after the sync interval
-                Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) + // camera name
-                Step.Read(Fuji.LOCATION_SYNC_SETTING_UUID, Fuji.NOTIFICATION_SERVICE_UUID)
+                // Before the camera counts as ready: does it want locations at all?
+                Step.Read(Fuji.LOCATION_SYNC_SETTING_UUID, Fuji.NOTIFICATION_SERVICE_UUID) +
+                Step.Read(Fuji.NOTIFICATION_4_UUID, Fuji.NOTIFICATION_SERVICE_UUID) // camera name
         assertEquals(expected, steps)
         // The two indication characteristics come first, as in furble.
         assertEquals(
@@ -417,22 +418,7 @@ class FujifilmSessionTest {
     }
 
     @Test
-    fun aCameraThatWasSilentDuringSetupGetsTheTimeAgainWhenItResponds() = runTest {
-        val f = Fixture(backgroundScope)
-        f.connect("F", FUJIFILM) // the fake camera sends nothing during setup
-        runCurrent()
-        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
-
-        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
-        runCurrent()
-        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
-        runCurrent()
-
-        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
-    }
-
-    @Test
-    fun aCameraThatSpokeDuringSetupIsNotSentTheTimeTwice() = runTest {
+    fun locationRequestsDoNotSendTheTimeAgain() = runTest {
         val f = Fixture(backgroundScope)
         f.transport.holdReads = true
         f.connect("F", FUJIFILM)
@@ -450,36 +436,19 @@ class FujifilmSessionTest {
     }
 
     @Test
-    fun aDateSyncEventSetsTheClockAgainButNotInALoop() = runTest {
+    fun aDateSyncRequestAfterSetupIsAnsweredButNotInALoop() = runTest {
         val f = Fixture(backgroundScope)
         f.connect("F", FUJIFILM)
         runCurrent()
-        // First sign of life after setup: the time is sent again once.
-        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
-        runCurrent()
-        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
 
         f.notify("F", Fuji.NOTIFICATION_1_UUID, byteArrayOf(0x01, 0x00))
         runCurrent()
         f.notify("F", Fuji.NOTIFICATION_1_UUID, byteArrayOf(0x02, 0x00))
         runCurrent()
 
-        // The first date sync event is answered, the one right after it isn't.
-        assertEquals(3, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
-    }
-
-    @Test
-    fun turningTheOptionOnSetsAConnectedCamerasClockRightAway() = runTest {
-        val f = Fixture(backgroundScope)
-        f.dao.timeSyncEnabled = false
-        f.connect("F", FUJIFILM)
-        runCurrent()
-
-        f.dao.timeSyncEnabled = true
-        f.orchestrator.syncCameraTime("F")
-        runCurrent()
-
-        assertEquals(1, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
+        // The first request is answered, the one right after it isn't.
+        assertEquals(2, f.transport.writes("F", Fuji.UTC_TIME_ZONE_UUID).size)
     }
 
     // ---- silent cameras ----
@@ -555,6 +524,60 @@ class FujifilmSessionTest {
     }
 
     @Test
+    fun thePhonesLocationIsOnlyTrackedWhileTheCameraWantsIt() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.locationSyncSetting = byteArrayOf(0x00, 0x00)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertTrue(f.session("F").isLocationReady)
+        assertFalse(f.session("F").wantsLocation)
+        assertFalse(f.source.active)
+        // Known before the camera counted as ready: the location was never started.
+        assertEquals(0, f.source.starts)
+
+        // Switched on in the camera menu.
+        f.notify("F", Fuji.LOCATION_SYNC_SETTING_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertTrue(f.source.active)
+
+        // And off again from the app.
+        f.orchestrator.setAutoCorrectionSetting(
+            "F", CameraAutoCorrectionSetting.FujifilmLocationSync, false,
+        )
+        runCurrent()
+        assertFalse(f.source.active)
+    }
+
+    @Test
+    fun aRequestIsAnsweredEvenWhileLocationSyncLooksOff() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.locationSyncSetting = byteArrayOf(0x00, 0x00)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+        assertFalse(f.source.active)
+
+        f.notify("F", Fuji.GEOTAG_REQUEST_UUID, byteArrayOf(0x01, 0x00))
+        runCurrent()
+        assertTrue(f.source.active)
+        f.fix()
+        runCurrent()
+
+        assertEquals(1, f.transport.geotagWrites("F").size)
+    }
+
+    @Test
+    fun aSonyCameraKeepsTheLocationRunningWhenAFujifilmCamerasSyncIsOff() = runTest {
+        val f = Fixture(backgroundScope)
+        f.transport.locationSyncSetting = byteArrayOf(0x00, 0x00)
+        f.connect("S", SONY)
+        f.connect("F", FUJIFILM)
+        runCurrent()
+
+        assertFalse(f.session("F").wantsLocation)
+        assertTrue(f.source.active)
+    }
+
+    @Test
     fun aFujifilmCameraIsNotAskedForSonySettings() = runTest {
         val f = Fixture(backgroundScope)
         f.connect("F", FUJIFILM)
@@ -624,9 +647,11 @@ class FujifilmSessionTest {
         val channel = Channel<GeoLocation>(Channel.UNLIMITED)
         override val locations = channel.receiveAsFlow()
         var active = false
+        var starts = 0
 
         override fun start(): Boolean {
             active = true
+            starts++
             return true
         }
 

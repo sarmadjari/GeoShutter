@@ -101,6 +101,29 @@ class StatusNotificationTest {
     }
 
     @Test
+    fun aCameraWhoseLocationSyncIsSwitchedOffUpdatesQuietly() {
+        val posts = mutableListOf<Pair<Int, Notification>>()
+        val notifier = notifier({ true }, posts)
+        val syncOff = GeoShutterStatus(
+            enabled = true,
+            cameras = listOf(
+                CameraStatus("ID0", "X100VI-1A2B", "Fujifilm X100VI", CameraState.LocationSyncOff),
+            ),
+        )
+
+        notifier.publish(sending(1, firstName = "X100VI-1A2B"), foreground = true)
+        notifier.publish(syncOff, foreground = true)
+
+        val switchedOff = posts.last().second
+        assertEquals(NotificationsHelper.NOTIFICATION_CHANNEL_ID, switchedOff.channelId)
+        assertEquals(NotificationCompat.GROUP_ALERT_SUMMARY, switchedOff.groupAlertBehavior)
+        assertEquals(
+            context.getString(R.string.status_sync_off_one, "X100VI-1A2B"),
+            switchedOff.extras.getString(Notification.EXTRA_TITLE),
+        )
+    }
+
+    @Test
     fun namesAndStateChangesWithoutANewCameraUpdateSilently() {
         val posts = mutableListOf<Pair<Int, Notification>>()
         val notifier = notifier({ true }, posts)

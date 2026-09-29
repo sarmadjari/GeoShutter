@@ -20,6 +20,8 @@ data class GeoShutterStatus(
     val sending: List<CameraStatus> get() = cameras.filter { it.state == CameraState.Sending }
     val connecting: List<CameraStatus>
         get() = cameras.filter { it.state == CameraState.Connecting }
+    val locationSyncOff: List<CameraStatus>
+        get() = cameras.filter { it.state == CameraState.LocationSyncOff }
 }
 
 data class CameraStatus(
@@ -36,6 +38,9 @@ enum class CameraState {
 
     /** Connected and setting up, or waiting for the first location. */
     Connecting,
+
+    /** Fujifilm: connected, but the camera's location sync is off, so it takes no location. */
+    LocationSyncOff,
 
     /** Receiving the phone's location. */
     Sending,
@@ -76,15 +81,14 @@ fun geoShutterStatus(
             ?: saved.pairingName
         val brand = saved.brand
             ?: CameraBrand.Fujifilm.takeIf { session?.protocol == CameraProtocol.FujifilmSecure }
-        // A Fujifilm camera gets the location only when it asks; a silent one doesn't.
-        val listening = session?.protocol != CameraProtocol.FujifilmSecure || session.cameraResponding
         CameraStatus(
             id = id,
             name = name,
             model = cameraModelLine(brand, saved.pairingName)?.takeIf { it != name },
             state = when {
                 session == null -> CameraState.Away
-                session.isLocationReady && transmitting && listening -> CameraState.Sending
+                session.isLocationReady && !session.wantsLocation -> CameraState.LocationSyncOff
+                session.takesLocation && transmitting -> CameraState.Sending
                 session.phase in LINKED_PHASES -> CameraState.Connecting
                 else -> CameraState.Away
             },

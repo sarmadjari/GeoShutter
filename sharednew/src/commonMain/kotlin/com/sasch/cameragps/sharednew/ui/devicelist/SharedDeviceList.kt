@@ -55,6 +55,7 @@ import cameragps.sharednew.generated.resources.delete_device_confirmation
 import cameragps.sharednew.generated.resources.enable_pairing_mode_continue
 import cameragps.sharednew.generated.resources.enable_pairing_mode_message
 import cameragps.sharednew.generated.resources.enable_pairing_mode_title
+import cameragps.sharednew.generated.resources.fujifilm_location_sync_off_hint
 import cameragps.sharednew.generated.resources.guide_open_button
 import cameragps.sharednew.generated.resources.keyboard_arrow_right_24px
 import cameragps.sharednew.generated.resources.location_linking_disabled_by_camera
@@ -401,6 +402,9 @@ private fun DeviceCard(
                         item?.locationDisabledByCamera == true ->
                             stringResource(Res.string.location_linking_disabled_by_camera)
 
+                        item?.locationSyncOff == true ->
+                            stringResource(Res.string.fujifilm_location_sync_off_hint)
+
                         isTransmissionActive -> stringResource(Res.string.transmission_active)
                         else -> stringResource(Res.string.transmission_inactive)
                     }
@@ -439,6 +443,13 @@ private fun DeviceCard(
                 ) {
                     Text(stringResource(Res.string.guide_open_button))
                 }
+            }
+            if (item?.locationSyncOff == true) {
+                Text(
+                    text = stringResource(Res.string.fujifilm_location_sync_off_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             if (showKeepAliveHint && item?.isAlwaysOnEnabled == false) {
                 Text(

@@ -40,6 +40,8 @@ data class DeviceListItem(
     val isRemoteFeatureActive: Boolean,
     val isShutterActive: Boolean,
     val locationDisabledByCamera: Boolean = false,
+    /** Fujifilm: connected, but the camera's location sync is off. */
+    val locationSyncOff: Boolean = false,
     /** False for cameras without Bluetooth remote support in the app (Fujifilm). */
     val remoteSupported: Boolean = true,
     /**
@@ -72,11 +74,11 @@ class DeviceListViewModel(dataSource: DeviceListDataSource) : ViewModel() {
                 reportedName = persisted?.takeUnless { it.deviceNameIsCustom }?.deviceName
                     ?.takeUnless { it.isBlank() || it == "N/A" },
                 isAlwaysOnEnabled = persisted?.alwaysOnEnabled == true,
-                isTransmissionActive =
-                    session?.isLocationReady == true && transmissionActive,
+                isTransmissionActive = session?.takesLocation == true && transmissionActive,
                 isRemoteFeatureActive = session?.remoteFeatureActive == true,
                 isShutterActive = session?.shutterSequenceActive == true,
                 locationDisabledByCamera = session?.locationDisabledByCamera == true,
+                locationSyncOff = session != null && session.isLocationReady && !session.wantsLocation,
                 remoteSupported = session?.protocol != CameraProtocol.FujifilmSecure,
             )
         }

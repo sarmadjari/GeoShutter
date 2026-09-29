@@ -30,6 +30,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
@@ -102,6 +105,7 @@ class CameraSessionOrchestrator(
         scope = scope,
         isTransmissionAllowed = isTransmissionAllowed,
         protocolFor = { id -> registry.get(id)?.protocol ?: CameraProtocol.Sony },
+        wantsLocation = { id -> registry.get(id)?.wantsLocation != false },
     )
 
     /**
@@ -129,11 +133,6 @@ class CameraSessionOrchestrator(
     ) =
         autoCorrection.set(identifier, setting, enabled)
 
-    override fun syncCameraTime(identifier: String) {
-        val id = identifier.uppercase()
-        if (!isFujifilm(id) || registry.get(id)?.phase != BleSessionPhase.Transmitting) return
-        scope.launch { syncFujifilmTime(id) }
-    }
 
     private var started = false
 
@@ -148,6 +147,18 @@ class CameraSessionOrchestrator(
                 val completedOperation = queue.onTransportEvent(event)
                 handleTransportEvent(event, completedOperation)
             }
+        }
+        // A Fujifilm camera's location sync switched off or on: the phone's location is
+        // only tracked while a ready camera wants it.
+        scope.launch {
+            registry.sessions
+                .map { sessions ->
+                    sessions.values.filter { it.isLocationReady && !it.wantsLocation }
+                        .map { it.identifier }.toSet()
+                }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { locationManager.updateTracking() }
         }
         scope.launch {
             sessionCoordinator.events.collect { handleSessionEvent(it) }
@@ -222,7 +233,6 @@ class CameraSessionOrchestrator(
 
     fun shutdownAll() {
         autoCorrection.clearAll()
-        resyncFujifilmTimeWhenHeard.clear()
         lastFujifilmTimeRequest.clear()
         fujifilmWatchdogs.values.forEach { it.cancel() }
         fujifilmWatchdogs.clear()
@@ -493,9 +503,10 @@ class CameraSessionOrchestrator(
         registry.updateIfPresent(id) { it.copy(phase = BleSessionPhase.Transmitting) }
         locationManager.onDeviceReady(id)
 
-        autoCorrection.refresh(id)
-        // The remote is a Sony feature.
+        // Fujifilm cameras had their settings read during setup; the remote is Sony-only.
         if (!isFujifilm(id)) {
+            autoCorrection.refresh(id)
+
             val remoteEnabled = runCatching { deviceDao.isRemoteControlEnabled(id) }
                 .getOrDefault(false)
             if (remoteEnabled) {
@@ -574,12 +585,15 @@ class CameraSessionOrchestrator(
         when (result) {
             FujifilmHandshakeResult.Success -> {
                 // Like Fujifilm's app: set the clock before answering location requests.
+                // The camera applies it only if it asked (NOT1 `01 00`, sent on the first
+                // connection after it is switched on or wakes, right after NOT1 is
+                // subscribed); a time packet it didn't ask for is accepted and ignored.
                 syncFujifilmTime(id)
+                // Before the camera counts as ready: with location sync off it takes no
+                // location, so it must not show as receiving one or start the GPS.
+                autoCorrection.readDuringSetup(id)
                 if (setupGeneration[id] != generation) return
-                if (registry.get(id)?.cameraResponding == false) {
-                    resyncFujifilmTimeWhenHeard += id
-                    watchFujifilmSilence(id)
-                }
+                if (registry.get(id)?.cameraResponding == false) watchFujifilmSilence(id)
                 handleHandshakeComplete(id)
                 storeCameraName(id)
             }
@@ -613,12 +627,6 @@ class CameraSessionOrchestrator(
         }.onFailure { log.w(it, msg = { "Could not store the name of $id" }) }
     }
 
-    /**
-     * Fujifilm cameras that got the time while silent (see [CameraSession.cameraResponding]):
-     * a silent camera doesn't apply it.
-     */
-    private val resyncFujifilmTimeWhenHeard = mutableSetOf<String>()
-
     /** When each Fujifilm camera last asked for the time; see [syncFujifilmTime]. */
     private val lastFujifilmTimeRequest = mutableMapOf<String, TimeMark>()
 
@@ -626,7 +634,6 @@ class CameraSessionOrchestrator(
     private val fujifilmWatchdogs = mutableMapOf<String, Job>()
 
     private fun forgetFujifilmConnection(id: String) {
-        resyncFujifilmTimeWhenHeard -= id
         lastFujifilmTimeRequest -= id
         fujifilmWatchdogs.remove(id)?.cancel()
     }
@@ -660,15 +667,9 @@ class CameraSessionOrchestrator(
     private fun handleFujifilmNotification(event: BleTransportEvent.CharacteristicChanged) {
         val id = event.identifier.uppercase()
         val notification = fujifilm.onCharacteristicChanged(id, event.characteristicUuid, event.value)
-        val firstSign = registry.get(id)?.cameraResponding == false
-        if (firstSign) {
+        if (registry.get(id)?.cameraResponding == false) {
             registry.updateIfPresent(id) { it.copy(cameraResponding = true) }
             fujifilmWatchdogs.remove(id)?.cancel()
-        }
-        val resync = firstSign && resyncFujifilmTimeWhenHeard.remove(id)
-        if (resync) {
-            log.i { "Fujifilm camera $id responds now, setting its clock again" }
-            scope.launch { syncFujifilmTime(id) }
         }
         when (notification) {
             FujifilmNotification.GeotagRequested -> locationManager.onLocationRequested(id)
@@ -677,7 +678,7 @@ class CameraSessionOrchestrator(
                     log.i { "Fujifilm camera $id reports it is configured" }
                 }
                 // During setup the handshake sets the clock itself.
-                if (!resync && registry.get(id)?.phase == BleSessionPhase.Transmitting) {
+                if (registry.get(id)?.phase == BleSessionPhase.Transmitting) {
                     scope.launch { syncFujifilmTime(id, onRequest = true) }
                 }
             }

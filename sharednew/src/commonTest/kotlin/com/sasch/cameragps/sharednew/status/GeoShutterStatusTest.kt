@@ -3,10 +3,12 @@ package com.sasch.cameragps.sharednew.status
 import com.sasch.cameragps.sharednew.bluetooth.BleSessionPhase
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraProtocol
 import com.sasch.cameragps.sharednew.bluetooth.session.CameraSession
+import com.sasch.cameragps.sharednew.bluetooth.session.CameraSettingState
 import com.sasch.cameragps.sharednew.database.devices.CameraDevice
 import com.sasch.cameragps.sharednew.ui.devicelist.CameraBrand
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GeoShutterStatusTest {
 
@@ -75,6 +77,33 @@ class GeoShutterStatusTest {
         )
         assertEquals("X100VI", status.cameras.single().name)
         assertEquals("Fujifilm X100VI", status.cameras.single().model)
+    }
+
+    @Test
+    fun aFujifilmCameraWithLocationSyncOffShowsThat() {
+        fun state(locationSync: Boolean?) = geoShutterStatus(
+            enabled = true,
+            savedCameras = listOf(fuji),
+            devices = emptyList(),
+            sessions = mapOf(
+                "BB:02" to CameraSession(
+                    "BB:02",
+                    BleSessionPhase.Transmitting,
+                    protocol = CameraProtocol.FujifilmSecure,
+                    fujifilmLocationSync = CameraSettingState(supported = true, enabled = locationSync),
+                    cameraResponding = true,
+                ),
+            ),
+            transmitting = false,
+        )
+
+        val off = state(locationSync = false)
+        assertEquals(CameraState.LocationSyncOff, off.cameras.single().state)
+        assertEquals(listOf("BB:02"), off.locationSyncOff.map { it.id })
+        assertTrue(off.sending.isEmpty() && off.connecting.isEmpty())
+        // On or not read yet: waiting for the location as usual.
+        assertEquals(CameraState.Connecting, state(locationSync = true).cameras.single().state)
+        assertEquals(CameraState.Connecting, state(locationSync = null).cameras.single().state)
     }
 
     @Test

@@ -50,6 +50,11 @@ class LocationTransmissionManager(
     /** iOS: app-level transmission toggle. Android: always allowed. */
     private val isTransmissionAllowed: () -> Boolean = { true },
     private val protocolFor: (String) -> CameraProtocol = { CameraProtocol.Sony },
+    /**
+     * False while a ready camera wants no location (Fujifilm with location sync off).
+     * The phone's location is only tracked while some ready camera wants it.
+     */
+    private val wantsLocation: (String) -> Boolean = { true },
 ) {
     private val log = logging()
 
@@ -94,6 +99,8 @@ class LocationTransmissionManager(
         val id = identifier.uppercase()
         if (!isTransmissionAllowed()) return
         pendingRequests += id
+        // A request counts even if the camera's location sync looked off.
+        startIfNeeded()
         answerPendingRequests()
         if (id in pendingRequests) {
             log.d { "Location request from $id queued until a fix is available" }
@@ -106,15 +113,19 @@ class LocationTransmissionManager(
     }
 
     /**
-     * Re-evaluate whether tracking should run. Called after disconnects or
-     * app-enable toggles; stops everything when no ready session remains.
+     * Re-evaluate whether tracking should run. Called after disconnects, app-enable
+     * toggles and location sync changes; stops everything when no ready session
+     * wants a location.
      */
     fun updateTracking() {
-        if (readySessions().isEmpty() || !isTransmissionAllowed()) {
-            stopUpdates()
-        } else {
-            startIfNeeded()
-        }
+        if (shouldTrack()) startIfNeeded() else stopUpdates()
+    }
+
+    /** Some ready camera wants locations, or asked for one. */
+    private fun shouldTrack(): Boolean {
+        if (!isTransmissionAllowed()) return false
+        val ready = readySessions()
+        return ready.any(wantsLocation) || pendingRequests.any { it in ready }
     }
 
     /** Tear down all location state (service destroy / force shutdown). */
@@ -124,8 +135,7 @@ class LocationTransmissionManager(
     }
 
     private fun startIfNeeded() {
-        if (!isTransmissionAllowed()) return
-        if (readySessions().isEmpty()) return
+        if (!shouldTrack()) return
         if (_isActive.value) return
 
         // Discard a fix cached from a previous session if it is too old

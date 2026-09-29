@@ -46,8 +46,9 @@ import com.saschl.cameragps.R
 
 /**
  * Home-screen widget, for monitoring only: whether GeoShutter is on, and each saved
- * camera with its name, brand and model and a dot (green sending, amber connecting,
- * red away, grey while GeoShutter is off). A tap opens the app.
+ * camera with its name, brand and model and a dot (green sending, amber connecting or
+ * location sync off on the camera, red away, grey while GeoShutter is off). A tap opens
+ * the app.
  */
 class StatusWidget : GlanceAppWidget() {
 
@@ -72,6 +73,7 @@ private val Sending = ColorProvider(Color(0xFF2E9E4A))
 private val Connecting = ColorProvider(Color(0xFFE8A317))
 private val Away = ColorProvider(Color(0xFFD93025))
 private val Off = ColorProvider(Color(0xFF9E9E9E))
+private val SyncOffText = ColorProvider(Color(0xFFB26A00))
 
 @Composable
 private fun WidgetContent(context: Context, status: GeoShutterStatus) {
@@ -126,14 +128,14 @@ private fun WidgetContent(context: Context, status: GeoShutterStatus) {
             )
         }
         status.cameras.take(MAX_CAMERAS).forEach { camera ->
-            CameraRow(camera, status.enabled)
+            CameraRow(context, camera, status.enabled)
             Spacer(GlanceModifier.height(6.dp))
         }
     }
 }
 
 @Composable
-private fun CameraRow(camera: CameraStatus, enabled: Boolean) {
+private fun CameraRow(context: Context, camera: CameraStatus, enabled: Boolean) {
     Row(
         modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -147,6 +149,7 @@ private fun CameraRow(camera: CameraStatus, enabled: Boolean) {
                         !enabled -> Off
                         camera.state == CameraState.Sending -> Sending
                         camera.state == CameraState.Connecting -> Connecting
+                        camera.state == CameraState.LocationSyncOff -> Connecting
                         else -> Away
                     }
                 ),
@@ -169,6 +172,13 @@ private fun CameraRow(camera: CameraStatus, enabled: Boolean) {
                     maxLines = 1,
                 )
             }
+            if (enabled && camera.state == CameraState.LocationSyncOff) {
+                Text(
+                    text = context.getString(R.string.status_sync_off_short),
+                    style = TextStyle(fontSize = 12.sp, color = SyncOffText),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -178,6 +188,7 @@ private fun summary(context: Context, status: GeoShutterStatus): String = when {
     !status.enabled -> context.getString(R.string.status_off)
     status.sending.isNotEmpty() -> context.getString(R.string.status_sending_short)
     status.connecting.isNotEmpty() -> context.getString(R.string.status_connecting_short)
+    status.locationSyncOff.isNotEmpty() -> context.getString(R.string.status_sync_off_short)
     else -> context.getString(R.string.status_waiting_short)
 }
 

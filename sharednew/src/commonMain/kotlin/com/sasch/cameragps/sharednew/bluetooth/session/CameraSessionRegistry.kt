@@ -49,6 +49,18 @@ data class CameraSession(
 
     val isLocationReady: Boolean
         get() = phase == BleSessionPhase.Transmitting
+
+    /** False for a Fujifilm camera whose location sync is off: it asks for no location. */
+    val wantsLocation: Boolean
+        get() = protocol != CameraProtocol.FujifilmSecure || fujifilmLocationSync.enabled != false
+
+    /**
+     * Ready and taking locations. A Fujifilm camera only asks once it responds (see
+     * [cameraResponding]) and while its location sync is on.
+     */
+    val takesLocation: Boolean
+        get() = isLocationReady && wantsLocation &&
+                (protocol != CameraProtocol.FujifilmSecure || cameraResponding)
 }
 
 /**
