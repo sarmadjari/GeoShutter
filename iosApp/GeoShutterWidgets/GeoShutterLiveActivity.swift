@@ -33,7 +33,8 @@ struct GeoShutterLiveActivity: Widget {
             } compactLeading: {
                 LiveActivitySymbol(sending: context.state.sending, size: 17)
             } compactTrailing: {
-                LiveActivityDots(cameras: context.state.cameras)
+                // Only the symbol in the compact island: filled pin or outlined pin.
+                EmptyView()
             } minimal: {
                 LiveActivitySymbol(sending: context.state.sending, size: 17)
             }

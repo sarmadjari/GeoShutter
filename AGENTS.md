@@ -371,9 +371,11 @@ effect after a new deployment.
   one only while it is open or from a `LiveActivityIntent`, so ending it on every
   disconnect would lose it until the app is opened. Opening the app replaces one older
   than 2 hours (iOS ends it after 8); switching GeoShutter off or quitting the app ends
-  it. Same content and colors as the widget (navy card, coral symbol, a dot per camera),
-  the same settled status (2 s, 30 s for a drop). The *Transmission notification* setting
-  stays as it was.
+  it. Same content and colors as the widget (navy card, coral symbol, cameras with dots),
+  the same settled status (2 s, 30 s for a drop). The compact Dynamic Island shows **only
+  the status symbol** (filled pin while sending, outlined otherwise), no camera dots: the
+  maintainer's call after seeing it; the expanded one (long press) lists the cameras. The
+  *Transmission notification* setting stays as it was.
 - 2026-09-29: **Fujifilm on iOS** (the maintainer asked for parity; no iPhone to test
   with, so it is built and unit-tested only). Design: the AccessorySetupKit picker gets a
   second item for Fujifilm (`0x04D8`) **without** the picker's own Bluetooth pairing, so the

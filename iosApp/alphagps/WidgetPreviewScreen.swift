@@ -85,12 +85,11 @@ struct WidgetPreviewScreen: View {
             .background(StatusColors.navy, in: RoundedRectangle(cornerRadius: 24))
     }
 
-    /// Roughly the compact Dynamic Island, around the camera.
+    /// Roughly the compact Dynamic Island, around the camera: only the symbol.
     private func compactIsland(_ status: WidgetStatus) -> some View {
         HStack {
             LiveActivitySymbol(sending: status.sending, size: 17)
             Spacer(minLength: 70)
-            LiveActivityDots(cameras: status.cameras)
         }
         .padding(.horizontal, 14)
         .frame(height: 37)

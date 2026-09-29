@@ -14,8 +14,6 @@ nonisolated struct GeoShutterActivityAttributes: ActivityAttributes {
 nonisolated enum LiveActivityLayout {
     /// The cameras the Lock Screen and the expanded Dynamic Island have room for.
     static let maxCameras = 4
-    /// The compact Dynamic Island shows a dot for each of the first cameras.
-    static let maxDots = 3
 }
 
 extension StatusColors {
@@ -102,21 +100,6 @@ struct LiveActivityCameras: View {
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-/// A dot per camera, in the camera list's order: the compact Dynamic Island.
-struct LiveActivityDots: View {
-    let cameras: [WidgetStatus.Camera]
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(cameras.prefix(LiveActivityLayout.maxDots)) { camera in
-                Circle()
-                    .fill(StatusColors.dot(camera.state))
-                    .frame(width: 8, height: 8)
             }
         }
     }
