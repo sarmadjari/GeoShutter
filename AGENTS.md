@@ -765,6 +765,8 @@ effect after a new deployment.
   quitting), `NSSupportsLiveActivities`. Verified: JVM 240 and iOS 285 tests, simulator
   build without warnings, the Lock Screen card and a real Live Activity started in the
   simulator (`liveactivity`), and a device build installed on the iPhone, whose status JSON
-  carries `"liveActivity":true`. Still to check on the iPhone: the Lock Screen and Dynamic
-  Island with the cameras, starting from the control while the app is in the background,
-  and the renewal after 2 hours.
+  carries `"liveActivity":true`. The compact Dynamic Island then got only the status
+  symbol (the maintainer's call). The maintainer reported everything working on the
+  iPhone with the X100VI and α1 II (2026-09-30, 00:10). Not confirmed separately:
+  starting it from the control while the app is in the background, and the renewal after
+  2 hours.
